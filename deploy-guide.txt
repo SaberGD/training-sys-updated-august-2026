@@ -1,0 +1,32 @@
+
+DEPLOYMENT GUIDE (HOSTINGER)
+===========================
+
+1. Build the project locally:
+   npm run build
+
+2. The output will be in the 'dist' folder.
+
+3. Log in to Hostinger hPanel.
+
+4. Go to File Manager for your domain (training.sabergroupacademy.com).
+
+5. Upload the contents of the 'dist' folder directly to the 'public_html' directory.
+
+6. Configure .htaccess for React Router (SPAs):
+   If you use BrowserHistory (though we use HashRouter as requested to avoid path issues), 
+   create a .htaccess file in public_html with:
+   
+   <IfModule mod_rewrite.c>
+     RewriteEngine On
+     RewriteBase /
+     RewriteRule ^index\.html$ - [L]
+     RewriteCond %{REQUEST_FILENAME} !-f
+     RewriteCond %{REQUEST_FILENAME} !-d
+     RewriteRule . /index.html [L]
+   </IfModule>
+
+7. In Firebase Console (Authentication > Settings > Authorized Domains):
+   Add "training.sabergroupacademy.com" to the list of authorized domains.
+
+8. Ensure Firestore rules are deployed to the Firebase console.

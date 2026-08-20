@@ -1,0 +1,10 @@
+{
+  "name": "Remix: SABER GROUP Training management system",
+  "description": "A high-performance Training Management System focused on lecture-by-lecture evaluations, student rankings, and real-time attendance tracking.",
+  "requestFramePermissions": [
+    "camera"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

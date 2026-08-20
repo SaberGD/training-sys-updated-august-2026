@@ -1,0 +1,260 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper function to check if user is authenticated
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    // Helper to get user record
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+    
+    // Helper for roles
+    function hasRole(role) {
+      return isSignedIn() && getUserData().role == role;
+    }
+    
+    function isStaff() {
+      return hasRole('admin') || hasRole('coordinator') || hasRole('team_leader');
+    }
+
+    // Users collection
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      allow write: if isStaff() || (isSignedIn() && request.auth.uid == userId);
+    }
+
+    // Courses collection
+    match /courses/{courseId} {
+      allow read: if true;
+      allow write: if isStaff();
+    }
+
+    // Groups collection
+    match /groups/{groupId} {
+      allow read: if true;
+      allow write: if isStaff();
+    }
+
+    // Students collection
+    match /students/{studentId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Enrollments collection
+    match /enrollments/{enrollmentId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Feedback collection
+    match /feedback/{feedbackId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Global Evaluation Forms collection
+    match /global_eval_forms/{id} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Sessions collection
+    match /sessions/{sessionId} {
+      allow read: if true;
+      allow write: if isStaff();
+    }
+
+    // Weekly Schedules, Weeks & Items
+    match /weeks/{id} {
+      allow read: if isSignedIn();
+      allow write: if isStaff();
+    }
+    
+    match /weekDays/{id} {
+      allow read: if isSignedIn();
+      allow write: if isStaff();
+    }
+    
+    match /scheduleItems/{id} {
+      allow read: if isSignedIn();
+      allow write: if isStaff() || (isSignedIn() && request.resource.data.trainerId == request.auth.uid);
+    }
+
+    // Daily Ops
+    match /dailyTrainerOps/{id} {
+      allow read: if isStaff() || (isSignedIn() && id.startsWith(request.auth.uid));
+      allow write: if isSignedIn() && id.startsWith(request.auth.uid);
+    }
+
+    // Session Meta
+    match /sessionMeta/{id} {
+      allow read: if true;
+      allow write: if isSignedIn();
+    }
+
+    // Evaluation & Ranking collections
+    match /lectureEvaluations/{id} {
+      allow read: if true;
+      allow write: if true; 
+    }
+    
+    match /groupRankings/{id} {
+      allow read: if true;
+      allow write: if true;
+    }
+    
+    match /finalProjects/{id} {
+      allow read: if true;
+      allow write: if true;
+    }
+    
+    match /penalties/{id} {
+      allow read: if true;
+      allow write: if true;
+    }
+    
+    match /attendance/{id} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Marketing Resources
+    match /marketingResources/{id} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn();
+    }
+
+    match /marketingCategories/{id} {
+      allow read: if isSignedIn();
+      allow write: if isStaff();
+    }
+
+    match /marketingSectionTemplates/{id} {
+      allow read: if isSignedIn();
+      allow write: if isStaff();
+    }
+
+    // Activity Logs
+    match /activityLogs/{id} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Role Permissions
+    match /rolePermissions/{role} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Assigned Tasks
+    match /assignedTasks/{taskId} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn();
+    }
+
+    // Recurring Task Templates
+    match /recurringDailyTemplates/{templateId} {
+      allow read: if isSignedIn();
+      allow write: if isStaff();
+    }
+
+    // Trainer Daily Reports
+    match /trainerDailyReports/{reportId} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn();
+    }
+
+    // Performance Reports (Daily & Weekly)
+    match /dailyReports/{reportId} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn();
+    }
+
+    match /weeklyReports/{reportId} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn();
+    }
+
+    // Student Follow Ups
+    match /studentFollowUps/{id} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn();
+    }
+
+    // Label Definitions
+    match /labelDefinitions/{id} {
+      allow read: if isSignedIn();
+      allow write: if isStaff();
+    }
+
+    // Complaints
+    match /complaints/{id} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn();
+    }
+
+    // Notifications
+    match /notifications/{id} {
+      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow write: if isSignedIn(); // System or other users can send notifications
+    }
+
+    // Trainer Plans
+    match /trainerPlans/{id} {
+      allow read, write: if isSignedIn();
+    }
+
+    // Group Execution Plans
+    match /groupExecutionPlans/{id} {
+      allow read: if true;
+      allow write: if isSignedIn();
+    }
+    
+    // Meta (Migrations)
+    match /meta/{id} {
+      allow read: if isSignedIn();
+      allow write: if isStaff();
+    }
+
+    // Global Settings
+    match /settings/{id} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Google Connections
+    match /googleConnections/{id} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Email Logs
+    match /emailLogs/{id} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Google Audit Logs
+    match /googleAuditLogs/{id} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Reschedule Logs
+    match /rescheduleLogs/{id} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Email Templates
+    match /emailTemplates/{id} {
+      allow read: if true;
+      allow write: if true;
+    }
+  }
+}
