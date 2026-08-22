@@ -35,6 +35,7 @@ import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsOfService from './pages/TermsOfService';
 import StudentPortal from './pages/StudentPortal';
 import StudentDirectory from './pages/StudentDirectory';
+import GraduationProjectsPage from './pages/GraduationProjects';
 import { PermissionsProvider } from './contexts/PermissionsContext';
 
 export const ViewAsContext = React.createContext<{
@@ -104,6 +105,7 @@ const App: React.FC = () => {
                       <Route path="/dashboard" element={<Dashboard user={user} />} />
                       <Route path="/groups" element={<Groups user={user} />} />
                       <Route path="/groups/:id" element={<GroupDetails user={user} />} />
+                      <Route path="/graduation-projects" element={<GraduationProjectsPage user={user} />} />
                       <Route path="/my-groups" element={<Groups user={user} isTrainerOnly />} />
                       <Route path="/tasks" element={<TasksPage user={user} />} />
                       <Route path="/marketing" element={<MarketingResourcesPage user={user} />} />

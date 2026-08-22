@@ -716,6 +716,88 @@ export interface FinalProject {
   updatedAt: any;
 }
 
+export interface GraduationProjectExtraLink {
+  title: string;
+  url: string;
+}
+
+export interface GraduationProject {
+  id: string;
+  groupId: string;
+  groupName: string;
+  courseName?: string;
+  title: string;
+  brandName: string;
+  description: string;
+  requirements: string;
+  telegramChannelLink: string;
+  submissionGuideVideoLink?: string;
+  extraLinks?: GraduationProjectExtraLink[];
+  startDate: string;
+  endDate: string;
+  rules: string;
+  assignedGroupIds?: string[];
+  assignedGroupNames?: string[];
+  templateId?: string;
+  createdAt: any;
+  createdByUid: string;
+  createdByName: string;
+}
+
+export interface GraduationProjectSubmission {
+  id: string;
+  projectId: string;
+  groupId: string;
+  studentId: string;
+  studentName: string;
+  studentIdNum?: string;
+  driveLink: string;
+  checkConfirmedOpen: boolean;
+  checkUploadedEditableFiles: boolean;
+  checkReadRules: boolean;
+  extraLinks?: GraduationProjectExtraLink[];
+  submittedAt: any;
+  updatedAt: any;
+  unsubmittedReason?: string;
+}
+
+export interface GraduationProjectEvaluation {
+  id: string;
+  projectId: string;
+  groupId: string;
+  studentId: string;
+  studentName: string;
+  c1_submission: number;
+  c2_noPixelatedNoSizeErr: number;
+  c3_typography: number;
+  c4_aiUsage: number;
+  c5_reference: number;
+  c6_completeFilesOpenLinks: number;
+  bonusPoints: number;
+  deductionPoints: number;
+  deductionReason?: string;
+  isExtraWorkshopsEligible: boolean;
+  isRejected: boolean;
+  rejectionReason?: string;
+  totalScore: number;
+  evaluatedByUid?: string;
+  evaluatedByName?: string;
+  updatedAt: any;
+}
+
+export interface GraduationProjectComment {
+  id: string;
+  projectId: string;
+  studentId: string;
+  groupId: string;
+  title: string;
+  comment: string;
+  designLink?: string;
+  createdAt: any;
+  createdByUid?: string;
+  createdByName?: string;
+}
+
 export interface Penalty {
   id: string;
   groupId: string;

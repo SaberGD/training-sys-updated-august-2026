@@ -30,6 +30,7 @@ import { getApiEndpoint } from '../lib/apiConfig';
 import GroupModal from '../components/GroupModal';
 import StudentStatusModal from '../components/StudentStatusModal';
 import BulkStudentsImportModal from '../components/BulkStudentsImportModal';
+import { GroupGraduationProjectsTab } from '../components/GroupGraduationProjectsTab';
 import { TrainerBroadcastEmailModal } from '../components/TrainerBroadcastEmailModal';
 import { formatTime12h, parseTimeToMinutes, normalizePhoneNumber } from '../utils';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -1697,9 +1698,9 @@ const GroupDetails: React.FC<{ user: User }> = ({ user }) => {
 
       <div className="mb-8 overflow-hidden">
         <nav className="flex gap-1.5 bg-slate-900 p-1.5 rounded-2xl w-full md:w-fit overflow-x-auto no-scrollbar scroll-smooth shadow-inner border border-slate-800">
-          {['lectures', 'evaluation', 'taskProgress', 'penalties', 'ranking', 'students', 'feedback'].map((tab) => (
+          {['lectures', 'evaluation', 'graduationProjects', 'taskProgress', 'penalties', 'ranking', 'students', 'feedback'].map((tab) => (
             <button key={tab} onClick={() => handleTabChange(tab)} className={`px-5 py-2.5 rounded-xl text-xs font-black transition-all capitalize whitespace-nowrap tracking-wider flex-1 md:flex-none ${activeTab === tab ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}>
-              {tab === 'taskProgress' ? 'Task Progress' : tab === 'feedback' ? 'تقييمات المحاضرات ⭐' : tab}
+              {tab === 'graduationProjects' ? 'مشاريع التخرج 🎓' : tab === 'taskProgress' ? 'Task Progress' : tab === 'feedback' ? 'تقييمات المحاضرات ⭐' : tab}
             </button>
           ))}
         </nav>
@@ -2072,9 +2073,6 @@ const GroupDetails: React.FC<{ user: User }> = ({ user }) => {
                   </button>
                 );
               })}
-              <button onClick={() => setEvaluationMode('project')} className={`w-11 h-11 rounded-xl text-xs font-black border transition-all flex items-center justify-center ${evaluationMode === 'project' ? 'bg-indigo-600 text-white border-indigo-500 shadow-xl' : 'bg-slate-800 text-indigo-400 border-indigo-900/50 hover:bg-indigo-950/30'}`}>
-                P
-              </button>
             </div>
           </div>
 
@@ -3781,6 +3779,15 @@ const GroupDetails: React.FC<{ user: User }> = ({ user }) => {
             )}
           </div>
         </div>
+      )}
+
+      {activeTab === 'graduationProjects' && group && (
+        <GroupGraduationProjectsTab
+          group={group}
+          students={students}
+          rankings={rankings}
+          user={user}
+        />
       )}
 
       {activeTab === 'taskProgress' && (

@@ -256,5 +256,26 @@ service cloud.firestore {
       allow read: if true;
       allow write: if true;
     }
+
+    // Graduation Projects collections
+    match /graduationProjects/{id} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    match /graduationSubmissions/{id} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    match /graduationEvaluations/{id} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    match /graduationComments/{id} {
+      allow read: if true;
+      allow write: if true;
+    }
   }
 }

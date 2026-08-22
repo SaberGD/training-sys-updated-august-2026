@@ -59,6 +59,7 @@ const Layout: React.FC<LayoutProps> = ({ user, children }) => {
     { label: lang === 'ar' ? 'ربط حساب Google 🔗' : 'Trainer Google Connect 🔗', path: '/trainer/google-connect', icon: '🔑', show: ['trainer', 'team_leader', 'admin'].includes(user.role) },
     { label: t('courses'), path: '/courses', icon: '📚', show: hasPermission(user, 'viewCourses') },
     { label: t('groups'), path: '/groups', icon: '🏢', show: hasPermission(user, 'viewGroups') },
+    { label: lang === 'ar' ? 'مشاريع التخرج 🎓' : 'Graduation Projects 🎓', path: '/graduation-projects', icon: '🎓', show: true },
     { label: t('myGroups'), path: '/my-groups', icon: '🏢', show: false },
     { label: t('followUps'), path: '/follow-ups', icon: '🎯', show: true },
     { label: 'Labels', path: '/labels', icon: '🏷️', show: ['admin', 'coordinator'].includes(user.role) },

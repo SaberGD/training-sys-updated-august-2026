@@ -13,7 +13,7 @@ import {
   AppNotification, TaskStatus, TaskPriority, SubTask, TaskFile, TaskComment,
   StudentFollowUp, FollowUpComment, Complaint, ComplaintStatus, LabelDefinition,
   CourseChecklistItemTemplate, TrainerPlan, GroupChecklistItem, GroupExecutionPlan,
-  LectureFeedback
+  LectureFeedback, GraduationProject, GraduationProjectSubmission, GraduationProjectEvaluation, GraduationProjectComment
 } from '../types';
 
 const { 
@@ -3015,3 +3015,147 @@ export const updateStudentCredsSentStatus = async (
     performedByRole: user.role
   });
 };
+
+export const saveGraduationProject = async (project: Partial<GraduationProject>, performedBy: User) => {
+  const projectId = project.id || doc(collection(db, 'graduationProjects')).id;
+  const projectData = {
+    ...project,
+    id: projectId,
+    updatedAt: serverTimestamp(),
+    createdAt: project.createdAt || serverTimestamp(),
+    createdByUid: project.createdByUid || performedBy.uid,
+    createdByName: project.createdByName || performedBy.name
+  };
+  await setDoc(doc(db, 'graduationProjects', projectId), projectData, { merge: true });
+  await logActivity({
+    action: project.id ? 'GRADUATION_PROJECT_UPDATE' : 'GRADUATION_PROJECT_CREATE',
+    entityType: 'graduationProject',
+    entityId: projectId,
+    entityName: project.title || 'Graduation Project',
+    performedByUid: performedBy.uid,
+    performedByName: performedBy.name,
+    performedByRole: performedBy.role,
+    details: { groupId: project.groupId, title: project.title }
+  });
+  return projectId;
+};
+
+export const saveGraduationProjectSubmission = async (submission: Partial<GraduationProjectSubmission>) => {
+  if (!submission.projectId || !submission.studentId) throw new Error("Missing project ID or student ID.");
+  const subId = submission.id || `${submission.projectId}_${submission.studentId}`;
+  const subData = {
+    ...submission,
+    id: subId,
+    updatedAt: serverTimestamp(),
+    submittedAt: submission.submittedAt || new Date().toISOString()
+  };
+  await setDoc(doc(db, 'graduationSubmissions', subId), subData, { merge: true });
+  return subId;
+};
+
+export const saveGraduationProjectEvaluation = async (evaluation: Partial<GraduationProjectEvaluation>, performedBy: User) => {
+  if (!evaluation.projectId || !evaluation.studentId || !evaluation.groupId) throw new Error("Missing evaluation parameters.");
+  const evalId = `${evaluation.projectId}_${evaluation.studentId}`;
+  const evalData = {
+    ...evaluation,
+    id: evalId,
+    updatedAt: serverTimestamp(),
+    evaluatedByUid: performedBy.uid,
+    evaluatedByName: performedBy.name
+  };
+  await setDoc(doc(db, 'graduationEvaluations', evalId), evalData, { merge: true });
+
+  // Sync to finalProjects collection for ranking calculations
+  const finalProjectData: Partial<FinalProject> = {
+    id: `${evaluation.groupId}_${evaluation.studentId}`,
+    groupId: evaluation.groupId,
+    studentId: evaluation.studentId,
+    score: evaluation.totalScore || 0,
+    note: evaluation.rejectionReason || 'تقييم مشروع التخرج',
+    updatedAt: serverTimestamp()
+  };
+  await setDoc(doc(db, 'finalProjects', `${evaluation.groupId}_${evaluation.studentId}`), finalProjectData, { merge: true });
+
+  // Recalculate rank
+  await recalculateStudentRanking(evaluation.groupId, evaluation.studentId);
+
+  await logActivity({
+    action: 'GRADUATION_PROJECT_EVALUATE',
+    entityType: 'graduationProjectEvaluation',
+    entityId: evalId,
+    entityName: evaluation.studentName || 'Student Evaluation',
+    performedByUid: performedBy.uid,
+    performedByName: performedBy.name,
+    performedByRole: performedBy.role,
+    details: { score: evaluation.totalScore, isRejected: evaluation.isRejected }
+  });
+};
+
+export const saveGraduationProjectComment = async (comment: Partial<GraduationProjectComment>, performedBy: User) => {
+  const commentId = comment.id || doc(collection(db, 'graduationComments')).id;
+  const commentData = {
+    ...comment,
+    id: commentId,
+    createdAt: comment.createdAt || serverTimestamp(),
+    createdByUid: comment.createdByUid || performedBy.uid,
+    createdByName: comment.createdByName || performedBy.name
+  };
+  await setDoc(doc(db, 'graduationComments', commentId), commentData, { merge: true });
+  return commentId;
+};
+
+export const deleteGraduationProjectComment = async (commentId: string) => {
+  await deleteDoc(doc(db, 'graduationComments', commentId));
+};
+
+export const importGraduationProjectToGroups = async (
+  sourceProject: GraduationProject,
+  targetGroups: { id: string; name: string }[],
+  performedBy: User
+) => {
+  for (const tg of targetGroups) {
+    if (tg.id === sourceProject.groupId) continue; // Skip source group
+    const newProjectId = doc(collection(db, 'graduationProjects')).id;
+    const importedProject: Partial<GraduationProject> = {
+      id: newProjectId,
+      groupId: tg.id,
+      groupName: tg.name,
+      courseName: sourceProject.courseName || '',
+      title: sourceProject.title,
+      brandName: sourceProject.brandName,
+      description: sourceProject.description,
+      requirements: sourceProject.requirements,
+      telegramChannelLink: sourceProject.telegramChannelLink,
+      submissionGuideVideoLink: sourceProject.submissionGuideVideoLink || '',
+      extraLinks: sourceProject.extraLinks || [],
+      startDate: sourceProject.startDate,
+      endDate: sourceProject.endDate,
+      rules: sourceProject.rules,
+      templateId: sourceProject.id,
+      createdAt: serverTimestamp(),
+      createdByUid: performedBy.uid,
+      createdByName: performedBy.name
+    };
+    await setDoc(doc(db, 'graduationProjects', newProjectId), importedProject);
+
+    // Update source project assignedGroupIds & assignedGroupNames
+    const updatedAssignedIds = Array.from(new Set([...(sourceProject.assignedGroupIds || []), tg.id]));
+    const updatedAssignedNames = Array.from(new Set([...(sourceProject.assignedGroupNames || []), tg.name]));
+    await updateDoc(doc(db, 'graduationProjects', sourceProject.id), {
+      assignedGroupIds: updatedAssignedIds,
+      assignedGroupNames: updatedAssignedNames
+    });
+  }
+
+  await logActivity({
+    action: 'GRADUATION_PROJECT_IMPORT',
+    entityType: 'graduationProject',
+    entityId: sourceProject.id,
+    entityName: sourceProject.title,
+    performedByUid: performedBy.uid,
+    performedByName: performedBy.name,
+    performedByRole: performedBy.role,
+    details: { importedToCount: targetGroups.length }
+  });
+};
+
