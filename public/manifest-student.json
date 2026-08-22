@@ -2,7 +2,7 @@
   "name": "بوابة الطالب - SABER GROUP",
   "short_name": "بوابة الطالب",
   "description": "بوابة الطالب لمتابعة الحضور والتقييمات وجدول الجلسات في أكاديمية SABER GROUP",
-  "start_url": "/#/student-portal",
+  "start_url": "/student-portal.html",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait-primary",
