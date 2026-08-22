@@ -2346,15 +2346,14 @@ const StudentPortal: React.FC = () => {
         <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-red-600/10 blur-[100px] rounded-full -translate-x-1/4 translate-y-1/4"></div>
 
         <div className="mb-10 text-center relative z-10">
-          <div className="relative w-28 h-28 mx-auto flex items-center justify-center">
+          <div className="relative w-40 h-40 mx-auto flex items-center justify-center">
               <style>{`@keyframes emberPulse{0%,100%{transform:scale(0.88);opacity:.45}50%{transform:scale(1.22);opacity:.9}}`}</style>
-              <div className="absolute inset-[-18px] rounded-3xl pointer-events-none" style={{background:'radial-gradient(circle, rgba(232,92,59,0.7) 0%, rgba(196,50,31,0.35) 45%, transparent 75%)', filter:'blur(14px)', animation:'emberPulse 2.4s ease-in-out infinite'}}></div>
-              <div className="relative w-20 h-20 rounded-3xl flex items-center justify-center overflow-hidden border bg-black" style={{borderColor:'rgba(196,50,31,0.45)', boxShadow:'0 0 30px rgba(196,50,31,0.3)'}}>
+              <div className="absolute inset-[-26px] rounded-3xl pointer-events-none" style={{background:'radial-gradient(circle, rgba(232,92,59,0.7) 0%, rgba(196,50,31,0.35) 45%, transparent 75%)', filter:'blur(18px)', animation:'emberPulse 2.4s ease-in-out infinite'}}></div>
+              <div className="relative w-28 h-28 rounded-3xl flex items-center justify-center overflow-hidden border bg-black" style={{borderColor:'rgba(196,50,31,0.45)', boxShadow:'0 0 30px rgba(196,50,31,0.3)'}}>
                 <img src="/apple-touch-icon.png" alt="SABER GROUP" className="w-full h-full object-contain" />
               </div>
             </div>
-          <h1 className="text-4xl font-black text-white tracking-tighter mb-2">SABER GROUP ACADEMY</h1>
-          <p className="text-slate-500 font-black uppercase tracking-[0.2rem] text-[10px]">Student Workspace & Attendance Portal</p>
+          <p className="text-slate-500 font-black uppercase tracking-[0.2rem] text-[10px] mt-3">Student Workspace & Attendance Portal</p>
         </div>
 
         <div className="w-full max-w-md bg-slate-900 rounded-3xl shadow-2xl p-8 relative z-10 border border-slate-800">
