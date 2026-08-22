@@ -20,6 +20,21 @@ import { GemyChatWidget } from '../components/GemyChatWidget';
 const { collection, getDocs, getDoc, doc, query, where, addDoc, serverTimestamp, onSnapshot, updateDoc, limit } = firestore as any;
 
 const StudentPortal: React.FC = () => {
+  useEffect(() => {
+    const manifestLink = document.getElementById('app-manifest') as HTMLLinkElement | null;
+    const appleTitleMeta = document.getElementById('apple-title') as HTMLMetaElement | null;
+    const prevManifestHref = manifestLink?.getAttribute('href') || '/manifest.json';
+    const prevDocTitle = document.title;
+    const prevAppleTitle = appleTitleMeta?.getAttribute('content') || 'SG Training';
+    if (manifestLink) manifestLink.setAttribute('href', '/manifest-student.json');
+    if (appleTitleMeta) appleTitleMeta.setAttribute('content', 'بوابة الطالب');
+    document.title = 'بوابة الطالب - SABER GROUP';
+    return () => {
+      if (manifestLink) manifestLink.setAttribute('href', prevManifestHref);
+      if (appleTitleMeta) appleTitleMeta.setAttribute('content', prevAppleTitle);
+      document.title = prevDocTitle;
+    };
+  }, []);
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   
@@ -2434,22 +2449,33 @@ const StudentPortal: React.FC = () => {
     e.preventDefault();
     if (!currentStudent || !graduationProject || !studentGroup) return;
 
-    const isPastDeadline = graduationProject.submissionEndDate && new Date() > new Date(graduationProject.submissionEndDate);
+    const projStartDate = graduationProject.startDate || (graduationProject as any).submissionStartDate || '';
+    const projEndDate = graduationProject.endDate || (graduationProject as any).submissionEndDate || '';
 
-    if (!isPastDeadline) {
-      if (!submissionDriveLink.trim()) {
-        alert('برجاء إدخال رابط مشروع التخرج (Google Drive / Figma / Behance)!');
-        return;
-      }
-      if (!checkOpen || !checkEditable || !checkRules) {
-        alert('برجاء الموافقة وتفعيل الشروط الثلاثة الأساسية لتأكيد التسليم!');
-        return;
-      }
-    } else {
-      if (!unsubmittedReasonText.trim() && !submissionDriveLink.trim()) {
-        alert('انتهى موعد التسليم! يرجى توضيح سبب عدم التسليم أو إدخال رابط المشروع للفرصة المتأخرة.');
-        return;
-      }
+    const now = new Date();
+    const startDT = projStartDate ? new Date(projStartDate) : null;
+    const endDT = projEndDate ? new Date(projEndDate) : null;
+
+    const isPastDeadline = endDT ? now > endDT : false;
+    const isBeforeStart = startDT ? now < startDT : false;
+
+    if (isBeforeStart) {
+      alert(`عذراً، لم يبدأ موعد تسليم مشروع التخرج بعد! موعد البدء: ${projStartDate.replace('T', ' ')}`);
+      return;
+    }
+
+    if (isPastDeadline) {
+      alert(`عذراً! انتهى موعد التسليم النهائي لهذا المشروع (الديدلاين بتاريخ: ${projEndDate.replace('T', ' ')}). وغير مسموح بالتسليم بعد انتهاء المهلة.`);
+      return;
+    }
+
+    if (!submissionDriveLink.trim()) {
+      alert('برجاء إدخال رابط مشروع التخرج (Google Drive / Figma / Behance)!');
+      return;
+    }
+    if (!checkOpen || !checkEditable || !checkRules) {
+      alert('برجاء الموافقة وتفعيل الشروط الثلاثة الأساسية لتأكيد التسليم!');
+      return;
     }
 
     setIsSubmittingProject(true);
@@ -2467,7 +2493,7 @@ const StudentPortal: React.FC = () => {
         checkUploadedEditableFiles: checkEditable,
         checkReadRules: checkRules,
         extraLinks: submissionExtraLinks.filter(l => l.title.trim() && l.url.trim()),
-        unsubmittedReason: unsubmittedReasonText.trim()
+        unsubmittedReason: ''
       });
 
       setSubmissionSuccessMsg('تم تسليم مشروع التخرج بنجاح! 🚀 بالتوفيق يا مبدع');
@@ -2755,142 +2781,291 @@ const StudentPortal: React.FC = () => {
           </div>
         )}
         {/* GRADUATION PROJECT CARD FOR STUDENT */}
-        {graduationProject && graduationProject.status !== 'draft' && (
-          <div className="bg-gradient-to-br from-slate-900 via-purple-950/30 to-slate-900 border-2 border-purple-500/30 rounded-4xl p-6 sm:p-8 shadow-2xl relative overflow-hidden font-arabic text-right space-y-6" dir="rtl">
-            <div className="absolute top-0 right-0 w-96 h-96 bg-purple-600/10 blur-[100px] rounded-full pointer-events-none" />
-            
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-800 pb-5 relative z-10">
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="bg-purple-500/20 text-purple-300 font-black text-xs px-3 py-1 rounded-full border border-purple-500/30 flex items-center gap-1.5">
-                    🎓 مشروع التخرج النهائي (Final Graduation Project)
-                  </span>
-                  {graduationProject.brandName && (
-                    <span className="bg-amber-500/20 text-amber-300 font-bold text-xs px-3 py-1 rounded-full border border-amber-500/30">
-                      براند: {graduationProject.brandName}
-                    </span>
-                  )}
-                  {graduationSubmission ? (
-                    <span className="bg-emerald-500/20 text-emerald-400 font-black text-xs px-3 py-1 rounded-full border border-emerald-500/30 flex items-center gap-1">
-                      <CheckCircle size={14} /> تم التسليم 🟢
-                    </span>
-                  ) : (
-                    <span className="bg-amber-500/20 text-amber-300 font-black text-xs px-3 py-1 rounded-full border border-amber-500/30 flex items-center gap-1 animate-pulse">
-                      <AlertTriangle size={14} /> بانتظار التسليم 🟡
-                    </span>
-                  )}
-                </div>
-                <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight pt-1">
-                  {graduationProject.title}
-                </h2>
-                {graduationProject.submissionStartDate && graduationProject.submissionEndDate && (
-                  <p className="text-xs text-slate-400 font-bold flex items-center gap-2">
-                    <Calendar size={14} className="text-purple-400" />
-                    فترة التسليم المتاحة: من <span className="text-white font-mono">{graduationProject.submissionStartDate}</span> إلى <span className="text-amber-400 font-mono">{graduationProject.submissionEndDate}</span>
-                  </p>
-                )}
-              </div>
+        {graduationProject && graduationProject.status !== 'draft' && (() => {
+          const projStartDate = graduationProject.startDate || (graduationProject as any).submissionStartDate || '';
+          const projEndDate = graduationProject.endDate || (graduationProject as any).submissionEndDate || '';
+          const projTelegramLink = graduationProject.telegramChannelLink || (graduationProject as any).telegramChannelUrl || '';
+          const projVideoLink = graduationProject.submissionGuideVideoLink || (graduationProject as any).explanationVideoUrl || '';
+          const projRequirements = graduationProject.requirements || (graduationProject as any).deliverablesRequired || '';
+          const projRules = graduationProject.rules || (Array.isArray((graduationProject as any).mandatoryRules) ? (graduationProject as any).mandatoryRules.join('\n') : ((graduationProject as any).mandatoryRules || ''));
+          const projExtraLinks = graduationProject.extraLinks || [];
 
-              <div className="flex items-center gap-2 shrink-0 flex-wrap">
-                <button
-                  type="button"
-                  onClick={() => setIsProjectDetailsModalOpen(true)}
-                  className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-black text-xs rounded-xl border border-slate-700 transition-all cursor-pointer flex items-center gap-1.5"
-                >
-                  <BookOpen size={15} />
-                  <span>تفاصيل وقواعد المشروع 📜</span>
-                </button>
+          const now = new Date();
+          const startDT = projStartDate ? new Date(projStartDate) : null;
+          const endDT = projEndDate ? new Date(projEndDate) : null;
 
-                {graduationProject.telegramChannelUrl && (
-                  <a
-                    href={graduationProject.telegramChannelUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="px-4 py-2.5 bg-sky-600/20 hover:bg-sky-600/30 text-sky-400 font-black text-xs rounded-xl border border-sky-500/30 transition-all cursor-pointer flex items-center gap-1.5"
-                  >
-                    <Send size={15} />
-                    <span>قناة التليجرام 📢</span>
-                  </a>
-                )}
+          const isPastDeadline = endDT ? now > endDT : false;
+          const isBeforeStart = startDT ? now < startDT : false;
 
-                {graduationProject.explanationVideoUrl && (
-                  <a
-                    href={graduationProject.explanationVideoUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="px-4 py-2.5 bg-rose-600/20 hover:bg-rose-600/30 text-rose-400 font-black text-xs rounded-xl border border-rose-500/30 transition-all cursor-pointer flex items-center gap-1.5"
-                  >
-                    <Video size={15} />
-                    <span>فيديو الشرح والتسليم 🎥</span>
-                  </a>
-                )}
-              </div>
-            </div>
-
-            {/* STATUS & ACTION BANNER */}
-            <div className="bg-slate-950/80 p-5 sm:p-6 rounded-3xl border border-slate-800 relative z-10 space-y-4">
-              {graduationEvaluation ? (
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-emerald-950/30 border border-emerald-500/30 p-4 rounded-2xl">
-                  <div className="space-y-1">
-                    <span className="text-xs text-emerald-400 font-black uppercase tracking-wider block">
-                      🎉 تم تقييم مشروع التخرج الخاص بك من قِبل المحاضر!
+          return (
+            <div className="bg-gradient-to-br from-slate-900 via-purple-950/30 to-slate-900 border-2 border-purple-500/30 rounded-4xl p-6 sm:p-8 shadow-2xl relative overflow-hidden font-arabic text-right space-y-6" dir="rtl">
+              <div className="absolute top-0 right-0 w-96 h-96 bg-purple-600/10 blur-[100px] rounded-full pointer-events-none" />
+              
+              {/* Header section */}
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-800 pb-5 relative z-10">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="bg-purple-500/20 text-purple-300 font-black text-xs px-3 py-1 rounded-full border border-purple-500/30 flex items-center gap-1.5">
+                      🎓 مشروع التخرج النهائي (Final Graduation Project)
                     </span>
-                    <div className="flex items-center gap-3">
-                      <span className="text-2xl font-black text-white">
-                        الدرجة الإجمالية: <span className="text-emerald-400">{graduationEvaluation.totalScore}</span> / {graduationProject.criteria?.reduce((s, c) => s + c.maxScore, 0) || 100}
+                    {graduationProject.brandName && (
+                      <span className="bg-amber-500/20 text-amber-300 font-bold text-xs px-3 py-1 rounded-full border border-amber-500/30">
+                        البراند المستهدف: {graduationProject.brandName}
                       </span>
-                    </div>
+                    )}
+                    {graduationSubmission ? (
+                      <span className="bg-emerald-500/20 text-emerald-400 font-black text-xs px-3 py-1 rounded-full border border-emerald-500/30 flex items-center gap-1">
+                        <CheckCircle size={14} /> تم التسليم 🟢
+                      </span>
+                    ) : isPastDeadline ? (
+                      <span className="bg-rose-500/20 text-rose-300 font-black text-xs px-3 py-1 rounded-full border border-rose-500/30 flex items-center gap-1">
+                        <XCircle size={14} /> التسليم مغلق (انتهى الديدلاين) 🔴
+                      </span>
+                    ) : isBeforeStart ? (
+                      <span className="bg-sky-500/20 text-sky-300 font-black text-xs px-3 py-1 rounded-full border border-sky-500/30 flex items-center gap-1">
+                        <Clock size={14} /> بانتظار موعد البدء ⏳
+                      </span>
+                    ) : (
+                      <span className="bg-amber-500/20 text-amber-300 font-black text-xs px-3 py-1 rounded-full border border-amber-500/30 flex items-center gap-1 animate-pulse">
+                        <AlertTriangle size={14} /> بانتظار التسليم (مفتوح حالياً) 🟡
+                      </span>
+                    )}
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => setIsProjectEvalViewModalOpen(true)}
-                    className="px-5 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs rounded-xl shadow-lg transition-all cursor-pointer flex items-center gap-2"
-                  >
-                    <Award size={16} />
-                    <span>عرض تفاصيل التقييم وملاحظات الديزاين 📊</span>
-                  </button>
+                  <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight pt-1">
+                    {graduationProject.title}
+                  </h2>
                 </div>
-              ) : graduationSubmission ? (
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-purple-950/30 border border-purple-500/30 p-4 rounded-2xl">
-                  <div className="space-y-1">
-                    <span className="text-xs text-purple-400 font-black block">
-                      ✅ تم استلام رابط المشروع بنجاح، وفي انتظار التقييم من قِبل المحاضر.
-                    </span>
-                    <p className="text-xs text-slate-300 font-mono overflow-hidden text-ellipsis max-w-xl">
-                      الرابط المُسلم: <a href={graduationSubmission.driveLink} target="_blank" rel="noreferrer" className="text-indigo-400 underline font-bold">{graduationSubmission.driveLink}</a>
-                    </p>
-                  </div>
+
+                <div className="flex items-center gap-2 shrink-0 flex-wrap">
                   <button
                     type="button"
-                    onClick={() => setIsSubmissionModalOpen(true)}
-                    className="px-4 py-2.5 bg-purple-600/30 hover:bg-purple-600/50 text-purple-200 font-black text-xs rounded-xl border border-purple-500/40 transition-all cursor-pointer"
+                    onClick={() => setIsProjectDetailsModalOpen(true)}
+                    className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-black text-xs rounded-xl border border-slate-700 transition-all cursor-pointer flex items-center gap-1.5"
                   >
-                    تعديل بيانات التسليم ✏️
+                    <BookOpen size={15} />
+                    <span>تفاصيل وقواعد المشروع 📜</span>
                   </button>
+
+                  {projTelegramLink && (
+                    <a
+                      href={projTelegramLink}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="px-4 py-2.5 bg-sky-600/20 hover:bg-sky-600/30 text-sky-400 font-black text-xs rounded-xl border border-sky-500/30 transition-all cursor-pointer flex items-center gap-1.5"
+                    >
+                      <Send size={15} />
+                      <span>قناة التليجرام 📢</span>
+                    </a>
+                  )}
+
+                  {projVideoLink && (
+                    <a
+                      href={projVideoLink}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="px-4 py-2.5 bg-rose-600/20 hover:bg-rose-600/30 text-rose-400 font-black text-xs rounded-xl border border-rose-500/30 transition-all cursor-pointer flex items-center gap-1.5"
+                    >
+                      <Video size={15} />
+                      <span>فيديو الشرح والتسليم 🎥</span>
+                    </a>
+                  )}
                 </div>
-              ) : (
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-amber-950/20 border border-amber-500/30 p-4 rounded-2xl">
-                  <div className="space-y-1">
-                    <span className="text-xs text-amber-300 font-black block">
-                      ⚠️ لم تقم بتسليم مشروع التخرج بعد!
-                    </span>
-                    <p className="text-xs text-slate-400">
-                      يرجى قراءة القواعد والتفاصيل بعناية ثم تسليم رابط مجلد Google Drive / Figma الخاص بمشروعك قبل الموعد المحدد.
-                    </p>
+              </div>
+
+              {/* DATES & DEADLINE STATUS CARD */}
+              <div className="bg-slate-950/90 p-4 sm:p-5 rounded-2xl border border-slate-800 space-y-3 relative z-10">
+                <div className="flex justify-between items-center border-b border-slate-800/80 pb-2.5 flex-wrap gap-2">
+                  <div className="flex items-center gap-2">
+                    <Calendar size={16} className="text-purple-400" />
+                    <span className="text-xs font-black text-slate-200">مواعيد ومسار تسليم مشروع التخرج:</span>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => setIsSubmissionModalOpen(true)}
-                    className="px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-black text-xs rounded-2xl shadow-xl transition-all cursor-pointer shrink-0 flex items-center gap-2"
-                  >
-                    <Send size={15} />
-                    <span>تسليم مشروع التخرج الآن 🚀</span>
-                  </button>
+                  <div className="text-xs font-bold text-rose-400 flex items-center gap-1 bg-rose-950/40 px-3 py-1 rounded-lg border border-rose-900/50">
+                    <AlertTriangle size={13} />
+                    <span>تنبيه: التسليم مغلق تماماً بعد انتهاء الموعد المحدد (الديدلاين)!</span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                  <div className="bg-slate-900/80 p-3 rounded-xl border border-slate-800/80 flex justify-between items-center">
+                    <span className="text-slate-400 font-bold">🗓️ تاريخ ووقت بدء التسليم:</span>
+                    <span className="font-mono font-bold text-emerald-400">
+                      {projStartDate ? projStartDate.replace('T', ' ') : 'متاح فوراً'}
+                    </span>
+                  </div>
+
+                  <div className="bg-slate-900/80 p-3 rounded-xl border border-slate-800/80 flex justify-between items-center">
+                    <span className="text-slate-400 font-bold">⏰ موعد نهاية التسليم (الديدلاين):</span>
+                    <span className="font-mono font-black text-rose-400">
+                      {projEndDate ? projEndDate.replace('T', ' ') : 'غير محدد'}
+                    </span>
+                  </div>
+                </div>
+
+                {isPastDeadline && (
+                  <div className="p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl text-xs text-rose-300 font-black flex items-center gap-2">
+                    <XCircle size={16} className="shrink-0" />
+                    <span>انتهى الموعد النهائي المحدد للتسليم (الديدلاين). تم إغلاق استقبال أي تسليمات بعد الموعد.</span>
+                  </div>
+                )}
+                {isBeforeStart && (
+                  <div className="p-3 bg-sky-500/10 border border-sky-500/30 rounded-xl text-xs text-sky-300 font-black flex items-center gap-2">
+                    <Clock size={16} className="shrink-0" />
+                    <span>لم يبدأ الموعد المخصص للتسليم بعد. سيفُتح التقديم في تاريخ البدء الموضح أعلاه.</span>
+                  </div>
+                )}
+              </div>
+
+              {/* CONCEPT / DESCRIPTION */}
+              {graduationProject.description && (
+                <div className="space-y-1.5 relative z-10">
+                  <h4 className="text-xs font-black text-purple-400 flex items-center gap-1.5">
+                    <BookOpen size={15} />
+                    <span>فكرة ومفهوم المشروع:</span>
+                  </h4>
+                  <p className="text-xs text-slate-300 leading-relaxed bg-slate-950/80 p-4 rounded-2xl border border-slate-800 whitespace-pre-line">
+                    {graduationProject.description}
+                  </p>
                 </div>
               )}
+
+              {/* DELIVERABLES REQUIRED */}
+              {projRequirements && (
+                <div className="space-y-1.5 relative z-10">
+                  <h4 className="text-xs font-black text-indigo-400 flex items-center gap-1.5">
+                    <CheckCircle size={15} />
+                    <span>المطلوب تسليمه من المتدرب (تسليمات المشروع):</span>
+                  </h4>
+                  <p className="text-xs text-slate-200 leading-relaxed bg-indigo-950/20 p-4 rounded-2xl border border-indigo-500/20 whitespace-pre-line">
+                    {projRequirements}
+                  </p>
+                </div>
+              )}
+
+              {/* MANDATORY RULES */}
+              {projRules && (
+                <div className="space-y-2 relative z-10">
+                  <h4 className="text-xs font-black text-rose-400 flex items-center gap-1.5">
+                    <AlertTriangle size={15} />
+                    <span>القواعد والتعليمات الأساسية التي لا يجب الخروج عنها:</span>
+                  </h4>
+                  <div className="bg-rose-950/20 border border-rose-500/20 p-4 rounded-2xl space-y-1.5">
+                    {projRules.split('\n').filter(r => r.trim()).map((rule, idx) => (
+                      <div key={idx} className="flex items-start gap-2 text-xs text-rose-200">
+                        <span className="font-bold text-rose-400">{idx + 1}.</span>
+                        <span className="leading-relaxed">{rule}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* EXTRA LINKS FROM TRAINER */}
+              {projExtraLinks.length > 0 && (
+                <div className="space-y-2 relative z-10 pt-1">
+                  <h4 className="text-xs font-black text-amber-400 flex items-center gap-1.5">
+                    <LinkIcon size={15} />
+                    <span>الروابط والمصادر الإضافية للمشروع:</span>
+                  </h4>
+                  <div className="flex flex-wrap gap-2">
+                    {projExtraLinks.map((link, idx) => (
+                      <a
+                        key={idx}
+                        href={link.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-indigo-300 font-bold text-xs rounded-xl border border-slate-700 transition-all flex items-center gap-1.5"
+                      >
+                        <ExternalLink size={13} />
+                        <span>{link.title || link.url}</span>
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* STATUS & ACTION BANNER */}
+              <div className="bg-slate-950/80 p-5 sm:p-6 rounded-3xl border border-slate-800 relative z-10 space-y-4">
+                {graduationEvaluation ? (
+                  <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-emerald-950/30 border border-emerald-500/30 p-4 rounded-2xl">
+                    <div className="space-y-1">
+                      <span className="text-xs text-emerald-400 font-black uppercase tracking-wider block">
+                        🎉 تم تقييم مشروع التخرج الخاص بك من قِبل المحاضر!
+                      </span>
+                      <div className="flex items-center gap-3">
+                        <span className="text-2xl font-black text-white">
+                          الدرجة الإجمالية: <span className="text-emerald-400">{graduationEvaluation.totalScore}</span> / {graduationProject.criteria?.reduce((s, c) => s + c.maxScore, 0) || 100}
+                        </span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setIsProjectEvalViewModalOpen(true)}
+                      className="px-5 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs rounded-xl shadow-lg transition-all cursor-pointer flex items-center gap-2"
+                    >
+                      <Award size={16} />
+                      <span>عرض تفاصيل التقييم وملاحظات الديزاين 📊</span>
+                    </button>
+                  </div>
+                ) : graduationSubmission ? (
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-purple-950/30 border border-purple-500/30 p-4 rounded-2xl">
+                    <div className="space-y-1">
+                      <span className="text-xs text-purple-400 font-black block">
+                        ✅ تم استلام رابط المشروع بنجاح، وفي انتظار التقييم من قِبل المحاضر.
+                      </span>
+                      <p className="text-xs text-slate-300 font-mono overflow-hidden text-ellipsis max-w-xl">
+                        الرابط المُسلم: <a href={graduationSubmission.driveLink} target="_blank" rel="noreferrer" className="text-indigo-400 underline font-bold">{graduationSubmission.driveLink}</a>
+                      </p>
+                    </div>
+                    {!isPastDeadline && (
+                      <button
+                        type="button"
+                        onClick={() => setIsSubmissionModalOpen(true)}
+                        className="px-4 py-2.5 bg-purple-600/30 hover:bg-purple-600/50 text-purple-200 font-black text-xs rounded-xl border border-purple-500/40 transition-all cursor-pointer"
+                      >
+                        تعديل بيانات التسليم ✏️
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-amber-950/20 border border-amber-500/30 p-4 rounded-2xl">
+                    <div className="space-y-1">
+                      <span className="text-xs text-amber-300 font-black block">
+                        {isPastDeadline ? '⛔ انتهى موعد التسليم لمشروع التخرج!' : '⚠️ لم تقم بتسليم مشروع التخرج بعد!'}
+                      </span>
+                      <p className="text-xs text-slate-400">
+                        {isPastDeadline
+                          ? 'نأسف، لقد انتهت المهلة المحددة للتسليم من قِبل المدرب. لا يمكن تقديم أي تسليمات جديدة حالياً.'
+                          : 'يرجى قراءة القواعد والمطلوب بعناية ثم تسليم رابط مجلد Google Drive / Figma الخاص بمشروعك قبل انتهاء المهلة.'}
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      disabled={isPastDeadline || isBeforeStart}
+                      onClick={() => setIsSubmissionModalOpen(true)}
+                      className={`px-6 py-3 font-black text-xs rounded-2xl shadow-xl transition-all cursor-pointer shrink-0 flex items-center gap-2 ${
+                        isPastDeadline
+                          ? 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed'
+                          : isBeforeStart
+                          ? 'bg-slate-800 text-sky-400 border border-sky-900 cursor-not-allowed'
+                          : 'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white shadow-purple-600/20'
+                      }`}
+                    >
+                      <Send size={15} />
+                      <span>
+                        {isPastDeadline
+                          ? 'التسليم مغلق (انتهى الديدلاين) 🔴'
+                          : isBeforeStart
+                          ? 'لم يبدأ وقت التسليم بعد ⏳'
+                          : 'تسليم مشروع التخرج الآن 🚀'}
+                      </span>
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* NEXT SESSION SECTION (المحاضرة القادمة) */}
         {nextSession && (
@@ -3783,251 +3958,362 @@ const StudentPortal: React.FC = () => {
       )}
 
       {/* GRADUATION PROJECT DETAILS & RULES MODAL */}
-      {isProjectDetailsModalOpen && graduationProject && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center z-50 p-4 font-arabic" dir="rtl">
-          <div className="w-full max-w-2xl bg-slate-900 border border-purple-500/30 rounded-3xl p-6 sm:p-8 shadow-2xl relative space-y-6 max-h-[90vh] overflow-y-auto no-scrollbar">
-            <button
-              type="button"
-              onClick={() => setIsProjectDetailsModalOpen(false)}
-              className="absolute top-5 left-5 text-slate-400 hover:text-white transition-colors"
-            >
-              ✕
-            </button>
+      {isProjectDetailsModalOpen && graduationProject && (() => {
+        const projStartDate = graduationProject.startDate || (graduationProject as any).submissionStartDate || '';
+        const projEndDate = graduationProject.endDate || (graduationProject as any).submissionEndDate || '';
+        const projTelegramLink = graduationProject.telegramChannelLink || (graduationProject as any).telegramChannelUrl || '';
+        const projVideoLink = graduationProject.submissionGuideVideoLink || (graduationProject as any).explanationVideoUrl || '';
+        const projRequirements = graduationProject.requirements || (graduationProject as any).deliverablesRequired || '';
+        const projRules = graduationProject.rules || (Array.isArray((graduationProject as any).mandatoryRules) ? (graduationProject as any).mandatoryRules.join('\n') : ((graduationProject as any).mandatoryRules || ''));
+        const projExtraLinks = graduationProject.extraLinks || [];
 
-            <div className="space-y-2 border-b border-slate-800 pb-4">
-              <span className="bg-purple-500/20 text-purple-300 font-black text-[10px] px-3 py-1 rounded-full border border-purple-500/30 uppercase">
-                تفاصيل وقواعد مشروع التخرج
-              </span>
-              <h3 className="text-2xl font-black text-white">{graduationProject.title}</h3>
-              {graduationProject.brandName && (
-                <p className="text-xs text-amber-400 font-bold">البراند المستهدف: {graduationProject.brandName}</p>
-              )}
-            </div>
-
-            {/* Description */}
-            <div className="space-y-2">
-              <h4 className="text-xs font-black text-purple-400">وصف وفكرة المشروع:</h4>
-              <p className="text-xs text-slate-300 leading-relaxed bg-slate-950 p-4 rounded-2xl border border-slate-800 whitespace-pre-line">
-                {graduationProject.description || 'لا يوجد وصف تفصيلي للمشروع بعد.'}
-              </p>
-            </div>
-
-            {/* Deliverables Required */}
-            {graduationProject.deliverablesRequired && (
-              <div className="space-y-2">
-                <h4 className="text-xs font-black text-indigo-400">المطلوب من المتدرب للإنهاء والتسليم:</h4>
-                <p className="text-xs text-slate-300 leading-relaxed bg-slate-950 p-4 rounded-2xl border border-slate-800 whitespace-pre-line">
-                  {graduationProject.deliverablesRequired}
-                </p>
-              </div>
-            )}
-
-            {/* Mandatory Rules */}
-            {graduationProject.mandatoryRules && graduationProject.mandatoryRules.length > 0 && (
-              <div className="space-y-3">
-                <h4 className="text-xs font-black text-rose-400 flex items-center gap-1.5">
-                  <AlertTriangle size={15} />
-                  <span>القواعد الأساسية التي لا يجب الخروج عنها (مهم جداً):</span>
-                </h4>
-                <div className="bg-rose-950/20 border border-rose-500/20 p-4 rounded-2xl space-y-2">
-                  {graduationProject.mandatoryRules.map((rule, idx) => (
-                    <div key={idx} className="flex items-start gap-2 text-xs text-rose-200">
-                      <span className="font-bold text-rose-400">{idx + 1}.</span>
-                      <span className="leading-relaxed">{rule}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* External Links */}
-            <div className="flex items-center gap-3 pt-2 flex-wrap">
-              {graduationProject.telegramChannelUrl && (
-                <a
-                  href={graduationProject.telegramChannelUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="px-4 py-2.5 bg-sky-600 hover:bg-sky-500 text-white font-black text-xs rounded-xl transition-all shadow-md flex items-center gap-2"
-                >
-                  <Send size={14} />
-                  <span>انضم لقناة التليجرام الخاصة بالمشروع 📢</span>
-                </a>
-              )}
-              {graduationProject.explanationVideoUrl && (
-                <a
-                  href={graduationProject.explanationVideoUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="px-4 py-2.5 bg-rose-600 hover:bg-rose-500 text-white font-black text-xs rounded-xl transition-all shadow-md flex items-center gap-2"
-                >
-                  <Video size={14} />
-                  <span>شاهد فيديو الشرح والتسليم 🎥</span>
-                </a>
-              )}
-            </div>
-
-            <div className="pt-4 border-t border-slate-800 flex justify-end">
+        return (
+          <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center z-50 p-4 font-arabic" dir="rtl">
+            <div className="w-full max-w-2xl bg-slate-900 border border-purple-500/30 rounded-3xl p-6 sm:p-8 shadow-2xl relative space-y-6 max-h-[90vh] overflow-y-auto no-scrollbar">
               <button
                 type="button"
                 onClick={() => setIsProjectDetailsModalOpen(false)}
-                className="px-6 py-2.5 bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs rounded-xl cursor-pointer"
+                className="absolute top-5 left-5 text-slate-400 hover:text-white transition-colors cursor-pointer"
               >
-                إغلاق
+                ✕
               </button>
+
+              <div className="space-y-2 border-b border-slate-800 pb-4">
+                <span className="bg-purple-500/20 text-purple-300 font-black text-[10px] px-3 py-1 rounded-full border border-purple-500/30 uppercase">
+                  تفاصيل وقواعد مشروع التخرج
+                </span>
+                <h3 className="text-2xl font-black text-white">{graduationProject.title}</h3>
+                {graduationProject.brandName && (
+                  <p className="text-xs text-amber-400 font-bold">البراند المستهدف: {graduationProject.brandName}</p>
+                )}
+              </div>
+
+              {/* Dates */}
+              <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-2 text-xs">
+                <div className="flex justify-between items-center text-slate-300">
+                  <span className="font-bold">🗓️ بدء التسليم:</span>
+                  <span className="font-mono text-emerald-400 font-bold">{projStartDate ? projStartDate.replace('T', ' ') : 'متاح حالياً'}</span>
+                </div>
+                <div className="flex justify-between items-center text-slate-300">
+                  <span className="font-bold">⏰ نهاية التسليم (الديدلاين):</span>
+                  <span className="font-mono text-rose-400 font-bold">{projEndDate ? projEndDate.replace('T', ' ') : 'غير محدد'}</span>
+                </div>
+                <p className="text-[11px] text-rose-400 font-bold border-t border-slate-800 pt-2 text-center">
+                  ⚠️ يرجى العلم أنه يمنع منعاً باتاً التسليم بعد انتهاء الديدلاين الموضح أعلاه.
+                </p>
+              </div>
+
+              {/* Description */}
+              <div className="space-y-2">
+                <h4 className="text-xs font-black text-purple-400">وصف وفكرة المشروع:</h4>
+                <p className="text-xs text-slate-300 leading-relaxed bg-slate-950 p-4 rounded-2xl border border-slate-800 whitespace-pre-line">
+                  {graduationProject.description || 'لا يوجد وصف تفصيلي للمشروع بعد.'}
+                </p>
+              </div>
+
+              {/* Deliverables Required */}
+              {projRequirements && (
+                <div className="space-y-2">
+                  <h4 className="text-xs font-black text-indigo-400">المطلوب من المتدرب للإنهاء والتسليم:</h4>
+                  <p className="text-xs text-slate-300 leading-relaxed bg-slate-950 p-4 rounded-2xl border border-slate-800 whitespace-pre-line">
+                    {projRequirements}
+                  </p>
+                </div>
+              )}
+
+              {/* Mandatory Rules */}
+              {projRules && (
+                <div className="space-y-3">
+                  <h4 className="text-xs font-black text-rose-400 flex items-center gap-1.5">
+                    <AlertTriangle size={15} />
+                    <span>القواعد الأساسية التي لا يجب الخروج عنها (مهم جداً):</span>
+                  </h4>
+                  <div className="bg-rose-950/20 border border-rose-500/20 p-4 rounded-2xl space-y-2">
+                    {projRules.split('\n').filter(r => r.trim()).map((rule, idx) => (
+                      <div key={idx} className="flex items-start gap-2 text-xs text-rose-200">
+                        <span className="font-bold text-rose-400">{idx + 1}.</span>
+                        <span className="leading-relaxed">{rule}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* External Links */}
+              <div className="flex items-center gap-3 pt-2 flex-wrap">
+                {projTelegramLink && (
+                  <a
+                    href={projTelegramLink}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="px-4 py-2.5 bg-sky-600 hover:bg-sky-500 text-white font-black text-xs rounded-xl transition-all shadow-md flex items-center gap-2"
+                  >
+                    <Send size={14} />
+                    <span>انضم لقناة التليجرام الخاصة بالمشروع 📢</span>
+                  </a>
+                )}
+                {projVideoLink && (
+                  <a
+                    href={projVideoLink}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="px-4 py-2.5 bg-rose-600 hover:bg-rose-500 text-white font-black text-xs rounded-xl transition-all shadow-md flex items-center gap-2"
+                  >
+                    <Video size={14} />
+                    <span>شاهد فيديو الشرح والتسليم 🎥</span>
+                  </a>
+                )}
+                {projExtraLinks.map((link, idx) => (
+                  <a
+                    key={idx}
+                    href={link.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-indigo-300 font-black text-xs rounded-xl border border-slate-700 transition-all flex items-center gap-2"
+                  >
+                    <ExternalLink size={14} />
+                    <span>{link.title || link.url}</span>
+                  </a>
+                ))}
+              </div>
+
+              <div className="pt-4 border-t border-slate-800 flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => setIsProjectDetailsModalOpen(false)}
+                  className="px-6 py-2.5 bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs rounded-xl cursor-pointer"
+                >
+                  إغلاق
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* GRADUATION PROJECT SUBMISSION FORM MODAL */}
-      {isSubmissionModalOpen && graduationProject && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center z-50 p-4 font-arabic" dir="rtl">
-          <div className="w-full max-w-xl bg-slate-900 border border-purple-500/40 rounded-3xl p-6 sm:p-8 shadow-2xl relative space-y-6 max-h-[90vh] overflow-y-auto no-scrollbar">
-            <button
-              type="button"
-              onClick={() => setIsSubmissionModalOpen(false)}
-              className="absolute top-5 left-5 text-slate-400 hover:text-white transition-colors"
-            >
-              ✕
-            </button>
+      {isSubmissionModalOpen && graduationProject && (() => {
+        const projStartDate = graduationProject.startDate || (graduationProject as any).submissionStartDate || '';
+        const projEndDate = graduationProject.endDate || (graduationProject as any).submissionEndDate || '';
+        const projRequirements = graduationProject.requirements || (graduationProject as any).deliverablesRequired || '';
+        const projRules = graduationProject.rules || (Array.isArray((graduationProject as any).mandatoryRules) ? (graduationProject as any).mandatoryRules.join('\n') : ((graduationProject as any).mandatoryRules || ''));
 
-            <div className="space-y-1 text-right border-b border-slate-800 pb-4">
-              <span className="text-[10px] font-black text-purple-400 uppercase tracking-widest bg-purple-950 px-3 py-1 rounded-full border border-purple-900/60">
-                استمارة تسليم مشروع التخرج
-              </span>
-              <h3 className="text-xl font-black text-white pt-2">تسليم: {graduationProject.title}</h3>
-              <p className="text-xs text-slate-400">
-                برجاء رفع وتجهيز مجلد Google Drive / Figma للتسليم وتأكيد كافة شروط وملاحظات الوصول.
-              </p>
-            </div>
+        const now = new Date();
+        const startDT = projStartDate ? new Date(projStartDate) : null;
+        const endDT = projEndDate ? new Date(projEndDate) : null;
 
-            {submissionSuccessMsg ? (
-              <div className="p-5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 rounded-2xl text-center text-xs font-black animate-pulse">
-                {submissionSuccessMsg}
+        const isPastDeadline = endDT ? now > endDT : false;
+        const isBeforeStart = startDT ? now < startDT : false;
+
+        return (
+          <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center z-50 p-4 font-arabic" dir="rtl">
+            <div className="w-full max-w-xl bg-slate-900 border border-purple-500/40 rounded-3xl p-6 sm:p-8 shadow-2xl relative space-y-6 max-h-[90vh] overflow-y-auto no-scrollbar">
+              <button
+                type="button"
+                onClick={() => setIsSubmissionModalOpen(false)}
+                className="absolute top-5 left-5 text-slate-400 hover:text-white transition-colors cursor-pointer"
+              >
+                ✕
+              </button>
+
+              <div className="space-y-1 text-right border-b border-slate-800 pb-4">
+                <span className="text-[10px] font-black text-purple-400 uppercase tracking-widest bg-purple-950 px-3 py-1 rounded-full border border-purple-900/60">
+                  استمارة تسليم مشروع التخرج
+                </span>
+                <h3 className="text-xl font-black text-white pt-2">تسليم: {graduationProject.title}</h3>
+                {graduationProject.brandName && (
+                  <p className="text-xs text-amber-400 font-bold">براند: {graduationProject.brandName}</p>
+                )}
+                <p className="text-xs text-slate-400">
+                  برجاء رفع وتجهيز مجلد Google Drive / Figma للتسليم وتأكيد كافة شروط وملاحظات الوصول.
+                </p>
               </div>
-            ) : (
-              <form onSubmit={handleStudentProjectSubmit} className="space-y-5">
-                {/* Drive Link */}
-                <div className="space-y-1.5 text-right">
-                  <label className="text-xs font-black text-slate-200 block">
-                    رابط ملف مشروع التخرج (Google Drive / Figma / Behance) <span className="text-rose-500">*</span>
-                  </label>
-                  <input
-                    type="url"
-                    value={submissionDriveLink}
-                    onChange={(e) => setSubmissionDriveLink(e.target.value)}
-                    placeholder="https://drive.google.com/drive/folders/..."
-                    className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-2xl text-xs text-slate-100 font-mono text-left focus:border-purple-500 focus:outline-none"
-                    required
-                  />
+
+              {/* Deadline Status Alert inside modal */}
+              {isPastDeadline ? (
+                <div className="p-4 bg-rose-500/15 border border-rose-500/40 rounded-2xl text-rose-300 text-xs space-y-2">
+                  <div className="font-black text-sm flex items-center gap-2 text-rose-400">
+                    <XCircle size={18} />
+                    <span>انتهى موعد التسليم النهائي (الديدلاين)!</span>
+                  </div>
+                  <p>
+                    تاريخ انتهاء التسليم كان: <span className="font-mono font-bold text-white">{projEndDate.replace('T', ' ')}</span>.
+                  </p>
+                  <p className="font-bold text-rose-200">
+                    نأسف، لقد تم إغلاق باب التسليم ولا يمكن إرسال أو تعديل أية تسليمات لمشروع التخرج بعد انتهاء المهلة.
+                  </p>
                 </div>
-
-                {/* Checklist Requirements */}
-                <div className="space-y-3 bg-slate-950 p-4 rounded-2xl border border-slate-800 text-right">
-                  <h4 className="text-xs font-black text-amber-400 flex items-center gap-1.5">
-                    <ShieldCheck size={16} />
-                    <span>تأكيد الشروط الأساسية للتسليم (إجباري):</span>
-                  </h4>
-
-                  <label className="flex items-start gap-3 cursor-pointer text-xs text-slate-300">
-                    <input
-                      type="checkbox"
-                      checked={checkOpen}
-                      onChange={(e) => setCheckOpen(e.target.checked)}
-                      className="mt-0.5 w-4 h-4 text-purple-600 bg-slate-900 border-slate-700 rounded focus:ring-purple-500 shrink-0"
-                    />
-                    <span>1. أتأكد أن رابط جوجل درايف / فيجما مفتوح للجميع (Anyone with link can view).</span>
-                  </label>
-
-                  <label className="flex items-start gap-3 cursor-pointer text-xs text-slate-300">
-                    <input
-                      type="checkbox"
-                      checked={checkEditable}
-                      onChange={(e) => setCheckEditable(e.target.checked)}
-                      className="mt-0.5 w-4 h-4 text-purple-600 bg-slate-900 border-slate-700 rounded focus:ring-purple-500 shrink-0"
-                    />
-                    <span>2. قمت برفع كافة الملفات القابلة للتعديل والملحقات المطلوبة.</span>
-                  </label>
-
-                  <label className="flex items-start gap-3 cursor-pointer text-xs text-slate-300">
-                    <input
-                      type="checkbox"
-                      checked={checkRules}
-                      onChange={(e) => setCheckRules(e.target.checked)}
-                      className="mt-0.5 w-4 h-4 text-purple-600 bg-slate-900 border-slate-700 rounded focus:ring-purple-500 shrink-0"
-                    />
-                    <span>3. قرأت كافة قواعد وتعليمات مشروع التخرج والتزمت بها بالكامل.</span>
-                  </label>
+              ) : isBeforeStart ? (
+                <div className="p-4 bg-sky-500/15 border border-sky-500/40 rounded-2xl text-sky-300 text-xs space-y-2">
+                  <div className="font-black text-sm flex items-center gap-2 text-sky-400">
+                    <Clock size={18} />
+                    <span>لم يبدأ وقت التسليم بعد</span>
+                  </div>
+                  <p>
+                    تاريخ بدء التسليم سيكون في: <span className="font-mono font-bold text-white">{projStartDate.replace('T', ' ')}</span>.
+                  </p>
                 </div>
+              ) : null}
 
-                {/* Extra Links */}
-                <div className="space-y-3 text-right">
-                  <div className="flex justify-between items-center">
-                    <label className="text-xs font-black text-slate-300">إضافة لينكات إضافية (توضيحية / اختياري):</label>
+              {/* Requirements & Rules Summary */}
+              {projRequirements && (
+                <div className="p-4 bg-indigo-950/20 border border-indigo-500/20 rounded-2xl text-xs space-y-1">
+                  <span className="font-black text-indigo-400 block">📦 تذكير بالمطلوب تسليمه:</span>
+                  <p className="text-slate-300 whitespace-pre-line">{projRequirements}</p>
+                </div>
+              )}
+
+              {projRules && (
+                <div className="p-4 bg-rose-950/20 border border-rose-500/20 rounded-2xl text-xs space-y-1">
+                  <span className="font-black text-rose-400 block">⚠️ القواعد الأساسية الواجب الالتزام بها:</span>
+                  <p className="text-slate-300 whitespace-pre-line">{projRules}</p>
+                </div>
+              )}
+
+              {submissionSuccessMsg ? (
+                <div className="p-5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 rounded-2xl text-center text-xs font-black animate-pulse">
+                  {submissionSuccessMsg}
+                </div>
+              ) : (
+                <form onSubmit={handleStudentProjectSubmit} className="space-y-5">
+                  {/* Drive Link */}
+                  <div className="space-y-1.5 text-right">
+                    <label className="text-xs font-black text-slate-200 block">
+                      رابط ملف مشروع التخرج (Google Drive / Figma / Behance) <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="url"
+                      disabled={isPastDeadline || isBeforeStart}
+                      value={submissionDriveLink}
+                      onChange={(e) => setSubmissionDriveLink(e.target.value)}
+                      placeholder="https://drive.google.com/drive/folders/..."
+                      className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-2xl text-xs text-slate-100 font-mono text-left focus:border-purple-500 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                      required
+                    />
+                  </div>
+
+                  {/* Checklist Requirements */}
+                  <div className="space-y-3 bg-slate-950 p-4 rounded-2xl border border-slate-800 text-right">
+                    <h4 className="text-xs font-black text-amber-400 flex items-center gap-1.5">
+                      <ShieldCheck size={16} />
+                      <span>تأكيد الشروط الأساسية للتسليم (إجباري):</span>
+                    </h4>
+
+                    <label className="flex items-start gap-3 cursor-pointer text-xs text-slate-300">
+                      <input
+                        type="checkbox"
+                        disabled={isPastDeadline || isBeforeStart}
+                        checked={checkOpen}
+                        onChange={(e) => setCheckOpen(e.target.checked)}
+                        className="mt-0.5 w-4 h-4 text-purple-600 bg-slate-900 border-slate-700 rounded focus:ring-purple-500 shrink-0"
+                      />
+                      <span>1. أتأكد أن رابط جوجل درايف / فيجما مفتوح للجميع (Anyone with link can view).</span>
+                    </label>
+
+                    <label className="flex items-start gap-3 cursor-pointer text-xs text-slate-300">
+                      <input
+                        type="checkbox"
+                        disabled={isPastDeadline || isBeforeStart}
+                        checked={checkEditable}
+                        onChange={(e) => setCheckEditable(e.target.checked)}
+                        className="mt-0.5 w-4 h-4 text-purple-600 bg-slate-900 border-slate-700 rounded focus:ring-purple-500 shrink-0"
+                      />
+                      <span>2. قمت برفع كافة الملفات القابلة للتعديل والملحقات المطلوبة.</span>
+                    </label>
+
+                    <label className="flex items-start gap-3 cursor-pointer text-xs text-slate-300">
+                      <input
+                        type="checkbox"
+                        disabled={isPastDeadline || isBeforeStart}
+                        checked={checkRules}
+                        onChange={(e) => setCheckRules(e.target.checked)}
+                        className="mt-0.5 w-4 h-4 text-purple-600 bg-slate-900 border-slate-700 rounded focus:ring-purple-500 shrink-0"
+                      />
+                      <span>3. قرأت كافة قواعد وتعليمات مشروع التخرج والتزمت بها بالكامل.</span>
+                    </label>
+                  </div>
+
+                  {/* Extra Links */}
+                  <div className="space-y-3 text-right">
+                    <div className="flex justify-between items-center">
+                      <label className="text-xs font-black text-slate-300">إضافة لينكات إضافية (توضيحية / اختياري):</label>
+                      {!isPastDeadline && !isBeforeStart && (
+                        <button
+                          type="button"
+                          onClick={() => setSubmissionExtraLinks([...submissionExtraLinks, { title: '', url: '' }])}
+                          className="text-[11px] font-bold text-purple-400 hover:text-purple-300"
+                        >
+                          + إضافة لينك
+                        </button>
+                      )}
+                    </div>
+                    {submissionExtraLinks.map((link, i) => (
+                      <div key={i} className="flex gap-2 items-center">
+                        <input
+                          type="text"
+                          disabled={isPastDeadline || isBeforeStart}
+                          placeholder="عنوان اللينك (مثلاً: لينك الملحقات)"
+                          value={link.title}
+                          onChange={(e) => {
+                            const updated = [...submissionExtraLinks];
+                            updated[i].title = e.target.value;
+                            setSubmissionExtraLinks(updated);
+                          }}
+                          className="w-1/3 px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-200 disabled:opacity-50"
+                        />
+                        <input
+                          type="url"
+                          disabled={isPastDeadline || isBeforeStart}
+                          placeholder="https://..."
+                          value={link.url}
+                          onChange={(e) => {
+                            const updated = [...submissionExtraLinks];
+                            updated[i].url = e.target.value;
+                            setSubmissionExtraLinks(updated);
+                          }}
+                          className="flex-1 px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-200 font-mono text-left disabled:opacity-50"
+                        />
+                        {!isPastDeadline && !isBeforeStart && (
+                          <button
+                            type="button"
+                            onClick={() => setSubmissionExtraLinks(submissionExtraLinks.filter((_, idx) => idx !== i))}
+                            className="text-rose-400 text-xs px-2"
+                          >
+                            ✕
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="pt-4 flex gap-3">
                     <button
                       type="button"
-                      onClick={() => setSubmissionExtraLinks([...submissionExtraLinks, { title: '', url: '' }])}
-                      className="text-[11px] font-bold text-purple-400 hover:text-purple-300"
+                      onClick={() => setIsSubmissionModalOpen(false)}
+                      className="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-3 rounded-2xl text-xs transition-all cursor-pointer"
                     >
-                      + إضافة لينك
+                      إلغاء
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={isSubmittingProject || isPastDeadline || isBeforeStart}
+                      className="flex-1 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-black py-3 rounded-2xl text-xs transition-all shadow-xl shadow-purple-600/20 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                    >
+                      {isSubmittingProject
+                        ? 'جاري رفع التسليم...'
+                        : isPastDeadline
+                        ? 'التسليم مغلق (انتهى الديدلاين)'
+                        : isBeforeStart
+                        ? 'لم يبدأ الوقت بعد'
+                        : 'حفظ وتأكيد التسليم 🚀'}
                     </button>
                   </div>
-                  {submissionExtraLinks.map((link, i) => (
-                    <div key={i} className="flex gap-2 items-center">
-                      <input
-                        type="text"
-                        placeholder="عنوان اللينك (مثلاً: لينك الملحقات)"
-                        value={link.title}
-                        onChange={(e) => {
-                          const updated = [...submissionExtraLinks];
-                          updated[i].title = e.target.value;
-                          setSubmissionExtraLinks(updated);
-                        }}
-                        className="w-1/3 px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-200"
-                      />
-                      <input
-                        type="url"
-                        placeholder="https://..."
-                        value={link.url}
-                        onChange={(e) => {
-                          const updated = [...submissionExtraLinks];
-                          updated[i].url = e.target.value;
-                          setSubmissionExtraLinks(updated);
-                        }}
-                        className="flex-1 px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-200 font-mono text-left"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setSubmissionExtraLinks(submissionExtraLinks.filter((_, idx) => idx !== i))}
-                        className="text-rose-400 text-xs px-2"
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="pt-4 flex gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setIsSubmissionModalOpen(false)}
-                    className="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-3 rounded-2xl text-xs transition-all cursor-pointer"
-                  >
-                    إلغاء
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={isSubmittingProject}
-                    className="flex-1 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-black py-3 rounded-2xl text-xs transition-all shadow-xl shadow-purple-600/20 disabled:opacity-50 cursor-pointer"
-                  >
-                    {isSubmittingProject ? 'جاري رفع التسليم...' : 'حفظ وتأكيد التسليم 🚀'}
-                  </button>
-                </div>
-              </form>
-            )}
+                </form>
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* GRADUATION EVALUATION & COMMENTS VIEW MODAL FOR STUDENT */}
       {isProjectEvalViewModalOpen && graduationEvaluation && graduationProject && (
