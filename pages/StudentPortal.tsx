@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import * as firestore from 'firebase/firestore';
 import { db } from '../firebase';
-import { Student, Group, Session, LectureEvaluation, Penalty, GroupRanking, SessionMeta, AppNotification, GlobalEvalForm, GraduationProject, GraduationProjectSubmission, GraduationProjectEvaluation, GraduationProjectComment } from '../types';
+import { Student, Group, Session, LectureEvaluation, Penalty, GroupRanking, SessionMeta, AppNotification, GlobalEvalForm, GraduationProject, GraduationProjectSubmission, GraduationProjectEvaluation, GraduationProjectComment, StudentCertificateRecord } from '../types';
 import { markStudentAttendanceSelf, markNotificationRead, saveGraduationProjectSubmission } from '../services/firestore';
 import { 
   Award, CheckCircle, CheckCircle2, Calendar, TrendingUp, AlertTriangle, 
@@ -201,6 +201,11 @@ const StudentPortal: React.FC = () => {
   const [profileSaveLoading, setProfileSaveLoading] = useState(false);
   const [profileSaveSuccess, setProfileSaveSuccess] = useState(false);
   const [showHistoryInModal, setShowHistoryInModal] = useState(false);
+
+  // Certificate State
+  const [studentCertificateRecord, setStudentCertificateRecord] = useState<StudentCertificateRecord | null>(null);
+  const [allGroupGradProjects, setAllGroupGradProjects] = useState<GraduationProject[]>([]);
+  const [allStudentGradSubmissions, setAllStudentGradSubmissions] = useState<GraduationProjectSubmission[]>([]);
 
   // Initialize fields when modal opens or currentStudent changes
   useEffect(() => {
@@ -576,12 +581,48 @@ const StudentPortal: React.FC = () => {
     const unsubProj = onSnapshot(qProj, (snapshot: any) => {
       const pList = snapshot.docs.map((d: any) => ({ id: d.id, ...d.data() } as GraduationProject));
       setGraduationProject(pList[0] || null);
+      setAllGroupGradProjects(pList);
     }, (err: any) => {
       console.error("Error subscribing to graduation project:", err);
     });
 
     return () => unsubProj();
   }, [currentStudent?.groupId]);
+
+  // Real-time subscription to group document to keep certificatesVisibleToStudents updated
+  useEffect(() => {
+    if (!studentGroup?.id) return;
+    const unsubG = onSnapshot(doc(db, 'groups', studentGroup.id), (snap: any) => {
+      if (snap.exists()) {
+        setStudentGroup({ id: snap.id, ...snap.data() } as Group);
+      }
+    });
+    return () => unsubG();
+  }, [studentGroup?.id]);
+
+  // Real-time subscription to Student's Certificate Record
+  useEffect(() => {
+    if (!currentStudent?.id || !currentStudent?.groupId) return;
+    const docId = `${currentStudent.groupId}_${currentStudent.id}`;
+    const unsubCert = onSnapshot(doc(db, 'studentCertificates', docId), (docSnap: any) => {
+      if (docSnap.exists()) {
+        setStudentCertificateRecord({ id: docSnap.id, ...docSnap.data() } as StudentCertificateRecord);
+      } else {
+        setStudentCertificateRecord(null);
+      }
+    });
+    return () => unsubCert();
+  }, [currentStudent?.id, currentStudent?.groupId]);
+
+  // Real-time subscription to all student submissions for metrics calculation
+  useEffect(() => {
+    if (!currentStudent?.id || !currentStudent?.groupId) return;
+    const qSubs = query(collection(db, 'graduationSubmissions'), where('groupId', '==', currentStudent.groupId), where('studentId', '==', currentStudent.id));
+    const unsubSubs = onSnapshot(qSubs, (snap: any) => {
+      setAllStudentGradSubmissions(snap.docs.map((d: any) => ({ id: d.id, ...d.data() } as GraduationProjectSubmission)));
+    });
+    return () => unsubSubs();
+  }, [currentStudent?.id, currentStudent?.groupId]);
 
   // Real-time subscription to Student's submission, evaluation, and comments for the project
   useEffect(() => {
@@ -2780,6 +2821,145 @@ const StudentPortal: React.FC = () => {
             </div>
           </div>
         )}
+        {/* CERTIFICATE CARD FOR STUDENT */}
+        {studentGroup && studentGroup.certificatesVisibleToStudents && (() => {
+          // 1. Attendance %
+          const totalSessionsDone = sessions.filter(s => s.status === 'done').length;
+          const uniqueAttendedSessions = new Set(
+            evaluations.filter(e => e.attendance === 1 && e.sessionNumber !== undefined).map(e => e.sessionNumber)
+          );
+          const attendedCount = Math.min(uniqueAttendedSessions.size, totalSessionsDone);
+          const attendanceRate = totalSessionsDone > 0 ? Math.min(100, Math.round((attendedCount / totalSessionsDone) * 100)) : 100;
+
+          // 2. Tasks %
+          const totalRequiredTasks = sessions.filter(s => s.status === 'done').reduce((sum, ses) => sum + (ses.requiredTasksCount || 0), 0);
+          const totalCompletedTasks = evaluations.reduce((sum, e) => sum + (e.taskDelivered || 0), 0);
+          const tasksRate = totalRequiredTasks > 0 ? Math.min(100, Math.round((totalCompletedTasks / totalRequiredTasks) * 100)) : 100;
+
+          // 3. Projects Submitted %
+          const totalGradProjectsCount = allGroupGradProjects.length;
+          const studentSubmittedProjectsCount = allStudentGradSubmissions.length;
+          const projectsRate = totalGradProjectsCount > 0 ? Math.round((studentSubmittedProjectsCount / totalGradProjectsCount) * 100) : 100;
+
+          const isAttendanceEligible = attendanceRate >= 80;
+          const isTasksEligible = tasksRate >= 80;
+          const isProjectsEligible = totalGradProjectsCount === 0 || (studentSubmittedProjectsCount / totalGradProjectsCount) >= 0.5;
+
+          const isAutoEligible = isAttendanceEligible && isTasksEligible && isProjectsEligible;
+
+          const missingReasons: string[] = [];
+          if (!isAttendanceEligible) missingReasons.push(`نسبة الحضور: ${attendanceRate}% (المطلوب 80% على الأقل)`);
+          if (!isTasksEligible) missingReasons.push(`نسبة أداء التاسكات: ${tasksRate}% (المطلوب 80% على الأقل)`);
+          if (!isProjectsEligible) missingReasons.push(`تسليم مشاريع التخرج: ${studentSubmittedProjectsCount}/${totalGradProjectsCount} (المطلوب 50% على الأقل)`);
+
+          const rec = studentCertificateRecord;
+          let isEligible = false;
+          let certStatusType: 'auto_eligible' | 'exception_eligible' | 'blocked' | 'ineligible' = 'ineligible';
+
+          if (rec?.statusOverride === 'blocked') {
+            isEligible = false;
+            certStatusType = 'blocked';
+          } else if (rec?.statusOverride === 'exception_granted') {
+            isEligible = true;
+            certStatusType = 'exception_eligible';
+          } else if (isAutoEligible) {
+            isEligible = true;
+            certStatusType = 'auto_eligible';
+          } else {
+            isEligible = false;
+            certStatusType = 'ineligible';
+          }
+
+          return (
+            <div className="bg-gradient-to-br from-slate-900 via-indigo-950/40 to-slate-900 border-2 border-indigo-500/40 rounded-4xl p-6 sm:p-8 shadow-2xl relative overflow-hidden font-arabic text-right space-y-6" dir="rtl">
+              <div className="flex items-center gap-3 border-b border-slate-800 pb-4">
+                <span className="p-3 bg-indigo-500/20 text-indigo-400 rounded-2xl text-2xl border border-indigo-500/30">📜</span>
+                <div>
+                  <h2 className="text-xl sm:text-2xl font-black text-white">شهادة تخرج الكورس - SABER GROUP</h2>
+                  <p className="text-xs text-slate-400">حالة الأهلية ورابط شهادة إتمام الدورة التدريبية</p>
+                </div>
+              </div>
+
+              {isEligible ? (
+                <div className="space-y-4">
+                  <div className="p-5 bg-emerald-500/15 border border-emerald-500/40 rounded-3xl text-emerald-300 space-y-2">
+                    <div className="text-lg font-black text-emerald-400 flex items-center gap-2">
+                      <Sparkles size={22} />
+                      <span>🎉 ألف مبروك يا مبدع! أنت مؤهل للحصول على شهادة تخرج الكورس</span>
+                    </div>
+                    <p className="text-xs text-slate-200 leading-relaxed">
+                      تسر إدارة SABER GROUP توجيه التهنئة لك على التزامك وأدائك المتميز طوال فترة الكورس.
+                    </p>
+                    {rec?.overrideReason && certStatusType === 'exception_eligible' && (
+                      <p className="text-xs font-bold text-amber-300 bg-amber-950/40 p-2.5 rounded-xl border border-amber-500/30">
+                        🌟 ملاحظة الاستثناء: {rec.overrideReason}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Certificate Download/View button */}
+                  {rec?.certificateUrl ? (
+                    <div className="bg-slate-950 p-5 rounded-2xl border border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
+                      <div className="space-y-1">
+                        <span className="text-xs font-black text-white block">رابط شهادة التخرج الرسمية جاهز للتحميل:</span>
+                        <span className="text-[11px] text-slate-400 block">يمكنك استعراض وتحميل شهادتك بدقة عالية عبر الرابط التالي</span>
+                      </div>
+                      <a
+                        href={rec.certificateUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs rounded-2xl transition-all shadow-xl shadow-emerald-600/20 flex items-center gap-2 cursor-pointer shrink-0"
+                      >
+                        <ExternalLink size={16} />
+                        <span>تحميل / عرض شهادة التخرج 📜</span>
+                      </a>
+                    </div>
+                  ) : (
+                    <div className="p-4 bg-slate-950 border border-slate-800 rounded-2xl text-xs text-slate-400 text-center font-bold">
+                      ⏳ تم توثيق أهليتك للشهادة وجاري رفع ورصد رابط الشهادة من قِبل فريق الأكاديمية. يرجى إعادة التحقق قريباً!
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="p-5 bg-rose-500/15 border border-rose-500/40 rounded-3xl text-rose-300 space-y-3">
+                  <div className="text-base font-black text-rose-400 flex items-center gap-2">
+                    <XCircle size={20} />
+                    <span>عذراً، أنت غير مؤهل للحصول على شهادة الكورس حالياً ❌</span>
+                  </div>
+                  
+                  <div className="space-y-1 text-xs text-slate-300 leading-relaxed">
+                    <p className="font-bold text-rose-200">الشروط المطلوبة للشهادة: (80% حضور، 80% أداء تاسكات، و 50% مشاريع تخرج).</p>
+                    
+                    {certStatusType === 'blocked' && (
+                      <p className="font-bold text-amber-300 bg-amber-950/40 p-2.5 rounded-xl border border-amber-500/30">
+                        ⚠️ سبب عدم الأهلية: {rec?.overrideReason || 'تم توقيف الشهادة بقرار إداري من قِبل المحاضر/المشرف.'}
+                      </p>
+                    )}
+
+                    {certStatusType === 'ineligible' && missingReasons.length > 0 && (
+                      <div className="bg-slate-950/80 p-3 rounded-xl border border-slate-800/80 space-y-1.5 mt-2">
+                        <span className="font-black text-rose-400 block">أسباب عدم استيفاء الشروط:</span>
+                        {missingReasons.map((reason, idx) => (
+                          <div key={idx} className="flex items-center gap-2 text-rose-200 text-xs">
+                            <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0" />
+                            <span>{reason}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {rec?.uneligibilityReason && (
+                      <p className="text-xs font-bold text-slate-300 bg-slate-950 p-2.5 rounded-xl border border-slate-800">
+                        توضيح الإدارة: {rec.uneligibilityReason}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })()}
+
         {/* GRADUATION PROJECT CARD FOR STUDENT */}
         {graduationProject && graduationProject.status !== 'draft' && (() => {
           const projStartDate = graduationProject.startDate || (graduationProject as any).submissionStartDate || '';

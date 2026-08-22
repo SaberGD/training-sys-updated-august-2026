@@ -141,6 +141,21 @@ export interface Group {
   sourceGroupId?: string;
   importedAt?: string;
   calendarInvitationMode?: 'all_at_creation' | '24h_before';
+  certificatesVisibleToStudents?: boolean;
+}
+
+export interface StudentCertificateRecord {
+  id: string; // `${groupId}_${studentId}`
+  groupId: string;
+  studentId: string;
+  studentName?: string;
+  statusOverride?: 'none' | 'exception_granted' | 'blocked';
+  overrideReason?: string;
+  certificateUrl?: string;
+  uneligibilityReason?: string;
+  updatedAt?: any;
+  updatedByUid?: string;
+  updatedByName?: string;
 }
 
 export type TaskStatus = 

@@ -3159,3 +3159,64 @@ export const importGraduationProjectToGroups = async (
   });
 };
 
+export const saveStudentCertificateRecord = async (
+  groupId: string,
+  studentId: string,
+  record: {
+    studentName?: string;
+    statusOverride?: 'none' | 'exception_granted' | 'blocked';
+    overrideReason?: string;
+    certificateUrl?: string;
+    uneligibilityReason?: string;
+  },
+  performedBy: { uid: string; name: string; role: string }
+) => {
+  const docId = `${groupId}_${studentId}`;
+  const ref = doc(db, 'studentCertificates', docId);
+  const dataToSave = {
+    ...record,
+    groupId,
+    studentId,
+    updatedAt: serverTimestamp(),
+    updatedByUid: performedBy.uid,
+    updatedByName: performedBy.name
+  };
+  await setDoc(ref, dataToSave, { merge: true });
+
+  await logActivity({
+    action: 'STUDENT_CERTIFICATE_UPDATE',
+    entityType: 'studentCertificate',
+    entityId: docId,
+    entityName: record.studentName || studentId,
+    performedByUid: performedBy.uid,
+    performedByName: performedBy.name,
+    performedByRole: performedBy.role,
+    details: record
+  });
+};
+
+export const toggleGroupCertificatesVisibility = async (
+  groupId: string,
+  visible: boolean,
+  performedBy: { uid: string; name: string; role: string }
+) => {
+  const ref = doc(db, 'groups', groupId);
+  await updateDoc(ref, {
+    certificatesVisibleToStudents: visible,
+    certificatesVisibilityUpdatedAt: serverTimestamp(),
+    certificatesVisibilityUpdatedByUid: performedBy.uid,
+    certificatesVisibilityUpdatedByName: performedBy.name
+  });
+
+  await logActivity({
+    action: 'TOGGLE_CERTIFICATES_VISIBILITY',
+    entityType: 'group',
+    entityId: groupId,
+    entityName: groupId,
+    performedByUid: performedBy.uid,
+    performedByName: performedBy.name,
+    performedByRole: performedBy.role,
+    details: { visible }
+  });
+};
+

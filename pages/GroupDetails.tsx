@@ -6,7 +6,8 @@ import { db } from '../firebase';
 import { 
   Group, Student, Session, User, 
   LectureEvaluation, Attendance, GroupRanking, Penalty, Course, SessionMeta,
-  StudentFollowUp, FollowUpComment, LabelDefinition, LectureFeedback
+  StudentFollowUp, FollowUpComment, LabelDefinition, LectureFeedback,
+  GraduationProject, GraduationProjectSubmission, StudentCertificateRecord
 } from '../types';
 import { 
   subscribeToCollection, 
@@ -22,7 +23,9 @@ import {
   updateFeedbackComplaint,
   sendNotification,
   triggerStudentWelcomeEmail,
-  getOrCreateGroupTestAccount
+  getOrCreateGroupTestAccount,
+  saveStudentCertificateRecord,
+  toggleGroupCertificatesVisibility
 } from '../services/firestore';
 import { sanitizeCredentials, sanitizeEmail, sanitizePhone } from '../lib/textUtils';
 import Layout from '../components/Layout';
@@ -64,6 +67,24 @@ const GroupDetails: React.FC<{ user: User }> = ({ user }) => {
   const [feedbacks, setFeedbacks] = useState<LectureFeedback[]>([]);
   const [complaintNotes, setComplaintNotes] = useState<Record<string, string>>({});
   const [complaintStatuses, setComplaintStatuses] = useState<Record<string, 'new' | 'in_progress' | 'solved' | 'closed'>>({});
+  
+  // Graduation Projects & Certificates State
+  const [gradProjects, setGradProjects] = useState<GraduationProject[]>([]);
+  const [gradSubmissions, setGradSubmissions] = useState<GraduationProjectSubmission[]>([]);
+  const [certificateRecords, setCertificateRecords] = useState<StudentCertificateRecord[]>([]);
+
+  // Certificate Modals State
+  const [selectedCertStudent, setSelectedCertStudent] = useState<Student | null>(null);
+  const [isCertExceptionModalOpen, setIsCertExceptionModalOpen] = useState(false);
+  const [certOverrideType, setCertOverrideType] = useState<'none' | 'exception_granted' | 'blocked'>('none');
+  const [certOverrideReason, setCertOverrideReason] = useState('');
+
+  const [isCertLinkModalOpen, setIsCertLinkModalOpen] = useState(false);
+  const [certUrlInput, setCertUrlInput] = useState('');
+  const [certUneligibilityNote, setCertUneligibilityNote] = useState('');
+  const [isSavingCert, setIsSavingCert] = useState(false);
+  const [certSearchQuery, setCertSearchQuery] = useState('');
+  const [certFilterType, setCertFilterType] = useState<'all' | 'eligible' | 'ineligible' | 'exception' | 'blocked'>('all');
   
   const [evaluationMode, setEvaluationMode] = useState<'lecture' | 'project'>('lecture');
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
@@ -1062,6 +1083,13 @@ const GroupDetails: React.FC<{ user: User }> = ({ user }) => {
       setRankings(sorted); 
     }, [where('groupId', '==', groupId)]);
 
+    const unsubGradProjects = subscribeToCollection<GraduationProject>('graduationProjects', (data) => {
+      const filtered = data.filter(p => p.groupId === groupId || (p.assignedGroupIds && p.assignedGroupIds.includes(groupId)));
+      setGradProjects(filtered);
+    });
+    const unsubGradSubmissions = subscribeToCollection<GraduationProjectSubmission>('graduationSubmissions', setGradSubmissions, [where('groupId', '==', groupId)]);
+    const unsubCerts = subscribeToCollection<StudentCertificateRecord>('studentCertificates', setCertificateRecords, [where('groupId', '==', groupId)]);
+
     return () => { 
       unsubStudents(); 
       unsubSessions(); 
@@ -1071,6 +1099,9 @@ const GroupDetails: React.FC<{ user: User }> = ({ user }) => {
       unsubPenalties(); 
       unsubMetas(); 
       unsubFeedback(); 
+      unsubGradProjects();
+      unsubGradSubmissions();
+      unsubCerts();
     };
   }, [groupId, navigate]);
 
@@ -1698,9 +1729,18 @@ const GroupDetails: React.FC<{ user: User }> = ({ user }) => {
 
       <div className="mb-8 overflow-hidden">
         <nav className="flex gap-1.5 bg-slate-900 p-1.5 rounded-2xl w-full md:w-fit overflow-x-auto no-scrollbar scroll-smooth shadow-inner border border-slate-800">
-          {['lectures', 'evaluation', 'graduationProjects', 'taskProgress', 'penalties', 'ranking', 'students', 'feedback'].map((tab) => (
+          {['lectures', 'evaluation', 'taskProgress', 'penalties', 'ranking', 'students', 'feedback', 'graduationProjects', 'certificates'].map((tab) => (
             <button key={tab} onClick={() => handleTabChange(tab)} className={`px-5 py-2.5 rounded-xl text-xs font-black transition-all capitalize whitespace-nowrap tracking-wider flex-1 md:flex-none ${activeTab === tab ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}>
-              {tab === 'graduationProjects' ? 'مشاريع التخرج 🎓' : tab === 'taskProgress' ? 'Task Progress' : tab === 'feedback' ? 'تقييمات المحاضرات ⭐' : tab}
+              {tab === 'graduationProjects' ? 'مشاريع التخرج 🎓'
+                : tab === 'certificates' ? 'الشهادات 📜'
+                : tab === 'taskProgress' ? 'Task Progress'
+                : tab === 'feedback' ? 'تقييمات المحاضرات ⭐'
+                : tab === 'lectures' ? 'المحاضرات 📚'
+                : tab === 'evaluation' ? 'التقييمات 📝'
+                : tab === 'penalties' ? 'الجزاءات ⚠️'
+                : tab === 'ranking' ? 'الترتيب 🏆'
+                : tab === 'students' ? 'الطلاب 👥'
+                : tab}
             </button>
           ))}
         </nav>
@@ -3789,6 +3829,631 @@ const GroupDetails: React.FC<{ user: User }> = ({ user }) => {
           user={user}
         />
       )}
+
+      {activeTab === 'certificates' && group && (() => {
+        const totalSessionsDone = sessions.filter(s => s.status === 'done').length;
+        const totalGradProjectsCount = gradProjects.length;
+
+        // Compute metrics for each student
+        const studentMetrics = students.map((s, idx) => {
+          // 1. Attendance
+          const studentEvals = evaluations.filter(e => e.studentId === s.id);
+          const uniqueAttendedSessions = new Set(
+            studentEvals.filter(e => e.attendance === 1 && e.sessionNumber !== undefined).map(e => e.sessionNumber)
+          );
+          const attendedCount = Math.min(uniqueAttendedSessions.size, totalSessionsDone);
+          const attendanceRate = totalSessionsDone > 0 ? Math.min(100, Math.round((attendedCount / totalSessionsDone) * 100)) : 100;
+
+          // 2. Tasks
+          const totalRequiredTasks = sessions.filter(ses => ses.status === 'done').reduce((sum, ses) => sum + (ses.requiredTasksCount || 0), 0);
+          const totalCompletedTasks = studentEvals.reduce((sum, e) => sum + (e.taskDelivered || 0), 0);
+          const tasksRate = totalRequiredTasks > 0 ? Math.min(100, Math.round((totalCompletedTasks / totalRequiredTasks) * 100)) : 100;
+
+          // 3. Graduation Projects Submitted
+          const studentSubmittedProjectsCount = gradSubmissions.filter(
+            sub => sub.studentId === s.id && gradProjects.some(gp => gp.id === sub.projectId)
+          ).length;
+          const projectsRate = totalGradProjectsCount > 0 ? Math.round((studentSubmittedProjectsCount / totalGradProjectsCount) * 100) : 100;
+
+          // 4. Auto Eligibility Check
+          const isAttendanceEligible = attendanceRate >= 80;
+          const isTasksEligible = tasksRate >= 80;
+          const isProjectsEligible = totalGradProjectsCount === 0 || (studentSubmittedProjectsCount / totalGradProjectsCount) >= 0.5;
+
+          const isAutoEligible = isAttendanceEligible && isTasksEligible && isProjectsEligible;
+
+          // 5. Reasons for non-auto eligibility
+          const missingReasons: string[] = [];
+          if (!isAttendanceEligible) missingReasons.push(`الحضور ${attendanceRate}% (<80%)`);
+          if (!isTasksEligible) missingReasons.push(`التاسكات ${tasksRate}% (<80%)`);
+          if (!isProjectsEligible) missingReasons.push(`المشاريع ${studentSubmittedProjectsCount}/${totalGradProjectsCount} (<50%)`);
+
+          // 6. Record & Overrides
+          const rec = certificateRecords.find(r => r.studentId === s.id);
+          let finalStatus: 'eligible' | 'ineligible' = 'ineligible';
+          let statusType: 'auto_eligible' | 'exception_eligible' | 'blocked' | 'auto_ineligible' = 'auto_ineligible';
+
+          if (rec?.statusOverride === 'blocked') {
+            finalStatus = 'ineligible';
+            statusType = 'blocked';
+          } else if (rec?.statusOverride === 'exception_granted') {
+            finalStatus = 'eligible';
+            statusType = 'exception_eligible';
+          } else if (isAutoEligible) {
+            finalStatus = 'eligible';
+            statusType = 'auto_eligible';
+          } else {
+            finalStatus = 'ineligible';
+            statusType = 'auto_ineligible';
+          }
+
+          // Rank from rankings state
+          const rankIndex = rankings.findIndex(r => r.studentId === s.id);
+          const rankNum = rankIndex !== -1 ? rankIndex + 1 : idx + 1;
+
+          return {
+            student: s,
+            rankNum,
+            attendanceRate,
+            tasksRate,
+            studentSubmittedProjectsCount,
+            totalGradProjectsCount,
+            projectsRate,
+            isAutoEligible,
+            missingReasons,
+            rec,
+            finalStatus,
+            statusType
+          };
+        });
+
+        // Filter students based on search and filter type
+        const filteredMetrics = studentMetrics.filter(m => {
+          const nameMatch = m.student.name.toLowerCase().includes(certSearchQuery.toLowerCase()) ||
+                            (m.student.studentIdNum || '').includes(certSearchQuery);
+          if (!nameMatch) return false;
+
+          if (certFilterType === 'eligible') return m.finalStatus === 'eligible';
+          if (certFilterType === 'ineligible') return m.finalStatus === 'ineligible';
+          if (certFilterType === 'exception') return m.statusType === 'exception_eligible';
+          if (certFilterType === 'blocked') return m.statusType === 'blocked';
+          return true;
+        });
+
+        const totalStudentsCount = students.length;
+        const totalEligibleCount = studentMetrics.filter(m => m.finalStatus === 'eligible').length;
+        const totalIneligibleCount = studentMetrics.filter(m => m.finalStatus === 'ineligible').length;
+        const totalUploadedCertCount = studentMetrics.filter(m => m.rec?.certificateUrl).length;
+
+        return (
+          <div className="space-y-6 font-arabic text-right" dir="rtl">
+            {/* Top Banner & Group Visibility Toggle */}
+            <div className="bg-gradient-to-r from-slate-900 via-indigo-950/40 to-slate-900 border border-indigo-500/30 rounded-3xl p-6 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-xl">📜</span>
+                  <h3 className="text-xl font-black text-white">إدارة شهادات التخرج وأهلية الطلاب</h3>
+                  {group.certificatesVisibleToStudents ? (
+                    <span className="bg-emerald-500/20 text-emerald-300 font-extrabold text-xs px-3 py-1 rounded-full border border-emerald-500/30 flex items-center gap-1">
+                      <CheckCircle size={14} /> الشهادات ظاهرة للمتدربين في Portal 👁️
+                    </span>
+                  ) : (
+                    <span className="bg-slate-800 text-slate-400 font-extrabold text-xs px-3 py-1 rounded-full border border-slate-700 flex items-center gap-1">
+                      <XCircle size={14} /> الشهادات مخفية عن المتدربين حالياً 🙈
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-slate-300 leading-relaxed max-w-2xl">
+                  يمكنك متابعة الشروط التلقائية لكل طالب، منح استثناءات، إيقاف الشهادات، وإضافة رابط الشهادة. لن تظهر نتائج أيا من الشهادات للطلاب حتى تقوم بضغط زر تفعيل وإظهار الشهادات أدناه.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={async () => {
+                  if (!user) return;
+                  const nextVal = !group.certificatesVisibleToStudents;
+                  try {
+                    await toggleGroupCertificatesVisibility(group.id, nextVal, user);
+                    setGroup(prev => prev ? { ...prev, certificatesVisibleToStudents: nextVal } : prev);
+                  } catch (err: any) {
+                    alert('حدث خطأ أثناء تغيير حالة ظهور الشهادات: ' + err.message);
+                  }
+                }}
+                className={`px-6 py-3 rounded-2xl text-xs font-black transition-all shadow-xl flex items-center gap-2 cursor-pointer shrink-0 ${
+                  group.certificatesVisibleToStudents
+                    ? 'bg-rose-600 hover:bg-rose-500 text-white shadow-rose-600/20'
+                    : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/20'
+                }`}
+              >
+                {group.certificatesVisibleToStudents ? (
+                  <>
+                    <XCircle size={16} />
+                    <span>إخفاء الشهادات عن المتدربين 🙈</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle size={16} />
+                    <span>إظهار الشهادات للمتدربين في الجروب 👁️</span>
+                  </>
+                )}
+              </button>
+            </div>
+
+            {/* Rules Criteria Card */}
+            <div className="bg-slate-900/80 border border-slate-800 p-5 rounded-2xl text-xs space-y-2">
+              <h4 className="font-black text-amber-400 flex items-center gap-2">
+                <span>📌 الشروط التلقائية لأهلية الشهادة (Standard Graduation Criteria):</span>
+              </h4>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1 text-slate-300 font-bold">
+                <div className="bg-slate-950 p-3 rounded-xl border border-slate-800/80 flex items-center gap-2">
+                  <span className="text-emerald-400 text-base">🟢</span>
+                  <span>1. نسبة الحضور: <strong className="text-white">80% أو أكثر</strong></span>
+                </div>
+                <div className="bg-slate-950 p-3 rounded-xl border border-slate-800/80 flex items-center gap-2">
+                  <span className="text-emerald-400 text-base">🟢</span>
+                  <span>2. أداء التاسكات: <strong className="text-white">80% أو أكثر</strong></span>
+                </div>
+                <div className="bg-slate-950 p-3 rounded-xl border border-slate-800/80 flex items-center gap-2">
+                  <span className="text-emerald-400 text-base">🟢</span>
+                  <span>3. مشاريع التخرج: <strong className="text-white">50% على الأقل</strong></span>
+                </div>
+              </div>
+            </div>
+
+            {/* Stat Summary Cards */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl text-right">
+                <span className="text-[10px] text-slate-500 font-extrabold uppercase block">إجمالي الطلاب</span>
+                <span className="text-2xl font-black text-white mt-1 block">{totalStudentsCount}</span>
+              </div>
+              <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl text-right">
+                <span className="text-[10px] text-slate-500 font-extrabold uppercase block">المؤهلون للشهادة</span>
+                <span className="text-2xl font-black text-emerald-400 mt-1 block">{totalEligibleCount}</span>
+              </div>
+              <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl text-right">
+                <span className="text-[10px] text-slate-500 font-extrabold uppercase block">غير المؤهلين</span>
+                <span className="text-2xl font-black text-rose-400 mt-1 block">{totalIneligibleCount}</span>
+              </div>
+              <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl text-right">
+                <span className="text-[10px] text-slate-500 font-extrabold uppercase block">شهادات تم رفعها</span>
+                <span className="text-2xl font-black text-sky-400 mt-1 block">{totalUploadedCertCount}</span>
+              </div>
+            </div>
+
+            {/* Filters & Search */}
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-4 bg-slate-900 p-4 rounded-2xl border border-slate-800">
+              <div className="w-full sm:w-72">
+                <input
+                  type="text"
+                  value={certSearchQuery}
+                  onChange={(e) => setCertSearchQuery(e.target.value)}
+                  placeholder="بحث باسم الطالب أو الكود..."
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                />
+              </div>
+
+              <div className="flex items-center gap-2 overflow-x-auto w-full sm:w-auto no-scrollbar">
+                <button
+                  type="button"
+                  onClick={() => setCertFilterType('all')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${certFilterType === 'all' ? 'bg-indigo-600 text-white' : 'bg-slate-800 text-slate-400 hover:text-white'}`}
+                >
+                  الكل ({studentMetrics.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCertFilterType('eligible')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${certFilterType === 'eligible' ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-400 hover:text-white'}`}
+                >
+                  المؤهلون ({totalEligibleCount})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCertFilterType('ineligible')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${certFilterType === 'ineligible' ? 'bg-rose-600 text-white' : 'bg-slate-800 text-slate-400 hover:text-white'}`}
+                >
+                  غير المؤهلين ({totalIneligibleCount})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCertFilterType('exception')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${certFilterType === 'exception' ? 'bg-amber-600 text-white' : 'bg-slate-800 text-slate-400 hover:text-white'}`}
+                >
+                  استثناء خاص ({studentMetrics.filter(m => m.statusType === 'exception_eligible').length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCertFilterType('blocked')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${certFilterType === 'blocked' ? 'bg-slate-700 text-white' : 'bg-slate-800 text-slate-400 hover:text-white'}`}
+                >
+                  الموقوفون ({studentMetrics.filter(m => m.statusType === 'blocked').length})
+                </button>
+              </div>
+            </div>
+
+            {/* Main Table */}
+            <div className="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-xl">
+              <div className="overflow-x-auto">
+                <table className="w-full text-right text-xs">
+                  <thead className="bg-slate-950 border-b border-slate-800 text-slate-400 font-extrabold uppercase">
+                    <tr>
+                      <th className="px-4 py-4 text-center">الرانك</th>
+                      <th className="px-4 py-4">اسم الطالب</th>
+                      <th className="px-4 py-4 text-center">نسبة الحضور</th>
+                      <th className="px-4 py-4 text-center">أداء التاسكات</th>
+                      <th className="px-4 py-4 text-center">مشاريع التخرج</th>
+                      <th className="px-4 py-4">حالة الأهلية للشهادة</th>
+                      <th className="px-4 py-4 text-center">رابط الشهادة</th>
+                      <th className="px-4 py-4 text-center">التحكم والعمليات</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/80">
+                    {filteredMetrics.length === 0 ? (
+                      <tr>
+                        <td colSpan={8} className="text-center py-8 text-slate-500 font-bold">
+                          لا يوجد طلاب يطابقون خيارات البحث أو التصفية الحالية.
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredMetrics.map((m) => {
+                        return (
+                          <tr key={m.student.id} className="hover:bg-slate-800/40 transition-colors">
+                            {/* Rank */}
+                            <td className="px-4 py-4 text-center font-black text-sm text-slate-300">
+                              {m.rankNum === 1 ? '🥇' : m.rankNum === 2 ? '🥈' : m.rankNum === 3 ? '🥉' : `#${m.rankNum}`}
+                            </td>
+
+                            {/* Student Info */}
+                            <td className="px-4 py-4">
+                              <div className="font-black text-white text-sm">{m.student.name}</div>
+                              {m.student.studentIdNum && (
+                                <div className="text-[10px] text-slate-500 font-mono">كود: {m.student.studentIdNum}</div>
+                              )}
+                            </td>
+
+                            {/* Attendance % */}
+                            <td className="px-4 py-4 text-center">
+                              <span className={`px-2.5 py-1 rounded-full font-black text-xs ${
+                                m.attendanceRate >= 80 ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+                              }`}>
+                                {m.attendanceRate}%
+                              </span>
+                            </td>
+
+                            {/* Tasks % */}
+                            <td className="px-4 py-4 text-center">
+                              <span className={`px-2.5 py-1 rounded-full font-black text-xs ${
+                                m.tasksRate >= 80 ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+                              }`}>
+                                {m.tasksRate}%
+                              </span>
+                            </td>
+
+                            {/* Graduation Projects */}
+                            <td className="px-4 py-4 text-center">
+                              <span className={`px-2.5 py-1 rounded-full font-black text-xs ${
+                                (m.totalGradProjectsCount === 0 || (m.studentSubmittedProjectsCount / m.totalGradProjectsCount) >= 0.5)
+                                  ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                                  : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+                              }`}>
+                                {m.studentSubmittedProjectsCount} / {m.totalGradProjectsCount} ({m.projectsRate}%)
+                              </span>
+                            </td>
+
+                            {/* Eligibility Status */}
+                            <td className="px-4 py-4">
+                              <div className="space-y-1">
+                                {m.statusType === 'auto_eligible' && (
+                                  <span className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-3 py-1 rounded-full font-black text-[11px] inline-flex items-center gap-1">
+                                    <CheckCircle size={13} /> مؤهل (تلقائياً) 🟢
+                                  </span>
+                                )}
+                                {m.statusType === 'exception_eligible' && (
+                                  <span className="bg-amber-500/20 text-amber-300 border border-amber-500/30 px-3 py-1 rounded-full font-black text-[11px] inline-flex items-center gap-1">
+                                    <Sparkles size={13} /> مؤهل (باستثناء خاص) 🌟
+                                  </span>
+                                )}
+                                {m.statusType === 'blocked' && (
+                                  <span className="bg-rose-500/20 text-rose-300 border border-rose-500/30 px-3 py-1 rounded-full font-black text-[11px] inline-flex items-center gap-1">
+                                    <XCircle size={13} /> غير مؤهل (موقف بقرار) ⛔
+                                  </span>
+                                )}
+                                {m.statusType === 'auto_ineligible' && (
+                                  <span className="bg-rose-500/15 text-rose-400 border border-rose-500/20 px-3 py-1 rounded-full font-black text-[11px] inline-flex items-center gap-1">
+                                    <XCircle size={13} /> غير مؤهل 🔴
+                                  </span>
+                                )}
+
+                                {/* Notes / Reasons */}
+                                {m.rec?.overrideReason && (
+                                  <p className="text-[10px] text-amber-300 font-bold bg-amber-950/30 p-1.5 rounded-lg border border-amber-500/20">
+                                    سبب القرار: {m.rec.overrideReason}
+                                  </p>
+                                )}
+                                {m.missingReasons.length > 0 && m.statusType === 'auto_ineligible' && (
+                                  <p className="text-[10px] text-rose-300 leading-tight">
+                                    القصور: {m.missingReasons.join(' | ')}
+                                  </p>
+                                )}
+                              </div>
+                            </td>
+
+                            {/* Certificate Link */}
+                            <td className="px-4 py-4 text-center">
+                              {m.rec?.certificateUrl ? (
+                                <a
+                                  href={m.rec.certificateUrl}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="px-3 py-1.5 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 font-bold text-[11px] rounded-xl border border-emerald-500/30 inline-flex items-center gap-1 transition-all"
+                                >
+                                  <ExternalLink size={13} />
+                                  <span>عرض الشهادة 📜</span>
+                                </a>
+                              ) : (
+                                <span className="text-[11px] text-slate-500 font-medium">غير متوفر</span>
+                              )}
+                            </td>
+
+                            {/* Actions */}
+                            <td className="px-4 py-4 text-center">
+                              <div className="flex items-center justify-center gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedCertStudent(m.student);
+                                    setCertOverrideType(m.rec?.statusOverride || 'none');
+                                    setCertOverrideReason(m.rec?.overrideReason || '');
+                                    setIsCertExceptionModalOpen(true);
+                                  }}
+                                  className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-indigo-300 font-bold text-[11px] rounded-xl border border-slate-700 transition-all cursor-pointer"
+                                >
+                                  ⚙️ استثناء/إيقاف
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedCertStudent(m.student);
+                                    setCertUrlInput(m.rec?.certificateUrl || '');
+                                    setCertUneligibilityNote(m.rec?.uneligibilityReason || '');
+                                    setIsCertLinkModalOpen(true);
+                                  }}
+                                  className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-[11px] rounded-xl shadow-md transition-all cursor-pointer"
+                                >
+                                  🔗 رابط الشهادة
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* EXCEPTION MODAL */}
+            {isCertExceptionModalOpen && selectedCertStudent && (
+              <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center z-50 p-4 font-arabic" dir="rtl">
+                <div className="w-full max-w-lg bg-slate-900 border border-indigo-500/30 rounded-3xl p-6 shadow-2xl relative space-y-5">
+                  <button
+                    type="button"
+                    onClick={() => setIsCertExceptionModalOpen(false)}
+                    className="absolute top-5 left-5 text-slate-400 hover:text-white transition-colors cursor-pointer"
+                  >
+                    ✕
+                  </button>
+
+                  <div className="space-y-1 text-right border-b border-slate-800 pb-3">
+                    <span className="text-[10px] font-black text-amber-400 uppercase bg-amber-950/60 px-3 py-1 rounded-full border border-amber-900/60">
+                      التحكم بالاستثناء الإداري للشهادة
+                    </span>
+                    <h3 className="text-lg font-black text-white pt-1">الطالب: {selectedCertStudent.name}</h3>
+                  </div>
+
+                  <div className="space-y-3 text-right">
+                    <label className="text-xs font-black text-slate-300 block">اختر نوع الإجراء الاستثنائي:</label>
+                    
+                    <label className="flex items-center gap-3 p-3 rounded-2xl bg-slate-950 border border-slate-800 cursor-pointer hover:border-amber-500/50">
+                      <input
+                        type="radio"
+                        name="certOverride"
+                        value="exception_granted"
+                        checked={certOverrideType === 'exception_granted'}
+                        onChange={() => setCertOverrideType('exception_granted')}
+                        className="text-indigo-600 focus:ring-indigo-500"
+                      />
+                      <div>
+                        <span className="font-bold text-xs text-amber-300 block">🌟 منح شهادة باستثناء (Qualify by Exception)</span>
+                        <span className="text-[11px] text-slate-400">اعتبار الطالب مؤهلاً للحصول على الشهادة رغم عدم استيفاء كامل الشروط التلقائية.</span>
+                      </div>
+                    </label>
+
+                    <label className="flex items-center gap-3 p-3 rounded-2xl bg-slate-950 border border-slate-800 cursor-pointer hover:border-rose-500/50">
+                      <input
+                        type="radio"
+                        name="certOverride"
+                        value="blocked"
+                        checked={certOverrideType === 'blocked'}
+                        onChange={() => setCertOverrideType('blocked')}
+                        className="text-rose-600 focus:ring-rose-500"
+                      />
+                      <div>
+                        <span className="font-bold text-xs text-rose-400 block">⛔ إيقاف الشهادة (Stop / Block Certificate)</span>
+                        <span className="text-[11px] text-slate-400">حجب وإيقاف إصدار الشهادة لهذا الطالب حتى لو كان مؤهلاً تلقائياً.</span>
+                      </div>
+                    </label>
+
+                    <label className="flex items-center gap-3 p-3 rounded-2xl bg-slate-950 border border-slate-800 cursor-pointer hover:border-indigo-500/50">
+                      <input
+                        type="radio"
+                        name="certOverride"
+                        value="none"
+                        checked={certOverrideType === 'none'}
+                        onChange={() => setCertOverrideType('none')}
+                        className="text-indigo-600 focus:ring-indigo-500"
+                      />
+                      <div>
+                        <span className="font-bold text-xs text-slate-200 block">🔄 إلغاء الاستثناء والعودة للتقييم التلقائي</span>
+                        <span className="text-[11px] text-slate-400">الاعتماد المباشر على الحساب التلقائي لشروط الشهادة.</span>
+                      </div>
+                    </label>
+                  </div>
+
+                  {certOverrideType !== 'none' && (
+                    <div className="space-y-1.5 text-right">
+                      <label className="text-xs font-black text-rose-300 block">
+                        سبب الاستثناء / الإيقاف (مطلوب) <span className="text-rose-500">*</span>
+                      </label>
+                      <textarea
+                        rows={3}
+                        value={certOverrideReason}
+                        onChange={(e) => setCertOverrideReason(e.target.value)}
+                        placeholder="اكتب سبب منح الاستثناء أو سبب إيقاف الشهادة بوضوح..."
+                        className="w-full p-3 bg-slate-950 border border-slate-800 rounded-2xl text-xs text-white focus:outline-none focus:border-amber-500"
+                        required
+                      />
+                    </div>
+                  )}
+
+                  <div className="pt-3 flex gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setIsCertExceptionModalOpen(false)}
+                      className="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-2.5 rounded-2xl text-xs cursor-pointer"
+                    >
+                      إلغاء
+                    </button>
+                    <button
+                      type="button"
+                      disabled={isSavingCert || (certOverrideType !== 'none' && !certOverrideReason.trim())}
+                      onClick={async () => {
+                        if (!user || !selectedCertStudent) return;
+                        if (certOverrideType !== 'none' && !certOverrideReason.trim()) {
+                          alert('يرجى كتابة سبب الاستثناء أو الإيقاف أولاً.');
+                          return;
+                        }
+                        setIsSavingCert(true);
+                        try {
+                          await saveStudentCertificateRecord(
+                            group.id,
+                            selectedCertStudent.id,
+                            {
+                              studentName: selectedCertStudent.name,
+                              statusOverride: certOverrideType,
+                              overrideReason: certOverrideReason.trim()
+                            },
+                            user
+                          );
+                          setIsCertExceptionModalOpen(false);
+                        } catch (err: any) {
+                          alert('حدث خطأ أثناء الحفظ: ' + err.message);
+                        } finally {
+                          setIsSavingCert(false);
+                        }
+                      }}
+                      className="flex-1 bg-amber-600 hover:bg-amber-500 text-white font-black py-2.5 rounded-2xl text-xs shadow-lg disabled:opacity-50 cursor-pointer"
+                    >
+                      {isSavingCert ? 'جاري الحفظ...' : 'تأكيد وحفظ 💾'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* LINK MODAL */}
+            {isCertLinkModalOpen && selectedCertStudent && (
+              <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center z-50 p-4 font-arabic" dir="rtl">
+                <div className="w-full max-w-md bg-slate-900 border border-indigo-500/30 rounded-3xl p-6 shadow-2xl relative space-y-5">
+                  <button
+                    type="button"
+                    onClick={() => setIsCertLinkModalOpen(false)}
+                    className="absolute top-5 left-5 text-slate-400 hover:text-white transition-colors cursor-pointer"
+                  >
+                    ✕
+                  </button>
+
+                  <div className="space-y-1 text-right border-b border-slate-800 pb-3">
+                    <span className="text-[10px] font-black text-indigo-400 uppercase bg-indigo-950 px-3 py-1 rounded-full border border-indigo-900">
+                      رفع ورصد رابط شهادة التخرج
+                    </span>
+                    <h3 className="text-lg font-black text-white pt-1">الطالب: {selectedCertStudent.name}</h3>
+                  </div>
+
+                  <div className="space-y-4 text-right">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-black text-slate-200 block">
+                        رابط ملف الشهادة (Google Drive / PDF / Image):
+                      </label>
+                      <input
+                        type="url"
+                        value={certUrlInput}
+                        onChange={(e) => setCertUrlInput(e.target.value)}
+                        placeholder="https://drive.google.com/file/d/..."
+                        className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-2xl text-xs text-white font-mono text-left focus:outline-none focus:border-indigo-500"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-black text-slate-400 block">
+                        ملاحظة أو سبب عدم الأهلية (تظهر للطالب إن وجد / اختياري):
+                      </label>
+                      <textarea
+                        rows={2}
+                        value={certUneligibilityNote}
+                        onChange={(e) => setCertUneligibilityNote(e.target.value)}
+                        placeholder="أي ملاحظات إضافية بخصوص شهادة الطالب..."
+                        className="w-full p-3 bg-slate-950 border border-slate-800 rounded-2xl text-xs text-white focus:outline-none focus:border-indigo-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="pt-3 flex gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setIsCertLinkModalOpen(false)}
+                      className="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-2.5 rounded-2xl text-xs cursor-pointer"
+                    >
+                      إلغاء
+                    </button>
+                    <button
+                      type="button"
+                      disabled={isSavingCert}
+                      onClick={async () => {
+                        if (!user || !selectedCertStudent) return;
+                        setIsSavingCert(true);
+                        try {
+                          await saveStudentCertificateRecord(
+                            group.id,
+                            selectedCertStudent.id,
+                            {
+                              studentName: selectedCertStudent.name,
+                              certificateUrl: certUrlInput.trim(),
+                              uneligibilityReason: certUneligibilityNote.trim()
+                            },
+                            user
+                          );
+                          setIsCertLinkModalOpen(false);
+                        } catch (err: any) {
+                          alert('حدث خطأ أثناء حفظ رابط الشهادة: ' + err.message);
+                        } finally {
+                          setIsSavingCert(false);
+                        }
+                      }}
+                      className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-black py-2.5 rounded-2xl text-xs shadow-lg disabled:opacity-50 cursor-pointer"
+                    >
+                      {isSavingCert ? 'جاري الحفظ...' : 'حفظ الرابط 💾'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {activeTab === 'taskProgress' && (
         <div className="space-y-8">
