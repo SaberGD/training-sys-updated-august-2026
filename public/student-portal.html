@@ -10,12 +10,36 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="بوابة الطالب">
-<meta name="theme-color" content="#0f172a">
+<meta name="theme-color" content="#0a0a0a">
+<style>
+  body{background:#0a0a0a;color:#fff;font-family:sans-serif;margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;box-sizing:border-box;}
+  .wrap{max-width:380px;text-align:center;}
+  .logo{width:96px;height:96px;border-radius:24px;object-fit:cover;margin:0 auto 20px;box-shadow:0 0 30px rgba(196,50,31,0.35);border:1px solid rgba(196,50,31,0.45);}
+  h1{font-size:20px;margin:0 0 8px;}
+  p{color:#c7c7c7;font-size:14px;line-height:1.7;margin:0 0 6px;}
+  .steps{background:#151515;border:1px solid #2a2a2a;border-radius:14px;padding:16px;margin-top:18px;text-align:right;font-size:13px;color:#ddd;}
+  .steps b{color:#e85c3b;}
+  a.continue{display:inline-block;margin-top:20px;color:#c4321f;font-size:13px;text-decoration:underline;}
+</style>
 <script>
-  window.location.replace('/#/student/portal');
+  (function() {
+    var isStandalone = (window.navigator.standalone === true) || (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
+    if (isStandalone) {
+      window.location.replace('/#/student/portal');
+    }
+  })();
 </script>
 </head>
-<body style="background:#0f172a;color:#fff;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;">
-  <p>جاري التحويل...</p>
+<body>
+<div class="wrap" id="landing">
+  <img class="logo" src="/apple-touch-icon.png" alt="SABER GROUP">
+  <h1>بوابة الطالب - SABER GROUP</h1>
+  <p>لإضافة بوابة الطالب على شاشتك الرئيسية:</p>
+  <div class="steps">
+    <div>1. اضغط على زر <b>المشاركة (Share)</b> في المتصفح.</div>
+    <div>2. اختر <b>"Add to Home Screen"</b> (إضافة إلى الشاشة الرئيسية).</div>
+  </div>
+  <a class="continue" href="/#/student/portal">الدخول لبوابة الطالب الآن بدون تثبيت ←</a>
+</div>
 </body>
 </html>

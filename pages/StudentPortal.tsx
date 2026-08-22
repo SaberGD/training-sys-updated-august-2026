@@ -1654,9 +1654,9 @@ const StudentPortal: React.FC = () => {
   // NEW: Validate QR validation loading state
   if (isAttendanceMode && isCheckingQr) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-950 p-6" dir="rtl">
+      <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a] p-6" dir="rtl">
         <div className="text-center space-y-4">
-          <div className="animate-spin rounded-full h-14 w-14 border-b-2 border-indigo-500 mx-auto"></div>
+          <div className="animate-spin rounded-full h-14 w-14 border-b-2 border-red-500 mx-auto"></div>
           <p className="text-slate-400 text-xs font-black uppercase tracking-widest leading-relaxed font-arabic">جاري التحقق من صلاحية كود الحضور... يرجى الانتظار</p>
         </div>
       </div>
@@ -1666,11 +1666,11 @@ const StudentPortal: React.FC = () => {
   // NEW: Expiration / Validation Error Message Screen
   if (isAttendanceMode && qrCheckError) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-950 p-6 relative overflow-hidden font-arabic" dir="rtl">
+      <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a] p-6 relative overflow-hidden font-arabic" dir="rtl">
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-red-650/5 blur-[120px] rounded-full translate-x-1/2 -translate-y-1/2"></div>
         <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-red-650/5 blur-[100px] rounded-full -translate-x-1/4 translate-y-1/4"></div>
 
-        <div className="w-full max-w-lg bg-gradient-to-b from-slate-900 to-slate-950 rounded-4xl border border-red-500/20 shadow-2xl p-8 relative z-10 text-center space-y-6">
+        <div className="w-full max-w-lg bg-gradient-to-b from-slate-900 to-[#0a0a0a] rounded-4xl border border-red-500/20 shadow-2xl p-8 relative z-10 text-center space-y-6">
           <div className="mx-auto w-20 h-20 bg-red-500/10 text-red-400 border border-red-500/30 rounded-3xl flex items-center justify-center animate-pulse shadow-lg shadow-red-500/10">
             <AlertTriangle size={48} />
           </div>
@@ -1719,9 +1719,9 @@ const StudentPortal: React.FC = () => {
   // RENDERING COMPONENT LOADER
   if (loading && !loginLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-950 p-6">
+      <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a] p-6">
         <div className="text-center space-y-4">
-          <div className="animate-spin rounded-full h-14 w-14 border-b-2 border-purple-500 mx-auto"></div>
+          <div className="animate-spin rounded-full h-14 w-14 border-b-2 border-red-500 mx-auto"></div>
           <p className="text-slate-400 text-xs font-black uppercase tracking-widest leading-relaxed">تحميل بوابة الطلاب... يرجى الانتظار</p>
         </div>
       </div>
@@ -1731,11 +1731,11 @@ const StudentPortal: React.FC = () => {
   // A. ATTENDANCE CONFIRMATION RIPPLE SCREEN (SUCCESS SCREEN)
   if (attendanceSuccess) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-950 p-6 relative overflow-hidden" dir="rtl">
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-purple-600/10 blur-[125px] rounded-full translate-x-1/3 -translate-y-1/3"></div>
-        <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-indigo-600/10 blur-[100px] rounded-full -translate-x-1/4 translate-y-1/4"></div>
+      <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a] p-6 relative overflow-hidden" dir="rtl">
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-red-600/10 blur-[125px] rounded-full translate-x-1/3 -translate-y-1/3"></div>
+        <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-red-600/10 blur-[100px] rounded-full -translate-x-1/4 translate-y-1/4"></div>
 
-        <div className="w-full max-w-lg bg-gradient-to-b from-slate-900 to-slate-950 rounded-4xl border border-purple-500/20 shadow-2xl p-8 relative z-10 text-center space-y-6">
+        <div className="w-full max-w-lg bg-gradient-to-b from-slate-900 to-[#0a0a0a] rounded-4xl border border-red-500/20 shadow-2xl p-8 relative z-10 text-center space-y-6">
           <div className="mx-auto w-20 h-20 bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 rounded-3xl flex items-center justify-center animate-bounce shadow-lg shadow-emerald-500/10">
             <CheckCircle size={48} />
           </div>
@@ -1747,9 +1747,9 @@ const StudentPortal: React.FC = () => {
             <h1 className="text-3xl font-black text-white tracking-tight pt-2">أهلاً يا {currentStudent?.name}! 👋</h1>
             <p className="text-slate-400 font-bold text-sm leading-relaxed">
               {wasAlreadyRegistered ? (
-                <>تم تسجيل حضورك للمحاضرة دي بنجاح بالفعل (المحاضرة رقم <span className="text-purple-400 font-black text-lg">#{attendingSessionNum}</span>).</>
+                <>تم تسجيل حضورك للمحاضرة دي بنجاح بالفعل (المحاضرة رقم <span className="text-red-400 font-black text-lg">#{attendingSessionNum}</span>).</>
               ) : (
-                <>تم تسجيل حضورك بنجاح في المحاضرة رقم <span className="text-purple-400 font-black text-lg">#{attendingSessionNum}</span>.</>
+                <>تم تسجيل حضورك بنجاح في المحاضرة رقم <span className="text-red-400 font-black text-lg">#{attendingSessionNum}</span>.</>
               )}
             </p>
           </div>
@@ -1761,7 +1761,7 @@ const StudentPortal: React.FC = () => {
             </div>
             <div className="flex justify-between items-center text-xs pt-1.5 border-t border-slate-800/40">
               <span className="text-slate-500 font-black">المجموعة الحالية:</span>
-              <span className="text-purple-400 font-black">Batch {studentGroup?.name}</span>
+              <span className="text-red-400 font-black">Batch {studentGroup?.name}</span>
             </div>
             <div className="flex justify-between items-center text-xs pt-1.5 border-t border-slate-800/40">
               <span className="text-slate-500 font-black">الكورس الحالي:</span>
@@ -1769,8 +1769,8 @@ const StudentPortal: React.FC = () => {
             </div>
           </div>
 
-          <div className="p-4 bg-purple-950/20 border border-purple-900/40 rounded-2xl space-y-1">
-            <p className="text-xs text-purple-300 font-black">✨ واستمتع بالمحاضرة! شكراً لالتزامك المتميز معنا ✨</p>
+          <div className="p-4 bg-red-950/20 border border-red-900/40 rounded-2xl space-y-1">
+            <p className="text-xs text-red-300 font-black">✨ واستمتع بالمحاضرة! شكراً لالتزامك المتميز معنا ✨</p>
           </div>
 
           <button
@@ -1781,7 +1781,7 @@ const StudentPortal: React.FC = () => {
                 loadStudentData(currentStudent);
               }
             }}
-            className="w-full bg-purple-600 hover:bg-purple-700 text-white font-black py-4 rounded-2xl text-xs uppercase tracking-widest transition-all shadow-xl shadow-purple-600/20 hover:scale-[1.02] active:scale-95"
+            className="w-full bg-red-600 hover:bg-red-700 text-white font-black py-4 rounded-2xl text-xs uppercase tracking-widest transition-all shadow-xl shadow-red-600/20 hover:scale-[1.02] active:scale-95"
           >
             الانتقال لملف المتابعة الخاص بي ➔
           </button>
@@ -1793,11 +1793,11 @@ const StudentPortal: React.FC = () => {
   // C. FEEDBACK SUCCESS STATE SUBMISSION RIPPLE SCREEN
   if (isFeedbackMode && feedbackSuccess) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-950 p-6 relative overflow-hidden text-right" dir="rtl">
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-purple-600/10 blur-[125px] rounded-full translate-x-1/3 -translate-y-1/3"></div>
-        <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-indigo-600/10 blur-[100px] rounded-full -translate-x-1/4 translate-y-1/4"></div>
+      <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a] p-6 relative overflow-hidden text-right" dir="rtl">
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-red-600/10 blur-[125px] rounded-full translate-x-1/3 -translate-y-1/3"></div>
+        <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-red-600/10 blur-[100px] rounded-full -translate-x-1/4 translate-y-1/4"></div>
 
-        <div className="w-full max-w-lg bg-gradient-to-b from-slate-900 to-slate-950 rounded-4xl border border-purple-500/20 shadow-2xl p-8 relative z-10 text-center space-y-6">
+        <div className="w-full max-w-lg bg-gradient-to-b from-slate-900 to-[#0a0a0a] rounded-4xl border border-red-500/20 shadow-2xl p-8 relative z-10 text-center space-y-6">
           <div className="mx-auto w-20 h-20 bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 rounded-3xl flex items-center justify-center animate-bounce shadow-lg shadow-emerald-500/10">
             <CheckCircle size={48} />
           </div>
@@ -1808,14 +1808,14 @@ const StudentPortal: React.FC = () => {
             </span>
             <h1 className="text-3xl font-black text-white tracking-tight pt-2">شُكراً لمساهمتك يا مبدع! ❤️</h1>
             <p className="text-slate-400 font-bold text-sm leading-relaxed text-center font-arabic">
-              رأيك الغالي يساعدنا دائماً في تطوير المنهج التدريبي وتقديم أفضل جودة ومقررات تليق بـ <span className="text-purple-400 font-black">Saber Group</span>.
+              رأيك الغالي يساعدنا دائماً في تطوير المنهج التدريبي وتقديم أفضل جودة ومقررات تليق بـ <span className="text-red-400 font-black">Saber Group</span>.
             </p>
           </div>
 
           <div className="bg-slate-900/60 p-5 rounded-2xl border border-slate-800 space-y-1.5 text-right font-arabic">
             <div className="flex justify-between items-center text-xs">
               <span className="text-slate-500 font-black">المجموعة:</span>
-              <span className="text-purple-400 font-black">Batch {evaluatingGroup?.name || 'N/A'}</span>
+              <span className="text-red-400 font-black">Batch {evaluatingGroup?.name || 'N/A'}</span>
             </div>
             <div className="flex justify-between items-center text-xs pt-1.5 border-t border-slate-800/40">
               <span className="text-slate-500 font-black">الكورس:</span>
@@ -1827,7 +1827,7 @@ const StudentPortal: React.FC = () => {
             </div>
           </div>
 
-          <p className="text-xs text-purple-300 font-black">✨ تمنياتنا لك بدوام التفوق والنجاح الباهر ✨</p>
+          <p className="text-xs text-red-300 font-black">✨ تمنياتنا لك بدوام التفوق والنجاح الباهر ✨</p>
         </div>
       </div>
     );
@@ -1838,15 +1838,15 @@ const StudentPortal: React.FC = () => {
     const primaryTrainerName = evaluatingGroup?.trainerName || '';
 
     return (
-      <div className="min-h-screen bg-slate-950 text-slate-100 p-4 md:p-8 flex items-center justify-center relative overflow-hidden text-right" dir="rtl">
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-purple-600/5 blur-[120px] rounded-full translate-x-1/3 -translate-y-1/3"></div>
-        <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-indigo-600/5 blur-[100px] rounded-full -translate-x-1/4 translate-y-1/4"></div>
+      <div className="min-h-screen bg-[#0a0a0a] text-slate-100 p-4 md:p-8 flex items-center justify-center relative overflow-hidden text-right" dir="rtl">
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-red-600/5 blur-[120px] rounded-full translate-x-1/3 -translate-y-1/3"></div>
+        <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-red-600/5 blur-[100px] rounded-full -translate-x-1/4 translate-y-1/4"></div>
 
         <div className="w-full max-w-2xl bg-slate-900 rounded-3xl border border-slate-800/70 shadow-2xl p-6 md:p-8 relative z-10 space-y-8 font-arabic">
           
           {/* Header */}
           <div className="text-center space-y-2 pb-6 border-b border-slate-800/60">
-            <div className="bg-gradient-to-tr from-purple-600 to-indigo-600 w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-xl shadow-purple-600/20">
+            <div className="bg-gradient-to-tr from-red-600 to-red-600 w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-xl shadow-red-600/20">
               <span className="text-2xl font-black text-white">⭐</span>
             </div>
             <h1 className="text-2xl font-black text-white tracking-tight">استمارة تقييم أداء الكورس والمدرب والأكاديمية والسيلز</h1>
@@ -1857,14 +1857,14 @@ const StudentPortal: React.FC = () => {
 
           {/* Group Metadata Info card */}
           {evaluatingGroup && (
-            <div className="bg-slate-950 p-4 rounded-2xl border border-purple-500/20 text-right grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs leading-relaxed font-bold">
+            <div className="bg-[#0a0a0a] p-4 rounded-2xl border border-red-500/20 text-right grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs leading-relaxed font-bold">
               <div>
                 <span className="text-slate-500 font-black block">الكورس والمقرر:</span>
                 <span className="text-slate-200">{evaluatingGroup.courseName}</span>
               </div>
               <div>
                 <span className="text-slate-500 font-black block">المجموعة:</span>
-                <span className="text-purple-400 font-black">Batch {evaluatingGroup.name}</span>
+                <span className="text-red-400 font-black">Batch {evaluatingGroup.name}</span>
               </div>
               {primaryTrainerName && (
                 <div className="sm:col-span-2">
@@ -1878,26 +1878,26 @@ const StudentPortal: React.FC = () => {
           <form onSubmit={handleFeedbackSubmit} className="space-y-8">
             
             {/* Student attribution & Anonymous option */}
-            <div className="space-y-4 bg-slate-950 p-5 rounded-2xl border border-slate-800">
+            <div className="space-y-4 bg-[#0a0a0a] p-5 rounded-2xl border border-slate-800">
               <div className="flex items-center justify-between border-b border-slate-800/80 pb-3">
-                <h3 className="text-xs font-black text-purple-400 flex items-center gap-2">
+                <h3 className="text-xs font-black text-red-400 flex items-center gap-2">
                   <span>👤</span> هوية صاحب التقييم
                 </h3>
                 
                 {/* Anonymous Toggle */}
-                <label className="flex items-center gap-2 cursor-pointer bg-slate-900 px-3 py-1.5 rounded-xl border border-slate-750 hover:border-purple-500/40 transition-all">
+                <label className="flex items-center gap-2 cursor-pointer bg-slate-900 px-3 py-1.5 rounded-xl border border-slate-750 hover:border-red-500/40 transition-all">
                   <input
                     type="checkbox"
                     checked={isAnonymous}
                     onChange={(e) => setIsAnonymous(e.target.checked)}
-                    className="w-4 h-4 text-purple-600 bg-slate-950 border-slate-700 rounded focus:ring-purple-500"
+                    className="w-4 h-4 text-red-600 bg-[#0a0a0a] border-slate-700 rounded focus:ring-red-500"
                   />
                   <span className="text-[11px] font-black text-slate-200">تقديم التقييم كـ مجهول الهوية (Anonymous) 🕶️</span>
                 </label>
               </div>
 
               {isAnonymous ? (
-                <div className="p-3 bg-purple-950/30 border border-purple-900/30 rounded-xl text-xs text-purple-300 font-bold leading-relaxed">
+                <div className="p-3 bg-red-950/30 border border-red-900/30 rounded-xl text-xs text-red-300 font-bold leading-relaxed">
                   🔒 تم تفعيل وضع مجهول الهوية. سيتم تسليم تقييمك دون إظهار اسمك أو بريدك مطلقاً لضمان الخصوصية التامة.
                 </div>
               ) : currentStudent ? (
@@ -1920,14 +1920,14 @@ const StudentPortal: React.FC = () => {
                       placeholder="الرقم التعريفي Student ID (وليس الإيميل)"
                       value={evalStudentId}
                       onChange={(e) => setEvalStudentId(e.target.value)}
-                      className="px-3.5 py-2.5 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white outline-none focus:border-purple-500 text-right font-mono"
+                      className="px-3.5 py-2.5 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white outline-none focus:border-red-500 text-right font-mono"
                     />
                     <input
                       type="password"
                       placeholder="كلمة المرور"
                       value={evalPassword}
                       onChange={(e) => setEvalPassword(e.target.value)}
-                      className="px-3.5 py-2.5 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white outline-none focus:border-purple-500 text-right"
+                      className="px-3.5 py-2.5 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white outline-none focus:border-red-500 text-right"
                     />
                   </div>
 
@@ -1942,7 +1942,7 @@ const StudentPortal: React.FC = () => {
                       type="button"
                       onClick={handleEvalLogin}
                       disabled={evalLoginLoading}
-                      className="px-4 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-black transition-all shadow-md"
+                      className="px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-black transition-all shadow-md"
                     >
                       {evalLoginLoading ? 'جاري التوثيق...' : 'تأكيد الدخول كمتدرب'}
                     </button>
@@ -1959,7 +1959,7 @@ const StudentPortal: React.FC = () => {
                           setCustomStudentName(s ? s.name : 'متدرب');
                         }
                       }}
-                      className="flex-1 px-3 py-2.5 bg-slate-900 border border-slate-800 rounded-xl text-xs text-slate-300 outline-none focus:border-purple-500 text-right"
+                      className="flex-1 px-3 py-2.5 bg-slate-900 border border-slate-800 rounded-xl text-xs text-slate-300 outline-none focus:border-red-500 text-right"
                     >
                       <option value="anonymous">أو اختر اسمك مباشر من الجروب...</option>
                       {groupStudents.map(s => (
@@ -1972,7 +1972,7 @@ const StudentPortal: React.FC = () => {
             </div>
 
             {/* SECTION 1: COURSE & CONTENT */}
-            <div className="space-y-4 bg-slate-950 p-5 rounded-2xl border border-slate-800">
+            <div className="space-y-4 bg-[#0a0a0a] p-5 rounded-2xl border border-slate-800">
               <h3 className="text-xs font-black text-amber-400 border-r-4 border-amber-500 pr-2 flex items-center gap-2">
                 <span>📚</span> 1. تقييم الكورس والمحتوى التدريبي:
               </h3>
@@ -2019,7 +2019,7 @@ const StudentPortal: React.FC = () => {
             </div>
 
             {/* SECTION 2: SALES EVALUATION */}
-            <div className="space-y-4 bg-slate-950 p-5 rounded-2xl border border-slate-800">
+            <div className="space-y-4 bg-[#0a0a0a] p-5 rounded-2xl border border-slate-800">
               <h3 className="text-xs font-black text-emerald-400 border-r-4 border-emerald-500 pr-2 flex items-center gap-2">
                 <span>💼</span> 2. تقييم مسؤول المبيعات (Sales):
               </h3>
@@ -2069,8 +2069,8 @@ const StudentPortal: React.FC = () => {
             </div>
 
             {/* SECTION 3: TRAINERS EVALUATION */}
-            <div className="space-y-4 bg-slate-950 p-5 rounded-2xl border border-slate-800">
-              <h3 className="text-xs font-black text-indigo-400 border-r-4 border-indigo-500 pr-2 flex items-center gap-2">
+            <div className="space-y-4 bg-[#0a0a0a] p-5 rounded-2xl border border-slate-800">
+              <h3 className="text-xs font-black text-red-400 border-r-4 border-red-500 pr-2 flex items-center gap-2">
                 <span>👨‍🏫</span> 3. تقييم المدرب الرئيسي والمدربين الآخرين:
               </h3>
 
@@ -2080,7 +2080,7 @@ const StudentPortal: React.FC = () => {
                   <span className="font-bold text-slate-200">
                     {primaryTrainerName ? `المُدرب الخاص بمجموعتك: أ/ ${primaryTrainerName}` : 'المُدرب الخاص بمجموعتك'}
                   </span>
-                  <span className="text-indigo-400 font-black">{ratingTrainer} / 5 ⭐</span>
+                  <span className="text-red-400 font-black">{ratingTrainer} / 5 ⭐</span>
                 </div>
 
                 <div className="flex gap-2 items-center justify-end" dir="ltr">
@@ -2089,7 +2089,7 @@ const StudentPortal: React.FC = () => {
                       key={star}
                       type="button"
                       onClick={() => setRatingTrainer(star)}
-                      className={`text-2xl transition-all hover:scale-125 ${star <= ratingTrainer ? 'text-indigo-400' : 'text-slate-700'}`}
+                      className={`text-2xl transition-all hover:scale-125 ${star <= ratingTrainer ? 'text-red-400' : 'text-slate-700'}`}
                     >
                       ★
                     </button>
@@ -2101,39 +2101,39 @@ const StudentPortal: React.FC = () => {
                   value={trainerNotes}
                   onChange={(e) => setTrainerNotes(e.target.value)}
                   placeholder={primaryTrainerName ? `ملاحظاتك أو انطباعك عن أداء المدرب أ/ ${primaryTrainerName}...` : 'ملاحظاتك أو انطباعك عن أداء المدرب...'}
-                  className="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white outline-none focus:border-indigo-500 font-arabic"
+                  className="w-full px-3.5 py-2 rounded-xl bg-[#0a0a0a] border border-slate-800 text-xs text-white outline-none focus:border-red-500 font-arabic"
                 />
               </div>
 
               {/* Optional Other Trainer Option */}
               <div className="pt-2">
-                <label className="flex items-center gap-2 cursor-pointer bg-slate-900 p-3 rounded-xl border border-slate-800 hover:border-indigo-500/30 transition-all">
+                <label className="flex items-center gap-2 cursor-pointer bg-slate-900 p-3 rounded-xl border border-slate-800 hover:border-red-500/30 transition-all">
                   <input
                     type="checkbox"
                     checked={hasOtherTrainer}
                     onChange={(e) => setHasOtherTrainer(e.target.checked)}
-                    className="w-4 h-4 text-indigo-600 bg-slate-950 border-slate-700 rounded focus:ring-indigo-500"
+                    className="w-4 h-4 text-red-600 bg-[#0a0a0a] border-slate-700 rounded focus:ring-red-500"
                   />
-                  <span className="text-xs font-black text-indigo-300">هل ترغب في تقييم مدرب آخر أو شخص آخر في الأكاديمية حضر معك؟ 🔁</span>
+                  <span className="text-xs font-black text-red-300">هل ترغب في تقييم مدرب آخر أو شخص آخر في الأكاديمية حضر معك؟ 🔁</span>
                 </label>
 
                 {hasOtherTrainer && (
-                  <div className="mt-3 p-4 bg-indigo-950/20 border border-indigo-900/30 rounded-xl space-y-3 animate-fade-in">
+                  <div className="mt-3 p-4 bg-red-950/20 border border-red-900/30 rounded-xl space-y-3 animate-fade-in">
                     <div className="space-y-1.5">
-                      <label className="block text-[11px] font-bold text-indigo-200">اسم المدرب الآخر أو الشخص المراد تقييمه:</label>
+                      <label className="block text-[11px] font-bold text-red-200">اسم المدرب الآخر أو الشخص المراد تقييمه:</label>
                       <input
                         type="text"
                         value={otherTrainerName}
                         onChange={(e) => setOtherTrainerName(e.target.value)}
                         placeholder="أدخل اسم المدرب الآخر..."
-                        className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-xs text-white outline-none focus:border-indigo-500 font-arabic"
+                        className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-xs text-white outline-none focus:border-red-500 font-arabic"
                       />
                     </div>
 
                     <div className="space-y-2">
                       <div className="flex justify-between items-center text-xs">
-                        <span className="font-bold text-indigo-200">تقييم أداء هذا المدرب الآخر:</span>
-                        <span className="text-indigo-400 font-black">{otherTrainerRating} / 5 ⭐</span>
+                        <span className="font-bold text-red-200">تقييم أداء هذا المدرب الآخر:</span>
+                        <span className="text-red-400 font-black">{otherTrainerRating} / 5 ⭐</span>
                       </div>
                       <div className="flex gap-2 items-center justify-end" dir="ltr">
                         {[1, 2, 3, 4, 5].map(star => (
@@ -2141,7 +2141,7 @@ const StudentPortal: React.FC = () => {
                             key={star}
                             type="button"
                             onClick={() => setOtherTrainerRating(star)}
-                            className={`text-2xl transition-all hover:scale-125 ${star <= otherTrainerRating ? 'text-indigo-400' : 'text-slate-700'}`}
+                            className={`text-2xl transition-all hover:scale-125 ${star <= otherTrainerRating ? 'text-red-400' : 'text-slate-700'}`}
                           >
                             ★
                           </button>
@@ -2154,7 +2154,7 @@ const StudentPortal: React.FC = () => {
                       value={otherTrainerNotes}
                       onChange={(e) => setOtherTrainerNotes(e.target.value)}
                       placeholder="ملاحظاتك بخصوص هذا المدرب الآخر..."
-                      className="w-full px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs text-white outline-none focus:border-indigo-500 font-arabic"
+                      className="w-full px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs text-white outline-none focus:border-red-500 font-arabic"
                     />
                   </div>
                 )}
@@ -2162,8 +2162,8 @@ const StudentPortal: React.FC = () => {
             </div>
 
             {/* SECTION 4: ACADEMY & GENERAL COMMENTS */}
-            <div className="space-y-4 bg-slate-950 p-5 rounded-2xl border border-slate-800">
-              <h3 className="text-xs font-black text-purple-400 border-r-4 border-purple-500 pr-2 flex items-center gap-2">
+            <div className="space-y-4 bg-[#0a0a0a] p-5 rounded-2xl border border-slate-800">
+              <h3 className="text-xs font-black text-red-400 border-r-4 border-red-500 pr-2 flex items-center gap-2">
                 <span>🏛️</span> 4. تقييم الأكاديمية والملاحظات العامة:
               </h3>
 
@@ -2171,7 +2171,7 @@ const StudentPortal: React.FC = () => {
                 <div className="space-y-2">
                   <div className="flex justify-between items-center text-xs">
                     <span className="font-bold text-slate-200">الرضا العام عن تجربة Saber Group والتنظيم والدعم:</span>
-                    <span className="text-purple-400 font-black">{ratingAcademy} / 5 ⭐</span>
+                    <span className="text-red-400 font-black">{ratingAcademy} / 5 ⭐</span>
                   </div>
                   <div className="flex gap-2 items-center justify-end" dir="ltr">
                     {[1, 2, 3, 4, 5].map(star => (
@@ -2179,7 +2179,7 @@ const StudentPortal: React.FC = () => {
                         key={star}
                         type="button"
                         onClick={() => setRatingAcademy(star)}
-                        className={`text-2xl transition-all hover:scale-125 ${star <= ratingAcademy ? 'text-purple-400' : 'text-slate-700'}`}
+                        className={`text-2xl transition-all hover:scale-125 ${star <= ratingAcademy ? 'text-red-400' : 'text-slate-700'}`}
                       >
                         ★
                       </button>
@@ -2193,7 +2193,7 @@ const StudentPortal: React.FC = () => {
                     value={comments}
                     onChange={(e) => setComments(e.target.value)}
                     maxLength={500}
-                    className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-slate-800 text-xs h-24 outline-none focus:border-purple-500 text-right leading-relaxed font-arabic"
+                    className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-slate-800 text-xs h-24 outline-none focus:border-red-500 text-right leading-relaxed font-arabic"
                     placeholder="اكتب اقتراحاتك للتحسين أو أي كلمات ودية تود توجيهها للأكاديمية..."
                   />
                 </div>
@@ -2208,7 +2208,7 @@ const StudentPortal: React.FC = () => {
                   id="hasComplaintCheck"
                   checked={hasComplaint}
                   onChange={(e) => setHasComplaint(e.target.checked)}
-                  className="w-4 h-4 text-red-600 bg-slate-950 border-slate-800 rounded focus:ring-red-500"
+                  className="w-4 h-4 text-red-600 bg-[#0a0a0a] border-slate-800 rounded focus:ring-red-500"
                 />
                 <label htmlFor="hasComplaintCheck" className="text-xs font-black text-red-300 select-none cursor-pointer flex gap-1.5 items-center">
                   <span>🚨</span> هل تود تسجيل شكوى أو مشكلة خاصة تحتاج متابعة عاجلة؟
@@ -2237,7 +2237,7 @@ const StudentPortal: React.FC = () => {
                       id="wantsCallCheck"
                       checked={wantsCall}
                       onChange={(e) => setWantsCall(e.target.checked)}
-                      className="w-4 h-4 text-red-600 bg-slate-950 border-slate-800 rounded focus:ring-red-500"
+                      className="w-4 h-4 text-red-600 bg-[#0a0a0a] border-slate-800 rounded focus:ring-red-500"
                     />
                   </div>
                 </div>
@@ -2248,7 +2248,7 @@ const StudentPortal: React.FC = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-black py-4 rounded-2xl text-xs uppercase tracking-widest transition-all shadow-xl shadow-purple-600/10 hover:scale-[1.01] active:scale-95 flex justify-center items-center gap-2"
+              className="w-full bg-gradient-to-r from-red-600 to-red-600 hover:from-red-500 hover:to-red-500 text-white font-black py-4 rounded-2xl text-xs uppercase tracking-widest transition-all shadow-xl shadow-red-600/10 hover:scale-[1.01] active:scale-95 flex justify-center items-center gap-2"
             >
               {loading ? 'جاري إرسال التقييم...' : '✅ إرسال استمارة التقييم الكاملة'}
             </button>
@@ -2276,10 +2276,10 @@ const StudentPortal: React.FC = () => {
     }
 
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-950 p-6 relative overflow-hidden font-arabic" dir="rtl">
+      <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a] p-6 relative overflow-hidden font-arabic" dir="rtl">
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-red-600/10 blur-[130px] rounded-full translate-x-1/2 -translate-y-1/2"></div>
         
-        <div className="w-full max-w-lg bg-gradient-to-b from-slate-900 to-slate-950 rounded-4xl border border-red-500/30 shadow-2xl p-8 relative z-10 text-center space-y-6">
+        <div className="w-full max-w-lg bg-gradient-to-b from-slate-900 to-[#0a0a0a] rounded-4xl border border-red-500/30 shadow-2xl p-8 relative z-10 text-center space-y-6">
           <div className="mx-auto w-20 h-20 bg-red-500/10 text-red-400 border border-red-500/30 rounded-3xl flex items-center justify-center shadow-lg shadow-red-500/10">
             <AlertTriangle size={48} />
           </div>
@@ -2301,7 +2301,7 @@ const StudentPortal: React.FC = () => {
             </div>
             <div className="flex justify-between items-center text-xs border-b border-slate-800 pb-2">
               <span className="text-slate-400 font-bold">كود الطالب (ID):</span>
-              <span className="text-purple-400 font-mono font-black">{currentStudent.studentIdNum || 'غير محدد'}</span>
+              <span className="text-red-400 font-mono font-black">{currentStudent.studentIdNum || 'غير محدد'}</span>
             </div>
             {currentStudent.deactivationReason && (
               <div className="space-y-1">
@@ -2341,14 +2341,18 @@ const StudentPortal: React.FC = () => {
   // B. STUDENT ENTERING LOGIN SCREEN (IF NO SESSION ACTIVE)
   if (!currentStudent) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-950 p-6 relative overflow-hidden" dir="rtl">
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-purple-600/10 blur-[120px] rounded-full translate-x-1/2 -translate-y-1/2"></div>
-        <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-indigo-600/10 blur-[100px] rounded-full -translate-x-1/4 translate-y-1/4"></div>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-[#0a0a0a] p-6 relative overflow-hidden" dir="rtl">
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-red-600/10 blur-[120px] rounded-full translate-x-1/2 -translate-y-1/2"></div>
+        <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-red-600/10 blur-[100px] rounded-full -translate-x-1/4 translate-y-1/4"></div>
 
         <div className="mb-10 text-center relative z-10">
-          <div className="bg-gradient-to-tr from-purple-600 to-indigo-600 w-20 h-20 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-2xl shadow-purple-600/40 transform hover:rotate-12 transition-transform">
-            <span className="text-4xl font-black text-white">S</span>
-          </div>
+          <div className="relative w-28 h-28 mx-auto flex items-center justify-center">
+              <style>{`@keyframes emberPulse{0%,100%{transform:scale(0.88);opacity:.45}50%{transform:scale(1.22);opacity:.9}}`}</style>
+              <div className="absolute inset-[-18px] rounded-3xl pointer-events-none" style={{background:'radial-gradient(circle, rgba(232,92,59,0.7) 0%, rgba(196,50,31,0.35) 45%, transparent 75%)', filter:'blur(14px)', animation:'emberPulse 2.4s ease-in-out infinite'}}></div>
+              <div className="relative w-20 h-20 rounded-3xl flex items-center justify-center overflow-hidden border bg-black" style={{borderColor:'rgba(196,50,31,0.45)', boxShadow:'0 0 30px rgba(196,50,31,0.3)'}}>
+                <img src="/apple-touch-icon.png" alt="SABER GROUP" className="w-full h-full object-contain" />
+              </div>
+            </div>
           <h1 className="text-4xl font-black text-white tracking-tighter mb-2">SABER GROUP ACADEMY</h1>
           <p className="text-slate-500 font-black uppercase tracking-[0.2rem] text-[10px]">Student Workspace & Attendance Portal</p>
         </div>
@@ -2360,10 +2364,10 @@ const StudentPortal: React.FC = () => {
           </div>
 
           {/* Clarity Alert Banner */}
-          <div className="mb-6 p-3.5 bg-gradient-to-r from-purple-950/70 to-indigo-950/70 border border-purple-500/30 rounded-2xl text-right space-y-1 shadow-lg shadow-purple-950/30">
+          <div className="mb-6 p-3.5 bg-gradient-to-r from-red-950/70 to-red-950/70 border border-red-500/30 rounded-2xl text-right space-y-1 shadow-lg shadow-red-950/30">
             <div className="flex items-center gap-2">
-              <span className="w-5 h-5 rounded-full bg-purple-500/20 text-purple-300 flex items-center justify-center text-xs font-black shrink-0">💡</span>
-              <span className="text-xs font-black text-purple-200">تنبيه هام لتسجيل الدخول:</span>
+              <span className="w-5 h-5 rounded-full bg-red-500/20 text-red-300 flex items-center justify-center text-xs font-black shrink-0">💡</span>
+              <span className="text-xs font-black text-red-200">تنبيه هام لتسجيل الدخول:</span>
             </div>
             <p className="text-[11px] text-slate-300 font-bold leading-relaxed pr-7">
               يرجى إدخال <span className="text-amber-300 font-extrabold underline decoration-amber-400">الرقم التعريفي (Student ID)</span> المكون من 6 أرقام المستلم في إيميل الترحيب <span className="text-rose-400 font-black">(وليس البريد الإلكتروني ❌)</span>.
@@ -2371,8 +2375,8 @@ const StudentPortal: React.FC = () => {
           </div>
 
           {isAttendanceMode && qGroupId && (
-            <div className="mb-6 p-4 bg-purple-950/40 border border-purple-900/50 rounded-2xl text-center space-y-1">
-              <span className="text-[9px] font-black text-purple-400 bg-purple-950 px-2 py-0.5 rounded-full border border-purple-900">تسجيل حضور المحاضرة</span>
+            <div className="mb-6 p-4 bg-red-950/40 border border-red-900/50 rounded-2xl text-center space-y-1">
+              <span className="text-[9px] font-black text-red-400 bg-red-950 px-2 py-0.5 rounded-full border border-red-900">تسجيل حضور المحاضرة</span>
               <p className="text-xs font-bold text-slate-300">قم بتسجيل الدخول أولاً لتسجيل حضورك تلقائياً</p>
             </div>
           )}
@@ -2399,7 +2403,7 @@ const StudentPortal: React.FC = () => {
                   value={loginId}
                   onChange={(e) => setLoginId(e.target.value)}
                   required
-                  className="w-full pr-12 pl-6 py-4 rounded-xl bg-slate-950 border border-slate-800 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition-all font-mono font-bold text-sm text-center text-white placeholder:text-slate-600 placeholder:text-xs placeholder:font-sans"
+                  className="w-full pr-12 pl-6 py-4 rounded-xl bg-[#0a0a0a] border border-slate-800 focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all font-mono font-bold text-sm text-center text-white placeholder:text-slate-600 placeholder:text-xs placeholder:font-sans"
                   placeholder="اكتب كود الـ ID (مثال: 123456) أو رقم الموبايل"
                 />
                 <div className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500">
@@ -2424,7 +2428,7 @@ const StudentPortal: React.FC = () => {
                   value={loginPassword}
                   onChange={(e) => setLoginPassword(e.target.value)}
                   required
-                  className="w-full pr-12 pl-6 py-4 rounded-xl bg-slate-950 border border-slate-800 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition-all font-mono font-bold text-sm text-center text-white"
+                  className="w-full pr-12 pl-6 py-4 rounded-xl bg-[#0a0a0a] border border-slate-800 focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all font-mono font-bold text-sm text-center text-white"
                   placeholder="المستلمة ببداية الكورس (5 أرقام)"
                 />
                 <div className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500">
@@ -2436,7 +2440,7 @@ const StudentPortal: React.FC = () => {
             <button
               type="submit"
               disabled={loginLoading}
-              className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-wider hover:from-purple-700 hover:to-indigo-700 active:scale-95 transition-all shadow-2xl shadow-purple-600/20 disabled:opacity-50 mt-4"
+              className="w-full bg-gradient-to-r from-red-600 to-red-600 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-wider hover:from-red-700 hover:to-red-700 active:scale-95 transition-all shadow-2xl shadow-red-600/20 disabled:opacity-50 mt-4"
             >
               {loginLoading ? 'جاري التحقق من الهوية الأكاديمية...' : 'تسجيل الدخول الفوري'}
             </button>
@@ -2452,7 +2456,7 @@ const StudentPortal: React.FC = () => {
         {/* Beautiful Branded Footer on Login */}
         <footer className="mt-12 pt-6 border-t border-slate-900 w-full max-w-sm text-center flex flex-col items-center gap-3 relative z-10 select-none">
           <p className="font-extrabold uppercase tracking-wide text-[10px] text-slate-500">
-            Developed by Eng: <span className="text-purple-400">Mohamed Saber</span>
+            Developed by Eng: <span className="text-red-400">Mohamed Saber</span>
           </p>
           <p className="text-[9px] font-bold uppercase tracking-widest text-slate-600">
             All rights reserved by Saber Group Courses Academy
@@ -2552,13 +2556,17 @@ const StudentPortal: React.FC = () => {
 
   // C. DYNAMIC STUDENT DASHBOARD (LOGGED IN EXPERIENCE!)
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans pb-16" dir="rtl">
+    <div className="min-h-screen bg-[#0a0a0a] text-slate-100 font-sans pb-16" dir="rtl">
       {/* Premium Header Design */}
       <header className="bg-slate-900 border-b border-slate-800 sticky top-0 z-40 shadow-md">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col sm:flex-row justify-between items-center gap-4">
           <div className="flex items-center gap-3">
-            <div className="bg-gradient-to-tr from-purple-600 to-indigo-600 w-11 h-11 rounded-2xl flex items-center justify-center shadow-lg shadow-purple-600/20">
-              <span className="text-xl font-black text-white">S</span>
+            <div className="relative w-11 h-11 flex items-center justify-center">
+              <style>{`@keyframes emberPulse{0%,100%{transform:scale(0.88);opacity:.45}50%{transform:scale(1.22);opacity:.9}}`}</style>
+              <div className="absolute inset-[-8px] rounded-2xl pointer-events-none" style={{background:'radial-gradient(circle, rgba(232,92,59,0.7) 0%, rgba(196,50,31,0.35) 45%, transparent 75%)', filter:'blur(8px)', animation:'emberPulse 2.4s ease-in-out infinite'}}></div>
+              <div className="relative w-full h-full rounded-2xl flex items-center justify-center overflow-hidden border bg-black" style={{borderColor:'rgba(196,50,31,0.45)', boxShadow:'0 0 16px rgba(196,50,31,0.3)'}}>
+                <img src="/apple-touch-icon.png" alt="SABER GROUP" className="w-full h-full object-contain" />
+              </div>
             </div>
             <div>
               <h2 className="text-lg font-black text-white tracking-tight">SABER GROUP Portal</h2>
@@ -2567,10 +2575,10 @@ const StudentPortal: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-3">
-            <div className="bg-slate-950 px-4 py-2 rounded-xl border border-slate-800 flex flex-wrap items-center gap-2 text-xs">
+            <div className="bg-[#0a0a0a] px-4 py-2 rounded-xl border border-slate-800 flex flex-wrap items-center gap-2 text-xs">
               <div className="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-ping animate-pulse"></div>
               <span className="text-slate-400 font-bold">المتدرب:</span>
-              <span className="text-purple-400 font-black">{currentStudent.name}</span>
+              <span className="text-red-400 font-black">{currentStudent.name}</span>
               <span className="text-slate-600 font-mono text-[9px] border-r border-slate-800 pr-2 mr-1">ID: #{currentStudent.studentIdNum}</span>
               {studentGroup && (
                 <span className="text-blue-400 font-black border-r border-slate-800 pr-2 mr-1">الجروب: {studentGroup.name}</span>
@@ -2584,7 +2592,7 @@ const StudentPortal: React.FC = () => {
                 className="bg-slate-800 hover:bg-slate-700/80 border border-slate-700/50 text-slate-300 w-9 h-9 rounded-xl flex items-center justify-center transition-all relative cursor-pointer"
                 title="الإشعارات"
               >
-                {isMuted ? <BellOff size={16} className="text-amber-500" /> : <Bell size={16} className="text-indigo-400" />}
+                {isMuted ? <BellOff size={16} className="text-amber-500" /> : <Bell size={16} className="text-red-400" />}
                 {!isMuted && notifications.filter(n => !n.read).length > 0 && (
                   <span className="absolute -top-1 -right-1 bg-red-500 text-white font-black text-[9px] w-5 h-5 rounded-full flex items-center justify-center border border-slate-900 animate-bounce">
                     {notifications.filter(n => !n.read).length}
@@ -2595,7 +2603,7 @@ const StudentPortal: React.FC = () => {
               {/* Notifications Dropdown Panel */}
               {isNotifOpen && (
                 <div className="absolute left-0 mt-3 w-80 bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl z-50 overflow-hidden text-right font-arabic">
-                  <div className="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-950/40">
+                  <div className="p-4 border-b border-slate-800 flex justify-between items-center bg-[#0a0a0a]/40">
                     <button
                       onClick={() => {
                         const nextMute = !isMuted;
@@ -2622,7 +2630,7 @@ const StudentPortal: React.FC = () => {
                             console.error(e);
                           }
                         }}
-                        className="w-full text-center bg-indigo-950/40 hover:bg-indigo-950/70 text-indigo-400 border-b border-indigo-900/30 font-bold text-[10px] py-3.5 px-4 transition-all flex items-center justify-center gap-1 cursor-pointer font-arabic"
+                        className="w-full text-center bg-red-950/40 hover:bg-red-950/70 text-red-400 border-b border-red-900/30 font-bold text-[10px] py-3.5 px-4 transition-all flex items-center justify-center gap-1 cursor-pointer font-arabic"
                       >
                         🔔 تفعيل إشعارات المتصفح لتنبيهك عند بدء المحاضرات
                       </button>
@@ -2644,7 +2652,7 @@ const StudentPortal: React.FC = () => {
                               window.location.href = notif.link;
                             }
                           }}
-                          className={`p-3.5 hover:bg-slate-950/40 transition-all cursor-pointer text-right relative ${!notif.read ? 'bg-indigo-950/10 border-r-2 border-indigo-500' : ''}`}
+                          className={`p-3.5 hover:bg-[#0a0a0a]/40 transition-all cursor-pointer text-right relative ${!notif.read ? 'bg-red-950/10 border-r-2 border-red-500' : ''}`}
                         >
                           <div className="flex justify-between items-start gap-2">
                             <span className="text-[9px] text-slate-500 font-bold shrink-0 font-mono">
@@ -2656,7 +2664,7 @@ const StudentPortal: React.FC = () => {
                           </div>
                           <p className="text-[10px] text-slate-400 font-bold leading-relaxed mt-1">{notif.message}</p>
                           {!notif.read && (
-                            <span className="absolute bottom-2 left-2 w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
+                            <span className="absolute bottom-2 left-2 w-1.5 h-1.5 rounded-full bg-red-500"></span>
                           )}
                         </div>
                       ))
@@ -2664,7 +2672,7 @@ const StudentPortal: React.FC = () => {
                   </div>
 
                   {notifications.length > 0 && (
-                    <div className="p-2.5 bg-slate-950/50 border-t border-slate-800 text-center">
+                    <div className="p-2.5 bg-[#0a0a0a]/50 border-t border-slate-800 text-center">
                       <button
                         onClick={async () => {
                           const unread = notifications.filter(n => !n.read);
@@ -2673,7 +2681,7 @@ const StudentPortal: React.FC = () => {
                           }
                           setIsNotifOpen(false);
                         }}
-                        className="text-[10px] font-black text-indigo-400 hover:text-indigo-300 transition-all cursor-pointer"
+                        className="text-[10px] font-black text-red-400 hover:text-red-300 transition-all cursor-pointer"
                       >
                         تحديد الكل كمقروء ✔
                       </button>
@@ -2700,7 +2708,7 @@ const StudentPortal: React.FC = () => {
           <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-xl space-y-3 font-arabic" dir="rtl">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
               <div className="flex items-center gap-2.5">
-                <div className="p-2 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-400">
+                <div className="p-2 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400">
                   <BookOpen className="w-5 h-5" />
                 </div>
                 <div>
@@ -2727,10 +2735,10 @@ const StudentPortal: React.FC = () => {
                       isSelected
                         ? isArchived
                           ? 'bg-amber-500/20 border-amber-500/60 text-amber-200 shadow-lg ring-2 ring-amber-500/30'
-                          : 'bg-gradient-to-r from-purple-600/30 to-indigo-600/30 border-purple-500 text-purple-200 shadow-lg ring-2 ring-purple-500/30'
+                          : 'bg-gradient-to-r from-red-600/30 to-red-600/30 border-red-500 text-red-200 shadow-lg ring-2 ring-red-500/30'
                         : isArchived
-                          ? 'bg-slate-950/80 border-slate-800/80 text-slate-400 hover:border-slate-700'
-                          : 'bg-slate-950 border-slate-800 text-slate-300 hover:border-purple-500/50 hover:text-white'
+                          ? 'bg-[#0a0a0a]/80 border-slate-800/80 text-slate-400 hover:border-slate-700'
+                          : 'bg-[#0a0a0a] border-slate-800 text-slate-300 hover:border-red-500/50 hover:text-white'
                     }`}
                   >
                     <span className={`w-2.5 h-2.5 rounded-full ${isArchived ? 'bg-amber-400' : 'bg-emerald-400 animate-pulse'}`} />
@@ -2779,7 +2787,7 @@ const StudentPortal: React.FC = () => {
                   const activeG = enrolledGroups.find(g => !g.archived && !(g as any).isArchived && (g as any).status !== 'archived');
                   if (activeG) handleSwitchGroup(activeG.id);
                 }}
-                className="px-5 py-2.5 rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs shrink-0 cursor-pointer transition-all shadow-md flex items-center gap-1.5"
+                className="px-5 py-2.5 rounded-2xl bg-amber-500 hover:bg-amber-400 text-[#0a0a0a] font-black text-xs shrink-0 cursor-pointer transition-all shadow-md flex items-center gap-1.5"
               >
                 <span>الانتقال للمجموعة النشطة</span>
                 <span>➔</span>
@@ -2789,10 +2797,10 @@ const StudentPortal: React.FC = () => {
         )}
         {/* ACTIVE GLOBAL EVALUATION FORMS NOTIFICATION BANNER */}
         {activeGlobalForms.length > 0 && (
-          <div className="bg-gradient-to-r from-purple-900/50 via-indigo-900/40 to-slate-900 border-2 border-purple-500/40 rounded-4xl p-6 shadow-2xl space-y-4 text-right animate-pulse-border" dir="rtl">
+          <div className="bg-gradient-to-r from-red-900/50 via-red-900/40 to-slate-900 border-2 border-red-500/40 rounded-4xl p-6 shadow-2xl space-y-4 text-right animate-pulse-border" dir="rtl">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               <div className="space-y-1">
-                <span className="bg-purple-500/20 text-purple-300 font-extrabold text-[10px] px-3 py-1 rounded-full border border-purple-500/30 uppercase tracking-widest flex items-center gap-1.5 w-fit">
+                <span className="bg-red-500/20 text-red-300 font-extrabold text-[10px] px-3 py-1 rounded-full border border-red-500/30 uppercase tracking-widest flex items-center gap-1.5 w-fit">
                   <Sparkles className="w-3.5 h-3.5 text-amber-400" />
                   استمارة تقييم شاملة متاحة الآن 📝
                 </span>
@@ -2813,7 +2821,7 @@ const StudentPortal: React.FC = () => {
                   if (studentGroup?.id) url.searchParams.set('groupId', studentGroup.id);
                   window.location.href = url.toString();
                 }}
-                className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-black px-6 py-3.5 rounded-2xl shadow-xl shadow-purple-600/30 flex items-center gap-2 text-xs transition-all cursor-pointer whitespace-nowrap"
+                className="bg-gradient-to-r from-red-600 to-red-600 hover:from-red-500 hover:to-red-500 text-white font-black px-6 py-3.5 rounded-2xl shadow-xl shadow-red-600/30 flex items-center gap-2 text-xs transition-all cursor-pointer whitespace-nowrap"
               >
                 <FileText className="w-4 h-4" />
                 تعبئة فورم التقييم الشامل الآن ➔
@@ -2871,9 +2879,9 @@ const StudentPortal: React.FC = () => {
           }
 
           return (
-            <div className="bg-gradient-to-br from-slate-900 via-indigo-950/40 to-slate-900 border-2 border-indigo-500/40 rounded-4xl p-6 sm:p-8 shadow-2xl relative overflow-hidden font-arabic text-right space-y-6" dir="rtl">
+            <div className="bg-gradient-to-br from-slate-900 via-red-950/40 to-slate-900 border-2 border-red-500/40 rounded-4xl p-6 sm:p-8 shadow-2xl relative overflow-hidden font-arabic text-right space-y-6" dir="rtl">
               <div className="flex items-center gap-3 border-b border-slate-800 pb-4">
-                <span className="p-3 bg-indigo-500/20 text-indigo-400 rounded-2xl text-2xl border border-indigo-500/30">📜</span>
+                <span className="p-3 bg-red-500/20 text-red-400 rounded-2xl text-2xl border border-red-500/30">📜</span>
                 <div>
                   <h2 className="text-xl sm:text-2xl font-black text-white">شهادة تخرج الكورس - SABER GROUP</h2>
                   <p className="text-xs text-slate-400">حالة الأهلية ورابط شهادة إتمام الدورة التدريبية</p>
@@ -2899,7 +2907,7 @@ const StudentPortal: React.FC = () => {
 
                   {/* Certificate Download/View button */}
                   {rec?.certificateUrl ? (
-                    <div className="bg-slate-950 p-5 rounded-2xl border border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div className="bg-[#0a0a0a] p-5 rounded-2xl border border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
                       <div className="space-y-1">
                         <span className="text-xs font-black text-white block">رابط شهادة التخرج الرسمية جاهز للتحميل:</span>
                         <span className="text-[11px] text-slate-400 block">يمكنك استعراض وتحميل شهادتك بدقة عالية عبر الرابط التالي</span>
@@ -2915,7 +2923,7 @@ const StudentPortal: React.FC = () => {
                       </a>
                     </div>
                   ) : (
-                    <div className="p-4 bg-slate-950 border border-slate-800 rounded-2xl text-xs text-slate-400 text-center font-bold">
+                    <div className="p-4 bg-[#0a0a0a] border border-slate-800 rounded-2xl text-xs text-slate-400 text-center font-bold">
                       ⏳ تم توثيق أهليتك للشهادة وجاري رفع ورصد رابط الشهادة من قِبل فريق الأكاديمية. يرجى إعادة التحقق قريباً!
                     </div>
                   )}
@@ -2937,7 +2945,7 @@ const StudentPortal: React.FC = () => {
                     )}
 
                     {certStatusType === 'ineligible' && missingReasons.length > 0 && (
-                      <div className="bg-slate-950/80 p-3 rounded-xl border border-slate-800/80 space-y-1.5 mt-2">
+                      <div className="bg-[#0a0a0a]/80 p-3 rounded-xl border border-slate-800/80 space-y-1.5 mt-2">
                         <span className="font-black text-rose-400 block">أسباب عدم استيفاء الشروط:</span>
                         {missingReasons.map((reason, idx) => (
                           <div key={idx} className="flex items-center gap-2 text-rose-200 text-xs">
@@ -2949,7 +2957,7 @@ const StudentPortal: React.FC = () => {
                     )}
 
                     {rec?.uneligibilityReason && (
-                      <p className="text-xs font-bold text-slate-300 bg-slate-950 p-2.5 rounded-xl border border-slate-800">
+                      <p className="text-xs font-bold text-slate-300 bg-[#0a0a0a] p-2.5 rounded-xl border border-slate-800">
                         توضيح الإدارة: {rec.uneligibilityReason}
                       </p>
                     )}
@@ -2978,14 +2986,14 @@ const StudentPortal: React.FC = () => {
           const isBeforeStart = startDT ? now < startDT : false;
 
           return (
-            <div className="bg-gradient-to-br from-slate-900 via-purple-950/30 to-slate-900 border-2 border-purple-500/30 rounded-4xl p-6 sm:p-8 shadow-2xl relative overflow-hidden font-arabic text-right space-y-6" dir="rtl">
-              <div className="absolute top-0 right-0 w-96 h-96 bg-purple-600/10 blur-[100px] rounded-full pointer-events-none" />
+            <div className="bg-gradient-to-br from-slate-900 via-red-950/30 to-slate-900 border-2 border-red-500/30 rounded-4xl p-6 sm:p-8 shadow-2xl relative overflow-hidden font-arabic text-right space-y-6" dir="rtl">
+              <div className="absolute top-0 right-0 w-96 h-96 bg-red-600/10 blur-[100px] rounded-full pointer-events-none" />
               
               {/* Header section */}
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-800 pb-5 relative z-10">
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="bg-purple-500/20 text-purple-300 font-black text-xs px-3 py-1 rounded-full border border-purple-500/30 flex items-center gap-1.5">
+                    <span className="bg-red-500/20 text-red-300 font-black text-xs px-3 py-1 rounded-full border border-red-500/30 flex items-center gap-1.5">
                       🎓 مشروع التخرج النهائي (Final Graduation Project)
                     </span>
                     {graduationProject.brandName && (
@@ -3053,10 +3061,10 @@ const StudentPortal: React.FC = () => {
               </div>
 
               {/* DATES & DEADLINE STATUS CARD */}
-              <div className="bg-slate-950/90 p-4 sm:p-5 rounded-2xl border border-slate-800 space-y-3 relative z-10">
+              <div className="bg-[#0a0a0a]/90 p-4 sm:p-5 rounded-2xl border border-slate-800 space-y-3 relative z-10">
                 <div className="flex justify-between items-center border-b border-slate-800/80 pb-2.5 flex-wrap gap-2">
                   <div className="flex items-center gap-2">
-                    <Calendar size={16} className="text-purple-400" />
+                    <Calendar size={16} className="text-red-400" />
                     <span className="text-xs font-black text-slate-200">مواعيد ومسار تسليم مشروع التخرج:</span>
                   </div>
                   <div className="text-xs font-bold text-rose-400 flex items-center gap-1 bg-rose-950/40 px-3 py-1 rounded-lg border border-rose-900/50">
@@ -3098,11 +3106,11 @@ const StudentPortal: React.FC = () => {
               {/* CONCEPT / DESCRIPTION */}
               {graduationProject.description && (
                 <div className="space-y-1.5 relative z-10">
-                  <h4 className="text-xs font-black text-purple-400 flex items-center gap-1.5">
+                  <h4 className="text-xs font-black text-red-400 flex items-center gap-1.5">
                     <BookOpen size={15} />
                     <span>فكرة ومفهوم المشروع:</span>
                   </h4>
-                  <p className="text-xs text-slate-300 leading-relaxed bg-slate-950/80 p-4 rounded-2xl border border-slate-800 whitespace-pre-line">
+                  <p className="text-xs text-slate-300 leading-relaxed bg-[#0a0a0a]/80 p-4 rounded-2xl border border-slate-800 whitespace-pre-line">
                     {graduationProject.description}
                   </p>
                 </div>
@@ -3111,11 +3119,11 @@ const StudentPortal: React.FC = () => {
               {/* DELIVERABLES REQUIRED */}
               {projRequirements && (
                 <div className="space-y-1.5 relative z-10">
-                  <h4 className="text-xs font-black text-indigo-400 flex items-center gap-1.5">
+                  <h4 className="text-xs font-black text-red-400 flex items-center gap-1.5">
                     <CheckCircle size={15} />
                     <span>المطلوب تسليمه من المتدرب (تسليمات المشروع):</span>
                   </h4>
-                  <p className="text-xs text-slate-200 leading-relaxed bg-indigo-950/20 p-4 rounded-2xl border border-indigo-500/20 whitespace-pre-line">
+                  <p className="text-xs text-slate-200 leading-relaxed bg-red-950/20 p-4 rounded-2xl border border-red-500/20 whitespace-pre-line">
                     {projRequirements}
                   </p>
                 </div>
@@ -3153,7 +3161,7 @@ const StudentPortal: React.FC = () => {
                         href={link.url}
                         target="_blank"
                         rel="noreferrer"
-                        className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-indigo-300 font-bold text-xs rounded-xl border border-slate-700 transition-all flex items-center gap-1.5"
+                        className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-red-300 font-bold text-xs rounded-xl border border-slate-700 transition-all flex items-center gap-1.5"
                       >
                         <ExternalLink size={13} />
                         <span>{link.title || link.url}</span>
@@ -3164,7 +3172,7 @@ const StudentPortal: React.FC = () => {
               )}
 
               {/* STATUS & ACTION BANNER */}
-              <div className="bg-slate-950/80 p-5 sm:p-6 rounded-3xl border border-slate-800 relative z-10 space-y-4">
+              <div className="bg-[#0a0a0a]/80 p-5 sm:p-6 rounded-3xl border border-slate-800 relative z-10 space-y-4">
                 {graduationEvaluation ? (
                   <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-emerald-950/30 border border-emerald-500/30 p-4 rounded-2xl">
                     <div className="space-y-1">
@@ -3187,20 +3195,20 @@ const StudentPortal: React.FC = () => {
                     </button>
                   </div>
                 ) : graduationSubmission ? (
-                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-purple-950/30 border border-purple-500/30 p-4 rounded-2xl">
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-red-950/30 border border-red-500/30 p-4 rounded-2xl">
                     <div className="space-y-1">
-                      <span className="text-xs text-purple-400 font-black block">
+                      <span className="text-xs text-red-400 font-black block">
                         ✅ تم استلام رابط المشروع بنجاح، وفي انتظار التقييم من قِبل المحاضر.
                       </span>
                       <p className="text-xs text-slate-300 font-mono overflow-hidden text-ellipsis max-w-xl">
-                        الرابط المُسلم: <a href={graduationSubmission.driveLink} target="_blank" rel="noreferrer" className="text-indigo-400 underline font-bold">{graduationSubmission.driveLink}</a>
+                        الرابط المُسلم: <a href={graduationSubmission.driveLink} target="_blank" rel="noreferrer" className="text-red-400 underline font-bold">{graduationSubmission.driveLink}</a>
                       </p>
                     </div>
                     {!isPastDeadline && (
                       <button
                         type="button"
                         onClick={() => setIsSubmissionModalOpen(true)}
-                        className="px-4 py-2.5 bg-purple-600/30 hover:bg-purple-600/50 text-purple-200 font-black text-xs rounded-xl border border-purple-500/40 transition-all cursor-pointer"
+                        className="px-4 py-2.5 bg-red-600/30 hover:bg-red-600/50 text-red-200 font-black text-xs rounded-xl border border-red-500/40 transition-all cursor-pointer"
                       >
                         تعديل بيانات التسليم ✏️
                       </button>
@@ -3228,7 +3236,7 @@ const StudentPortal: React.FC = () => {
                           ? 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed'
                           : isBeforeStart
                           ? 'bg-slate-800 text-sky-400 border border-sky-900 cursor-not-allowed'
-                          : 'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white shadow-purple-600/20'
+                          : 'bg-gradient-to-r from-red-600 to-red-600 hover:from-red-500 hover:to-red-500 text-white shadow-red-600/20'
                       }`}
                     >
                       <Send size={15} />
@@ -3249,11 +3257,11 @@ const StudentPortal: React.FC = () => {
 
         {/* NEXT SESSION SECTION (المحاضرة القادمة) */}
         {nextSession && (
-          <div className="bg-gradient-to-r from-slate-900 via-indigo-950/40 to-slate-900 p-6 sm:p-8 rounded-4xl border border-indigo-500/20 shadow-2xl relative overflow-hidden font-arabic text-right" dir="rtl">
+          <div className="bg-gradient-to-r from-slate-900 via-red-950/40 to-slate-900 p-6 sm:p-8 rounded-4xl border border-red-500/20 shadow-2xl relative overflow-hidden font-arabic text-right" dir="rtl">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 relative z-10">
               <div className="space-y-3 w-full md:w-auto">
                 <div className="flex items-center gap-2">
-                  <span className="bg-indigo-500/10 text-indigo-400 text-xs font-black px-3 py-1 rounded-full border border-indigo-500/20 uppercase tracking-wider">
+                  <span className="bg-red-500/10 text-red-400 text-xs font-black px-3 py-1 rounded-full border border-red-500/20 uppercase tracking-wider">
                     المحاضرة القادمة (Next Session) 🗓️
                   </span>
                 </div>
@@ -3261,17 +3269,17 @@ const StudentPortal: React.FC = () => {
                   المحاضرة رقم {nextSession.sessionNumber}: {nextSession.lectureTitle || `المحاضرة #${nextSession.sessionNumber}`}
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1 text-xs">
-                  <div className="bg-slate-950/60 p-3 rounded-2xl border border-slate-800">
+                  <div className="bg-[#0a0a0a]/60 p-3 rounded-2xl border border-slate-800">
                     <span className="text-slate-500 text-[10px] font-bold block mb-0.5">التاريخ:</span>
                     <span className="font-mono font-bold text-slate-200">{nextSession.date || 'غير محدد'}</span>
                   </div>
-                  <div className="bg-slate-950/60 p-3 rounded-2xl border border-slate-800">
+                  <div className="bg-[#0a0a0a]/60 p-3 rounded-2xl border border-slate-800">
                     <span className="text-slate-500 text-[10px] font-bold block mb-0.5">الوقت:</span>
-                    <span className="font-bold text-purple-400">{studentGroup?.sessionTime ? formatTime12h(studentGroup.sessionTime) : 'غير محدد'}</span>
+                    <span className="font-bold text-red-400">{studentGroup?.sessionTime ? formatTime12h(studentGroup.sessionTime) : 'غير محدد'}</span>
                   </div>
-                  <div className="bg-slate-950/60 p-3 rounded-2xl border border-slate-800">
+                  <div className="bg-[#0a0a0a]/60 p-3 rounded-2xl border border-slate-800">
                     <span className="text-slate-500 text-[10px] font-bold block mb-0.5">المدرب:</span>
-                    <span className="font-bold text-indigo-300">{trainerName}</span>
+                    <span className="font-bold text-red-300">{trainerName}</span>
                   </div>
                 </div>
               </div>
@@ -3286,7 +3294,7 @@ const StudentPortal: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => handleJoinLiveMeeting(nextSession, nextSession.googleMeetUrl || nextSession.meetingLink || '')}
-                          className="px-6 py-3.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-black text-xs rounded-2xl shadow-xl shadow-indigo-600/20 transition-all flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-95 cursor-pointer"
+                          className="px-6 py-3.5 bg-gradient-to-r from-red-600 to-red-600 hover:from-red-500 hover:to-red-500 text-white font-black text-xs rounded-2xl shadow-xl shadow-red-600/20 transition-all flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-95 cursor-pointer"
                         >
                           <Video size={16} />
                           <span>الانضمام للمحاضرة 💻</span>
@@ -3295,7 +3303,7 @@ const StudentPortal: React.FC = () => {
                       );
                     })()
                   ) : (
-                    <div className="px-4 py-3 bg-slate-950 border border-slate-800 text-slate-500 font-bold text-xs rounded-2xl text-center">
+                    <div className="px-4 py-3 bg-[#0a0a0a] border border-slate-800 text-slate-500 font-bold text-xs rounded-2xl text-center">
                       في انتظار إضافة رابط الاجتماع من المدرب
                     </div>
                   )
@@ -3316,7 +3324,7 @@ const StudentPortal: React.FC = () => {
                 )}
               </div>
             </div>
-            <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-600/10 blur-3xl rounded-full translate-x-1/3 -translate-y-1/3 pointer-events-none"></div>
+            <div className="absolute top-0 right-0 w-64 h-64 bg-red-600/10 blur-3xl rounded-full translate-x-1/3 -translate-y-1/3 pointer-events-none"></div>
           </div>
         )}
         {/* POSTPONEMENT NOTIFICATIONS */}
@@ -3345,24 +3353,24 @@ const StudentPortal: React.FC = () => {
             )}
 
             {activePostponements.generalPostponed && (
-              <div className="bg-gradient-to-r from-indigo-950/40 via-slate-900 to-slate-900 border border-indigo-500/20 p-5 rounded-[2rem] shadow-xl relative overflow-hidden">
+              <div className="bg-gradient-to-r from-red-950/40 via-slate-900 to-slate-900 border border-red-500/20 p-5 rounded-[2rem] shadow-xl relative overflow-hidden">
                 <div className="flex flex-col sm:flex-row items-center gap-4 relative z-10 justify-between">
                   <div className="w-full sm:w-auto text-center sm:text-right space-y-1">
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 font-extrabold text-[10px] uppercase">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-500/10 border border-red-500/20 text-red-400 font-extrabold text-[10px] uppercase">
                       تأجيل المحاضرة بالكامل 📅
                     </span>
                     <h4 className="text-sm font-black text-white pt-1">
                       تنبيه هام: تأجيل المحاضرة رقم {activePostponements.generalPostponed.sessionNumber}
                     </h4>
                     <p className="text-slate-400 text-xs font-bold leading-relaxed">
-                      نحيطكم علماً بأنه قد تم تأجيل عقد المحاضرة رقم {activePostponements.generalPostponed.sessionNumber} إلى يوم: <span className="text-indigo-400 font-extrabold">{activePostponements.generalPostponed.generalPostponeDate}</span>. برجاء مراجعة جروب الواتساب الخاص بالدفعة لمتابعة كافة التفاصيل الهامة.
+                      نحيطكم علماً بأنه قد تم تأجيل عقد المحاضرة رقم {activePostponements.generalPostponed.sessionNumber} إلى يوم: <span className="text-red-400 font-extrabold">{activePostponements.generalPostponed.generalPostponeDate}</span>. برجاء مراجعة جروب الواتساب الخاص بالدفعة لمتابعة كافة التفاصيل الهامة.
                     </p>
                   </div>
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-indigo-500/10 text-indigo-400 text-xl">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-red-500/10 text-red-400 text-xl">
                     📢
                   </div>
                 </div>
-                <div className="absolute top-0 left-0 w-32 h-32 bg-indigo-600/10 blur-3xl rounded-full"></div>
+                <div className="absolute top-0 left-0 w-32 h-32 bg-red-600/10 blur-3xl rounded-full"></div>
               </div>
             )}
           </div>
@@ -3372,9 +3380,9 @@ const StudentPortal: React.FC = () => {
         {liveSessionState && (
           <div className={`p-6 rounded-4xl border transition-all duration-300 relative overflow-hidden shadow-xl font-arabic text-right ${
             liveSessionState.isStarted 
-              ? 'bg-gradient-to-r from-red-950/40 via-purple-950/40 to-slate-900 border-red-500/20 shadow-red-900/10' 
+              ? 'bg-gradient-to-r from-red-950/40 via-red-950/40 to-slate-900 border-red-500/20 shadow-red-900/10' 
               : liveSessionState.isEndedRecently
-              ? 'bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 border-slate-800 shadow-xl'
+              ? 'bg-gradient-to-r from-[#0a0a0a] via-slate-900 to-[#0a0a0a] border-slate-800 shadow-xl'
               : 'bg-gradient-to-r from-amber-950/30 via-slate-900 to-slate-900 border-amber-500/15 shadow-amber-900/5'
           }`}>
             <div className="flex flex-col md:flex-row items-center justify-between gap-6 relative z-10">
@@ -3391,9 +3399,9 @@ const StudentPortal: React.FC = () => {
                   ) : liveSessionState.isEndedRecently ? (
                     <>
                       <span className="flex h-2.5 w-2.5 relative">
-                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-indigo-500"></span>
+                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
                       </span>
-                      <span className="text-indigo-400 text-xs font-black uppercase tracking-widest">انتهت المحاضرة الجارية 🏁</span>
+                      <span className="text-red-400 text-xs font-black uppercase tracking-widest">انتهت المحاضرة الجارية 🏁</span>
                     </>
                   ) : (
                     <>
@@ -3407,7 +3415,7 @@ const StudentPortal: React.FC = () => {
                 </div>
                 <h3 className="text-lg font-black text-white">
                   المحاضرة رقم {liveSessionState.session.sessionNumber}:{' '}
-                  <span className="text-purple-300">
+                  <span className="text-red-300">
                     {liveSessionState.session.lectureTitle || 'عنوان المحاضرة غير محدد بعد'}
                   </span>
                 </h3>
@@ -3427,7 +3435,7 @@ const StudentPortal: React.FC = () => {
               {liveSessionState.isStarted && (
                 <div className="flex flex-col items-stretch sm:items-end gap-2 shrink-0 self-stretch md:self-auto min-w-[245px]">
                   {liveSessionState.session.isOffline ? (
-                    <div className="relative overflow-hidden w-full bg-gradient-to-r from-amber-600 to-orange-600 text-white font-black text-sm sm:text-base py-4 px-8 rounded-2xl flex items-center justify-center gap-3 font-arabic border border-amber-500/30 text-center ring-4 ring-amber-500/20 shadow-xl shadow-amber-600/10">
+                    <div className="relative overflow-hidden w-full bg-gradient-to-r from-amber-600 to-red-600 text-white font-black text-sm sm:text-base py-4 px-8 rounded-2xl flex items-center justify-center gap-3 font-arabic border border-amber-500/30 text-center ring-4 ring-amber-500/20 shadow-xl shadow-amber-600/10">
                       <span className="flex h-2.5 w-2.5 relative">
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
                         <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-white"></span>
@@ -3460,7 +3468,7 @@ const StudentPortal: React.FC = () => {
                 </div>
               )}
               {!liveSessionState.isStarted && !liveSessionState.isEndedRecently && (
-                <div className="bg-slate-950/70 border border-slate-800 text-slate-400 font-extrabold text-[10px] py-3 px-5 rounded-2xl flex items-center gap-2 shrink-0 self-center md:self-auto font-arabic">
+                <div className="bg-[#0a0a0a]/70 border border-slate-800 text-slate-400 font-extrabold text-[10px] py-3 px-5 rounded-2xl flex items-center gap-2 shrink-0 self-center md:self-auto font-arabic">
                   <span>في انتظار إشارة البدء من المحاضر...</span>
                 </div>
               )}
@@ -3474,9 +3482,9 @@ const StudentPortal: React.FC = () => {
         )}
 
         {/* Banner with Motivation */}
-        <div className="bg-gradient-to-br from-indigo-950/60 to-purple-950/30 p-6 sm:p-8 rounded-4xl border border-purple-500/15 relative overflow-hidden shadow-2xl flex flex-col md:flex-row justify-between items-center gap-6">
+        <div className="bg-gradient-to-br from-red-950/60 to-red-950/30 p-6 sm:p-8 rounded-4xl border border-red-500/15 relative overflow-hidden shadow-2xl flex flex-col md:flex-row justify-between items-center gap-6">
           <div className="space-y-2 relative z-10 text-center md:text-right">
-            <div className="flex items-center justify-center md:justify-start gap-2 text-purple-400 text-xs font-black">
+            <div className="flex items-center justify-center md:justify-start gap-2 text-red-400 text-xs font-black">
               <Sparkles size={14} />
               <span>مرحبا بك مجددا يا بطل</span>
             </div>
@@ -3497,7 +3505,7 @@ const StudentPortal: React.FC = () => {
             <button
               onClick={downloadStudentReport}
               disabled={downloadingReport}
-              className="bg-purple-600 hover:bg-purple-700 text-white font-black text-xs py-3.5 px-6 rounded-2xl uppercase tracking-widest transition-all shadow-xl shadow-purple-600/25 flex items-center gap-2 hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              className="bg-red-600 hover:bg-red-700 text-white font-black text-xs py-3.5 px-6 rounded-2xl uppercase tracking-widest transition-all shadow-xl shadow-red-600/25 flex items-center gap-2 hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
               {downloadingReport ? (
                 <>
@@ -3513,7 +3521,7 @@ const StudentPortal: React.FC = () => {
             </button>
           </div>
 
-          <div className="absolute top-0 left-0 w-80 h-80 bg-purple-600/10 blur-[100px] rounded-full translate-x-1/2 translate-y-1/2"></div>
+          <div className="absolute top-0 left-0 w-80 h-80 bg-red-600/10 blur-[100px] rounded-full translate-x-1/2 translate-y-1/2"></div>
         </div>
 
         {/* Task Submission Banner (Submit task here!) */}
@@ -3555,7 +3563,7 @@ const StudentPortal: React.FC = () => {
         {/* Essential Links Section (Telegram & WhatsApp with detailed explanation) */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Telegram Block */}
-          <div className="bg-gradient-to-br from-slate-900 to-slate-950 p-6 rounded-3xl border border-slate-800 space-y-4 shadow-xl flex flex-col justify-between">
+          <div className="bg-gradient-to-br from-slate-900 to-[#0a0a0a] p-6 rounded-3xl border border-slate-800 space-y-4 shadow-xl flex flex-col justify-between">
             <div className="space-y-3">
               <div className="flex justify-between items-start">
                 <div className="bg-blue-500/10 text-blue-400 p-3 rounded-2.5xl border border-blue-500/20">
@@ -3596,7 +3604,7 @@ const StudentPortal: React.FC = () => {
           </div>
 
           {/* WhatsApp Block */}
-          <div className="bg-gradient-to-br from-slate-900 to-slate-950 p-6 rounded-3xl border border-slate-800 space-y-4 shadow-xl flex flex-col justify-between">
+          <div className="bg-gradient-to-br from-slate-900 to-[#0a0a0a] p-6 rounded-3xl border border-slate-800 space-y-4 shadow-xl flex flex-col justify-between">
             <div className="space-y-3">
               <div className="flex justify-between items-start">
                 <div className="bg-emerald-500/10 text-emerald-400 p-3 rounded-2.5xl border border-emerald-500/20">
@@ -3637,7 +3645,7 @@ const StudentPortal: React.FC = () => {
           </div>
 
           {/* Telegram Records Block */}
-          <div className="bg-gradient-to-br from-slate-900 to-slate-950 p-6 rounded-3xl border border-slate-800 space-y-4 shadow-xl flex flex-col justify-between">
+          <div className="bg-gradient-to-br from-slate-900 to-[#0a0a0a] p-6 rounded-3xl border border-slate-800 space-y-4 shadow-xl flex flex-col justify-between">
             <div className="space-y-3">
               <div className="flex justify-between items-start">
                 <div className="bg-red-500/10 text-red-400 p-3 rounded-2.5xl border border-red-500/20">
@@ -3681,18 +3689,18 @@ const StudentPortal: React.FC = () => {
         {/* METRICS & OVERALL PERFORMANCE (نقاطه وحضوره وغيابه وهكذا) */}
         <section className="space-y-4">
           <h3 className="text-lg font-black text-white pr-1 flex items-center gap-2">
-            <TrendingUp size={18} className="text-purple-400" />
+            <TrendingUp size={18} className="text-red-400" />
             <span>نظرة عامة على تقييم أداء المتدرب</span>
           </h3>
 
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Total Points */}
             <div className="bg-slate-900 border border-slate-800 p-5 rounded-3xl text-center space-y-2 relative overflow-hidden">
-              <div className="w-10 h-10 rounded-2xl bg-purple-500/10 text-purple-400 flex items-center justify-center mx-auto border border-purple-500/20">
+              <div className="w-10 h-10 rounded-2xl bg-red-500/10 text-red-400 flex items-center justify-center mx-auto border border-red-500/20">
                 <Award size={20} />
               </div>
               <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">مجموع النقاط المحرزة</h4>
-              <p className="text-3xl font-black text-white font-mono">{metrics.totalPoints} <span className="text-xs text-purple-400">نقطة</span></p>
+              <p className="text-3xl font-black text-white font-mono">{metrics.totalPoints} <span className="text-xs text-red-400">نقطة</span></p>
               <div className="text-[9px] font-bold text-slate-500">من التقييم المستمر للواجبات والتفاعل</div>
             </div>
 
@@ -3733,7 +3741,7 @@ const StudentPortal: React.FC = () => {
           <div className="md:col-span-2 space-y-4">
             <h3 className="text-lg font-black text-white">الخطة الجدولية للمجموعة ومعدل الإنجاز</h3>
             <p className="text-xs text-slate-400 font-bold leading-relaxed">
-              المجموعة مسجلة في كورس <span className="text-purple-400 font-extrabold">{studentGroup?.courseName}</span> مع بداية الكورس تم إسناد الخطة بـ <span className="text-slate-200 font-bold">{metrics.totalSessions} محاضرة</span>.
+              المجموعة مسجلة في كورس <span className="text-red-400 font-extrabold">{studentGroup?.courseName}</span> مع بداية الكورس تم إسناد الخطة بـ <span className="text-slate-200 font-bold">{metrics.totalSessions} محاضرة</span>.
             </p>
             <div className="space-y-1.5 pt-1">
               <div className="flex justify-between items-center text-xs text-slate-400 font-bold">
@@ -3741,9 +3749,9 @@ const StudentPortal: React.FC = () => {
                 <span>باقي للمجموعة ({metrics.remainingSessions} سيشن)</span>
               </div>
               {/* Modern elegant progress bar */}
-              <div className="w-full bg-slate-950 h-3 rounded-full overflow-hidden border border-slate-800">
+              <div className="w-full bg-[#0a0a0a] h-3 rounded-full overflow-hidden border border-slate-800">
                 <div 
-                  className="bg-gradient-to-r from-purple-500 to-indigo-500 h-full rounded-full transition-all duration-500"
+                  className="bg-gradient-to-r from-red-500 to-red-500 h-full rounded-full transition-all duration-500"
                   style={{ width: `${Math.max(2, Math.min(100, (metrics.totalSessionsTaken / (metrics.totalSessions || 1)) * 100))}%` }}
                 ></div>
               </div>
@@ -3759,7 +3767,7 @@ const StudentPortal: React.FC = () => {
               </div>
               <div className="flex justify-between items-center py-1 border-b border-slate-800/60">
                 <span className="text-slate-500">التوقيت الأسبوعي:</span>
-                <span className="text-purple-400 font-black">{studentGroup?.sessionTime ? formatTime12h(studentGroup.sessionTime) : '-'}</span>
+                <span className="text-red-400 font-black">{studentGroup?.sessionTime ? formatTime12h(studentGroup.sessionTime) : '-'}</span>
               </div>
               <div className="flex justify-between items-center py-1">
                 <span className="text-slate-500">تاريخ بدء المنحة:</span>
@@ -3772,7 +3780,7 @@ const StudentPortal: React.FC = () => {
         {/* LECTURE RECORDINGS & TASK ASSIGNMENTS BREAKDOWN (لينكات المحاضرات اللي اتاخدت بالفعل ولينكات التاسكات) */}
         <section className="space-y-4">
           <h3 className="text-lg font-black text-white pr-1 flex items-center gap-2">
-            <BookOpen size={18} className="text-purple-400" />
+            <BookOpen size={18} className="text-red-400" />
             <span>تسجيلات المحاضرات والتاسكات المطلوبة لكل محاضرة</span>
           </h3>
 
@@ -3790,10 +3798,10 @@ const StudentPortal: React.FC = () => {
                     const isPresent = e?.attendance === 1;
                     
                     return (
-                      <div key={s.id} className="bg-slate-950 p-4 rounded-2.5xl border border-slate-800 hover:border-purple-500/25 transition-all flex flex-col justify-between gap-3">
+                      <div key={s.id} className="bg-[#0a0a0a] p-4 rounded-2.5xl border border-slate-800 hover:border-red-500/25 transition-all flex flex-col justify-between gap-3">
                         <div className="flex justify-between items-start gap-4">
                           <div>
-                            <span className="text-[9px] font-black uppercase text-purple-400 bg-purple-950 px-2.5 py-1 rounded-full border border-purple-900/60">سيشن #{s.sessionNumber}</span>
+                            <span className="text-[9px] font-black uppercase text-red-400 bg-red-950 px-2.5 py-1 rounded-full border border-red-900/60">سيشن #{s.sessionNumber}</span>
                             <h5 className="font-black text-white text-sm mt-2">{s.lectureTitle || `المحاضرة رقم ${s.sessionNumber}`}</h5>
                             {s.date && <p className="text-[10px] text-slate-500 font-bold mt-1">تاريخ السيشن: {s.date}</p>}
                           </div>
@@ -3808,7 +3816,7 @@ const StudentPortal: React.FC = () => {
                             href={s.lectureRecordingUrl} 
                             target="_blank" 
                             rel="noreferrer"
-                            className="w-full bg-slate-900 hover:bg-slate-800 text-purple-400 hover:text-purple-300 border border-slate-800 hover:border-purple-500/20 font-black text-xs py-2.5 rounded-xl uppercase tracking-wider text-center transition-all flex items-center justify-center gap-1.5"
+                            className="w-full bg-slate-900 hover:bg-slate-800 text-red-400 hover:text-red-300 border border-slate-800 hover:border-red-500/20 font-black text-xs py-2.5 rounded-xl uppercase tracking-wider text-center transition-all flex items-center justify-center gap-1.5"
                           >
                             📹 رابط مشاهدة المحاضرة المسجلة ➔
                           </a>
@@ -3820,12 +3828,12 @@ const StudentPortal: React.FC = () => {
 
                         {e?.trainerNote && (
                           <div className="mt-1.5 text-right">
-                            <details className="group border border-indigo-950/60 bg-indigo-950/15 rounded-xl overflow-hidden transition-all duration-300">
-                              <summary className="list-none flex justify-between items-center px-4 py-2.5 cursor-pointer text-xs font-black text-indigo-400 select-none">
+                            <details className="group border border-red-950/60 bg-red-950/15 rounded-xl overflow-hidden transition-all duration-300">
+                              <summary className="list-none flex justify-between items-center px-4 py-2.5 cursor-pointer text-xs font-black text-red-400 select-none">
                                 <span className="flex items-center gap-1.5">📝 ملاحظة المحاضر الخاصة بك</span>
                                 <span className="transition-transform duration-300 group-open:rotate-180 text-[10px]">▼</span>
                               </summary>
-                              <div className="px-4 pb-3.5 pt-1.5 border-t border-indigo-950/30 text-[11px] text-slate-300 font-bold leading-relaxed whitespace-pre-line bg-slate-950/40">
+                              <div className="px-4 pb-3.5 pt-1.5 border-t border-red-950/30 text-[11px] text-slate-300 font-bold leading-relaxed whitespace-pre-line bg-[#0a0a0a]/40">
                                 {e.trainerNote}
                               </div>
                             </details>
@@ -3851,9 +3859,9 @@ const StudentPortal: React.FC = () => {
                     const e = evaluations.find(ev => ev.sessionNumber === s.sessionNumber);
                     
                     return (
-                      <div key={s.id} className="bg-slate-950 p-4 rounded-2.5xl border border-slate-800 hover:border-purple-500/25 transition-all space-y-3">
+                      <div key={s.id} className="bg-[#0a0a0a] p-4 rounded-2.5xl border border-slate-800 hover:border-red-500/25 transition-all space-y-3">
                         <div className="flex justify-between items-center">
-                          <span className="text-[9px] font-black uppercase text-indigo-400 bg-indigo-950 px-2.5 py-1 rounded-full border border-indigo-900/60">تاسك سيشن #{s.sessionNumber}</span>
+                          <span className="text-[9px] font-black uppercase text-red-400 bg-red-950 px-2.5 py-1 rounded-full border border-red-900/60">تاسك سيشن #{s.sessionNumber}</span>
                           
                           {e && (
                             <span className={`text-[10px] font-black px-2.5 py-0.5 rounded ${e.taskDelivered > 0 ? 'bg-emerald-500/10 text-emerald-400' : 'bg-amber-500/10 text-amber-400'}`}>
@@ -3873,7 +3881,7 @@ const StudentPortal: React.FC = () => {
                               href={s.tasksMessageUrl} 
                               target="_blank" 
                               rel="noreferrer"
-                              className="text-[10px] text-indigo-400 hover:text-indigo-300 font-extrabold flex items-center justify-end gap-1"
+                              className="text-[10px] text-red-400 hover:text-red-300 font-extrabold flex items-center justify-end gap-1"
                             >
                               رابط المنشور المرجعي للتاسك 🔗
                             </a>
@@ -3892,7 +3900,7 @@ const StudentPortal: React.FC = () => {
         <footer className="mt-16 pt-8 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left text-xs text-slate-400 dark:text-slate-500 font-medium px-4 select-none">
           <div className="flex flex-col gap-1 items-center sm:items-start">
             <p className="font-extrabold uppercase tracking-wide text-slate-400">
-              Developed by Eng: <span className="text-purple-400">Mohamed Saber</span>
+              Developed by Eng: <span className="text-red-400">Mohamed Saber</span>
             </p>
             <p className="text-[10px] font-black uppercase tracking-widest text-slate-500/70">
               All rights reserved by Saber Group Courses Academy
@@ -3927,7 +3935,7 @@ const StudentPortal: React.FC = () => {
 
       {/* Real-time Floating Notification Toast */}
       {activeToast && (
-        <div className="fixed bottom-6 left-6 z-[100] max-w-sm w-full bg-slate-900/95 backdrop-blur-md border border-indigo-500/30 p-5 rounded-[2rem] shadow-2xl shadow-indigo-500/10 font-arabic text-right animate-in slide-in-from-bottom-5 duration-300">
+        <div className="fixed bottom-6 left-6 z-[100] max-w-sm w-full bg-slate-900/95 backdrop-blur-md border border-red-500/30 p-5 rounded-[2rem] shadow-2xl shadow-red-500/10 font-arabic text-right animate-in slide-in-from-bottom-5 duration-300">
           <div className="flex gap-4 items-start">
             <div className="flex-1 space-y-1.5">
               <div className="flex items-center justify-between">
@@ -3937,7 +3945,7 @@ const StudentPortal: React.FC = () => {
                 >
                   ✕
                 </button>
-                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-indigo-500/15 text-indigo-400 font-extrabold text-[9px] uppercase">
+                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-red-500/15 text-red-400 font-extrabold text-[9px] uppercase">
                   تنبيه جديد 🔔
                 </span>
               </div>
@@ -3949,14 +3957,14 @@ const StudentPortal: React.FC = () => {
                     await markNotificationRead(activeToast.id);
                     setActiveToast(null);
                   }}
-                  className="text-[9px] font-black text-indigo-400 hover:text-indigo-300 transition-colors"
+                  className="text-[9px] font-black text-red-400 hover:text-red-300 transition-colors"
                 >
                   تحديد كمقروء ✓
                 </button>
                 <span className="text-[8px] font-bold text-slate-500">الآن</span>
               </div>
             </div>
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-indigo-500/10 text-indigo-400 text-lg">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-red-500/10 text-red-400 text-lg">
               📢
             </div>
           </div>
@@ -3965,7 +3973,7 @@ const StudentPortal: React.FC = () => {
 
       {/* Student Profile Editing Modal */}
       {isProfileModalOpen && currentStudent && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center z-50 p-4 font-arabic" dir="rtl">
+        <div className="fixed inset-0 bg-[#0a0a0a]/80 backdrop-blur-sm flex items-center justify-center z-50 p-4 font-arabic" dir="rtl">
           <div className="w-full max-w-lg bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl relative space-y-6">
             <button
               onClick={() => setIsProfileModalOpen(false)}
@@ -3975,7 +3983,7 @@ const StudentPortal: React.FC = () => {
             </button>
             
             <div className="text-right space-y-2 border-b border-slate-800/60 pb-4">
-              <div className="flex items-center gap-2 text-purple-400">
+              <div className="flex items-center gap-2 text-red-400">
                 <UserIcon size={18} />
                 <h3 className="text-lg font-black text-white">تعديل بياناتي الشخصية</h3>
               </div>
@@ -3998,7 +4006,7 @@ const StudentPortal: React.FC = () => {
                       type="text"
                       value={currentStudent.name}
                       disabled
-                      className="w-full px-3 py-2 text-xs bg-slate-950 border border-slate-850 rounded-xl text-slate-500 font-bold text-center cursor-not-allowed"
+                      className="w-full px-3 py-2 text-xs bg-[#0a0a0a] border border-slate-850 rounded-xl text-slate-500 font-bold text-center cursor-not-allowed"
                     />
                   </div>
                   <div className="space-y-1 text-right">
@@ -4007,7 +4015,7 @@ const StudentPortal: React.FC = () => {
                       type="text"
                       value={currentStudent.studentIdNum || ''}
                       disabled
-                      className="w-full px-3 py-2 text-xs bg-slate-950 border border-slate-850 rounded-xl text-slate-500 font-mono font-bold text-center cursor-not-allowed"
+                      className="w-full px-3 py-2 text-xs bg-[#0a0a0a] border border-slate-850 rounded-xl text-slate-500 font-mono font-bold text-center cursor-not-allowed"
                     />
                   </div>
                 </div>
@@ -4019,7 +4027,7 @@ const StudentPortal: React.FC = () => {
                     <select
                       value={phoneCountry}
                       onChange={(e) => setPhoneCountry(e.target.value)}
-                      className="w-1/3 px-3 py-2.5 text-xs bg-slate-950 border border-slate-800 rounded-xl text-white font-bold outline-none focus:border-purple-500 transition-all cursor-pointer"
+                      className="w-1/3 px-3 py-2.5 text-xs bg-[#0a0a0a] border border-slate-800 rounded-xl text-white font-bold outline-none focus:border-red-500 transition-all cursor-pointer"
                     >
                       {COUNTRY_CODES.map(c => (
                         <option key={c.code} value={c.code} className="bg-slate-900 text-white">
@@ -4032,7 +4040,7 @@ const StudentPortal: React.FC = () => {
                       value={phoneLocal}
                       onChange={handlePhoneChange}
                       required
-                      className="flex-1 px-4 py-2.5 text-xs bg-slate-950 border border-slate-800 rounded-xl text-white font-bold text-center outline-none focus:border-purple-500 transition-all font-mono"
+                      className="flex-1 px-4 py-2.5 text-xs bg-[#0a0a0a] border border-slate-800 rounded-xl text-white font-bold text-center outline-none focus:border-red-500 transition-all font-mono"
                       placeholder="مثال: 51234567"
                     />
                   </div>
@@ -4046,7 +4054,7 @@ const StudentPortal: React.FC = () => {
                     <select
                       value={whatsappCountry}
                       onChange={(e) => setWhatsappCountry(e.target.value)}
-                      className="w-1/3 px-3 py-2.5 text-xs bg-slate-950 border border-slate-800 rounded-xl text-white font-bold outline-none focus:border-purple-500 transition-all cursor-pointer"
+                      className="w-1/3 px-3 py-2.5 text-xs bg-[#0a0a0a] border border-slate-800 rounded-xl text-white font-bold outline-none focus:border-red-500 transition-all cursor-pointer"
                     >
                       {COUNTRY_CODES.map(c => (
                         <option key={c.code} value={c.code} className="bg-slate-900 text-white">
@@ -4058,7 +4066,7 @@ const StudentPortal: React.FC = () => {
                       type="tel"
                       value={whatsappLocal}
                       onChange={handleWhatsappChange}
-                      className="flex-1 px-4 py-2.5 text-xs bg-slate-950 border border-slate-800 rounded-xl text-white font-bold text-center outline-none focus:border-purple-500 transition-all font-mono"
+                      className="flex-1 px-4 py-2.5 text-xs bg-[#0a0a0a] border border-slate-800 rounded-xl text-white font-bold text-center outline-none focus:border-red-500 transition-all font-mono"
                       placeholder="مثال: 51234567"
                     />
                   </div>
@@ -4077,7 +4085,7 @@ const StudentPortal: React.FC = () => {
                     type="email"
                     value={profileEmail}
                     onChange={(e) => setProfileEmail(e.target.value)}
-                    className="w-full px-4 py-2.5 text-xs bg-slate-950 border border-slate-800 rounded-xl text-white font-bold text-center outline-none focus:border-amber-500 transition-all font-mono"
+                    className="w-full px-4 py-2.5 text-xs bg-[#0a0a0a] border border-slate-800 rounded-xl text-white font-bold text-center outline-none focus:border-amber-500 transition-all font-mono"
                     placeholder="example@gmail.com"
                   />
                   <p className="text-[10px] text-amber-300 font-bold leading-relaxed bg-amber-950/40 border border-amber-800/50 p-2.5 rounded-xl">
@@ -4091,17 +4099,17 @@ const StudentPortal: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => setShowHistoryInModal(!showHistoryInModal)}
-                      className="text-[11px] font-black text-purple-400 hover:text-purple-300 underline cursor-pointer"
+                      className="text-[11px] font-black text-red-400 hover:text-red-300 underline cursor-pointer"
                     >
                       {showHistoryInModal ? 'إخفاء سجل التعديلات السابقة' : '📂 عرض سجل التعديلات السابقة الخاصة بك'}
                     </button>
                     
                     {showHistoryInModal && (
-                      <div className="mt-3 bg-slate-950 p-3 rounded-2xl border border-slate-800 max-h-40 overflow-y-auto space-y-2.5">
+                      <div className="mt-3 bg-[#0a0a0a] p-3 rounded-2xl border border-slate-800 max-h-40 overflow-y-auto space-y-2.5">
                         {currentStudent.profileEditHistory.map((h, i) => (
                           <div key={i} className="text-[10px] leading-relaxed border-b border-slate-900 pb-2 last:border-0 last:pb-0 space-y-1">
                             <div className="flex justify-between items-center font-bold">
-                              <span className="text-purple-400 font-black">{h.fieldNameAr}</span>
+                              <span className="text-red-400 font-black">{h.fieldNameAr}</span>
                               <span className="text-slate-500 text-[9px] font-mono">{h.editedAt}</span>
                             </div>
                             <div className="flex justify-between items-center text-slate-400">
@@ -4126,7 +4134,7 @@ const StudentPortal: React.FC = () => {
                   <button
                     type="submit"
                     disabled={profileSaveLoading}
-                    className="flex-1 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-black py-3 rounded-2xl text-xs transition-all shadow-xl shadow-purple-600/10 disabled:opacity-50 cursor-pointer"
+                    className="flex-1 bg-gradient-to-r from-red-600 to-red-600 hover:from-red-500 hover:to-red-500 text-white font-black py-3 rounded-2xl text-xs transition-all shadow-xl shadow-red-600/10 disabled:opacity-50 cursor-pointer"
                   >
                     {profileSaveLoading ? 'جاري حفظ البيانات...' : 'حفظ التعديلات ✅'}
                   </button>
@@ -4148,8 +4156,8 @@ const StudentPortal: React.FC = () => {
         const projExtraLinks = graduationProject.extraLinks || [];
 
         return (
-          <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center z-50 p-4 font-arabic" dir="rtl">
-            <div className="w-full max-w-2xl bg-slate-900 border border-purple-500/30 rounded-3xl p-6 sm:p-8 shadow-2xl relative space-y-6 max-h-[90vh] overflow-y-auto no-scrollbar">
+          <div className="fixed inset-0 bg-[#0a0a0a]/80 backdrop-blur-md flex items-center justify-center z-50 p-4 font-arabic" dir="rtl">
+            <div className="w-full max-w-2xl bg-slate-900 border border-red-500/30 rounded-3xl p-6 sm:p-8 shadow-2xl relative space-y-6 max-h-[90vh] overflow-y-auto no-scrollbar">
               <button
                 type="button"
                 onClick={() => setIsProjectDetailsModalOpen(false)}
@@ -4159,7 +4167,7 @@ const StudentPortal: React.FC = () => {
               </button>
 
               <div className="space-y-2 border-b border-slate-800 pb-4">
-                <span className="bg-purple-500/20 text-purple-300 font-black text-[10px] px-3 py-1 rounded-full border border-purple-500/30 uppercase">
+                <span className="bg-red-500/20 text-red-300 font-black text-[10px] px-3 py-1 rounded-full border border-red-500/30 uppercase">
                   تفاصيل وقواعد مشروع التخرج
                 </span>
                 <h3 className="text-2xl font-black text-white">{graduationProject.title}</h3>
@@ -4169,7 +4177,7 @@ const StudentPortal: React.FC = () => {
               </div>
 
               {/* Dates */}
-              <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-2 text-xs">
+              <div className="bg-[#0a0a0a] p-4 rounded-2xl border border-slate-800 space-y-2 text-xs">
                 <div className="flex justify-between items-center text-slate-300">
                   <span className="font-bold">🗓️ بدء التسليم:</span>
                   <span className="font-mono text-emerald-400 font-bold">{projStartDate ? projStartDate.replace('T', ' ') : 'متاح حالياً'}</span>
@@ -4185,8 +4193,8 @@ const StudentPortal: React.FC = () => {
 
               {/* Description */}
               <div className="space-y-2">
-                <h4 className="text-xs font-black text-purple-400">وصف وفكرة المشروع:</h4>
-                <p className="text-xs text-slate-300 leading-relaxed bg-slate-950 p-4 rounded-2xl border border-slate-800 whitespace-pre-line">
+                <h4 className="text-xs font-black text-red-400">وصف وفكرة المشروع:</h4>
+                <p className="text-xs text-slate-300 leading-relaxed bg-[#0a0a0a] p-4 rounded-2xl border border-slate-800 whitespace-pre-line">
                   {graduationProject.description || 'لا يوجد وصف تفصيلي للمشروع بعد.'}
                 </p>
               </div>
@@ -4194,8 +4202,8 @@ const StudentPortal: React.FC = () => {
               {/* Deliverables Required */}
               {projRequirements && (
                 <div className="space-y-2">
-                  <h4 className="text-xs font-black text-indigo-400">المطلوب من المتدرب للإنهاء والتسليم:</h4>
-                  <p className="text-xs text-slate-300 leading-relaxed bg-slate-950 p-4 rounded-2xl border border-slate-800 whitespace-pre-line">
+                  <h4 className="text-xs font-black text-red-400">المطلوب من المتدرب للإنهاء والتسليم:</h4>
+                  <p className="text-xs text-slate-300 leading-relaxed bg-[#0a0a0a] p-4 rounded-2xl border border-slate-800 whitespace-pre-line">
                     {projRequirements}
                   </p>
                 </div>
@@ -4249,7 +4257,7 @@ const StudentPortal: React.FC = () => {
                     href={link.url}
                     target="_blank"
                     rel="noreferrer"
-                    className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-indigo-300 font-black text-xs rounded-xl border border-slate-700 transition-all flex items-center gap-2"
+                    className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-red-300 font-black text-xs rounded-xl border border-slate-700 transition-all flex items-center gap-2"
                   >
                     <ExternalLink size={14} />
                     <span>{link.title || link.url}</span>
@@ -4286,8 +4294,8 @@ const StudentPortal: React.FC = () => {
         const isBeforeStart = startDT ? now < startDT : false;
 
         return (
-          <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center z-50 p-4 font-arabic" dir="rtl">
-            <div className="w-full max-w-xl bg-slate-900 border border-purple-500/40 rounded-3xl p-6 sm:p-8 shadow-2xl relative space-y-6 max-h-[90vh] overflow-y-auto no-scrollbar">
+          <div className="fixed inset-0 bg-[#0a0a0a]/80 backdrop-blur-md flex items-center justify-center z-50 p-4 font-arabic" dir="rtl">
+            <div className="w-full max-w-xl bg-slate-900 border border-red-500/40 rounded-3xl p-6 sm:p-8 shadow-2xl relative space-y-6 max-h-[90vh] overflow-y-auto no-scrollbar">
               <button
                 type="button"
                 onClick={() => setIsSubmissionModalOpen(false)}
@@ -4297,7 +4305,7 @@ const StudentPortal: React.FC = () => {
               </button>
 
               <div className="space-y-1 text-right border-b border-slate-800 pb-4">
-                <span className="text-[10px] font-black text-purple-400 uppercase tracking-widest bg-purple-950 px-3 py-1 rounded-full border border-purple-900/60">
+                <span className="text-[10px] font-black text-red-400 uppercase tracking-widest bg-red-950 px-3 py-1 rounded-full border border-red-900/60">
                   استمارة تسليم مشروع التخرج
                 </span>
                 <h3 className="text-xl font-black text-white pt-2">تسليم: {graduationProject.title}</h3>
@@ -4337,8 +4345,8 @@ const StudentPortal: React.FC = () => {
 
               {/* Requirements & Rules Summary */}
               {projRequirements && (
-                <div className="p-4 bg-indigo-950/20 border border-indigo-500/20 rounded-2xl text-xs space-y-1">
-                  <span className="font-black text-indigo-400 block">📦 تذكير بالمطلوب تسليمه:</span>
+                <div className="p-4 bg-red-950/20 border border-red-500/20 rounded-2xl text-xs space-y-1">
+                  <span className="font-black text-red-400 block">📦 تذكير بالمطلوب تسليمه:</span>
                   <p className="text-slate-300 whitespace-pre-line">{projRequirements}</p>
                 </div>
               )}
@@ -4367,13 +4375,13 @@ const StudentPortal: React.FC = () => {
                       value={submissionDriveLink}
                       onChange={(e) => setSubmissionDriveLink(e.target.value)}
                       placeholder="https://drive.google.com/drive/folders/..."
-                      className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-2xl text-xs text-slate-100 font-mono text-left focus:border-purple-500 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full px-4 py-3 bg-[#0a0a0a] border border-slate-800 rounded-2xl text-xs text-slate-100 font-mono text-left focus:border-red-500 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                       required
                     />
                   </div>
 
                   {/* Checklist Requirements */}
-                  <div className="space-y-3 bg-slate-950 p-4 rounded-2xl border border-slate-800 text-right">
+                  <div className="space-y-3 bg-[#0a0a0a] p-4 rounded-2xl border border-slate-800 text-right">
                     <h4 className="text-xs font-black text-amber-400 flex items-center gap-1.5">
                       <ShieldCheck size={16} />
                       <span>تأكيد الشروط الأساسية للتسليم (إجباري):</span>
@@ -4385,7 +4393,7 @@ const StudentPortal: React.FC = () => {
                         disabled={isPastDeadline || isBeforeStart}
                         checked={checkOpen}
                         onChange={(e) => setCheckOpen(e.target.checked)}
-                        className="mt-0.5 w-4 h-4 text-purple-600 bg-slate-900 border-slate-700 rounded focus:ring-purple-500 shrink-0"
+                        className="mt-0.5 w-4 h-4 text-red-600 bg-slate-900 border-slate-700 rounded focus:ring-red-500 shrink-0"
                       />
                       <span>1. أتأكد أن رابط جوجل درايف / فيجما مفتوح للجميع (Anyone with link can view).</span>
                     </label>
@@ -4396,7 +4404,7 @@ const StudentPortal: React.FC = () => {
                         disabled={isPastDeadline || isBeforeStart}
                         checked={checkEditable}
                         onChange={(e) => setCheckEditable(e.target.checked)}
-                        className="mt-0.5 w-4 h-4 text-purple-600 bg-slate-900 border-slate-700 rounded focus:ring-purple-500 shrink-0"
+                        className="mt-0.5 w-4 h-4 text-red-600 bg-slate-900 border-slate-700 rounded focus:ring-red-500 shrink-0"
                       />
                       <span>2. قمت برفع كافة الملفات القابلة للتعديل والملحقات المطلوبة.</span>
                     </label>
@@ -4407,7 +4415,7 @@ const StudentPortal: React.FC = () => {
                         disabled={isPastDeadline || isBeforeStart}
                         checked={checkRules}
                         onChange={(e) => setCheckRules(e.target.checked)}
-                        className="mt-0.5 w-4 h-4 text-purple-600 bg-slate-900 border-slate-700 rounded focus:ring-purple-500 shrink-0"
+                        className="mt-0.5 w-4 h-4 text-red-600 bg-slate-900 border-slate-700 rounded focus:ring-red-500 shrink-0"
                       />
                       <span>3. قرأت كافة قواعد وتعليمات مشروع التخرج والتزمت بها بالكامل.</span>
                     </label>
@@ -4421,7 +4429,7 @@ const StudentPortal: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => setSubmissionExtraLinks([...submissionExtraLinks, { title: '', url: '' }])}
-                          className="text-[11px] font-bold text-purple-400 hover:text-purple-300"
+                          className="text-[11px] font-bold text-red-400 hover:text-red-300"
                         >
                           + إضافة لينك
                         </button>
@@ -4439,7 +4447,7 @@ const StudentPortal: React.FC = () => {
                             updated[i].title = e.target.value;
                             setSubmissionExtraLinks(updated);
                           }}
-                          className="w-1/3 px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-200 disabled:opacity-50"
+                          className="w-1/3 px-3 py-2 bg-[#0a0a0a] border border-slate-800 rounded-xl text-xs text-slate-200 disabled:opacity-50"
                         />
                         <input
                           type="url"
@@ -4451,7 +4459,7 @@ const StudentPortal: React.FC = () => {
                             updated[i].url = e.target.value;
                             setSubmissionExtraLinks(updated);
                           }}
-                          className="flex-1 px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-200 font-mono text-left disabled:opacity-50"
+                          className="flex-1 px-3 py-2 bg-[#0a0a0a] border border-slate-800 rounded-xl text-xs text-slate-200 font-mono text-left disabled:opacity-50"
                         />
                         {!isPastDeadline && !isBeforeStart && (
                           <button
@@ -4477,7 +4485,7 @@ const StudentPortal: React.FC = () => {
                     <button
                       type="submit"
                       disabled={isSubmittingProject || isPastDeadline || isBeforeStart}
-                      className="flex-1 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-black py-3 rounded-2xl text-xs transition-all shadow-xl shadow-purple-600/20 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                      className="flex-1 bg-gradient-to-r from-red-600 to-red-600 hover:from-red-500 hover:to-red-500 text-white font-black py-3 rounded-2xl text-xs transition-all shadow-xl shadow-red-600/20 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                     >
                       {isSubmittingProject
                         ? 'جاري رفع التسليم...'
@@ -4497,7 +4505,7 @@ const StudentPortal: React.FC = () => {
 
       {/* GRADUATION EVALUATION & COMMENTS VIEW MODAL FOR STUDENT */}
       {isProjectEvalViewModalOpen && graduationEvaluation && graduationProject && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center z-50 p-4 font-arabic" dir="rtl">
+        <div className="fixed inset-0 bg-[#0a0a0a]/80 backdrop-blur-md flex items-center justify-center z-50 p-4 font-arabic" dir="rtl">
           <div className="w-full max-w-2xl bg-slate-900 border border-emerald-500/40 rounded-3xl p-6 sm:p-8 shadow-2xl relative space-y-6 max-h-[90vh] overflow-y-auto no-scrollbar">
             <button
               type="button"
@@ -4518,7 +4526,7 @@ const StudentPortal: React.FC = () => {
             </div>
 
             {/* Total score box */}
-            <div className="bg-gradient-to-r from-emerald-950/40 to-slate-950 p-5 rounded-2xl border border-emerald-500/30 flex justify-between items-center">
+            <div className="bg-gradient-to-r from-emerald-950/40 to-[#0a0a0a] p-5 rounded-2xl border border-emerald-500/30 flex justify-between items-center">
               <span className="text-sm font-black text-white">الدرجة الإجمالية لمشروع التخرج:</span>
               <span className="text-3xl font-black text-emerald-400">
                 {graduationEvaluation.totalScore} / {graduationProject.criteria?.reduce((s, c) => s + c.maxScore, 0) || 100}
@@ -4528,12 +4536,12 @@ const StudentPortal: React.FC = () => {
             {/* Criteria Scores */}
             {graduationEvaluation.criteriaScores && graduationEvaluation.criteriaScores.length > 0 && (
               <div className="space-y-3 text-right">
-                <h4 className="text-xs font-black text-indigo-400">توزيع الدرجات حسب معايير التقييم:</h4>
+                <h4 className="text-xs font-black text-red-400">توزيع الدرجات حسب معايير التقييم:</h4>
                 <div className="space-y-2">
                   {graduationEvaluation.criteriaScores.map((cs, idx) => (
-                    <div key={idx} className="bg-slate-950 p-3 rounded-xl border border-slate-800 flex justify-between items-center text-xs">
+                    <div key={idx} className="bg-[#0a0a0a] p-3 rounded-xl border border-slate-800 flex justify-between items-center text-xs">
                       <span className="font-bold text-slate-300">{cs.title}</span>
-                      <span className="font-black font-mono text-indigo-400">{cs.score} / {cs.maxScore}</span>
+                      <span className="font-black font-mono text-red-400">{cs.score} / {cs.maxScore}</span>
                     </div>
                   ))}
                 </div>
@@ -4543,8 +4551,8 @@ const StudentPortal: React.FC = () => {
             {/* Trainer Notes */}
             {graduationEvaluation.generalNotes && (
               <div className="space-y-2 text-right">
-                <h4 className="text-xs font-black text-purple-400">ملاحظات المحاضر العامة:</h4>
-                <p className="text-xs text-slate-300 bg-slate-950 p-4 rounded-2xl border border-slate-800 leading-relaxed">
+                <h4 className="text-xs font-black text-red-400">ملاحظات المحاضر العامة:</h4>
+                <p className="text-xs text-slate-300 bg-[#0a0a0a] p-4 rounded-2xl border border-slate-800 leading-relaxed">
                   {graduationEvaluation.generalNotes}
                 </p>
               </div>
@@ -4556,9 +4564,9 @@ const StudentPortal: React.FC = () => {
                 <h4 className="text-xs font-black text-amber-400">ملاحظات وتعليقات التفاصيل الفنية والديزاين:</h4>
                 <div className="space-y-2">
                   {graduationComments.map((com) => (
-                    <div key={com.id} className="bg-slate-950 p-3.5 rounded-2xl border border-slate-800 space-y-1">
+                    <div key={com.id} className="bg-[#0a0a0a] p-3.5 rounded-2xl border border-slate-800 space-y-1">
                       <div className="flex justify-between items-center text-[10px] text-slate-500">
-                        <span className="font-black text-purple-400">{com.authorName} ({com.authorRole})</span>
+                        <span className="font-black text-red-400">{com.authorName} ({com.authorRole})</span>
                         <span>{new Date(com.createdAt).toLocaleDateString('ar-EG')}</span>
                       </div>
                       <p className="text-xs text-slate-200 font-arabic leading-relaxed">{com.text}</p>
