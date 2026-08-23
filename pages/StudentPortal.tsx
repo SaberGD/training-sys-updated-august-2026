@@ -2,13 +2,14 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import * as firestore from 'firebase/firestore';
 import { db } from '../firebase';
-import { Student, Group, Session, LectureEvaluation, Penalty, GroupRanking, SessionMeta, AppNotification, GlobalEvalForm, GraduationProject, GraduationProjectSubmission, GraduationProjectEvaluation, GraduationProjectComment, StudentCertificateRecord } from '../types';
+import { Student, Group, Session, LectureEvaluation, Penalty, GroupRanking, SessionMeta, AppNotification, GlobalEvalForm, GraduationProject, GraduationProjectSubmission, GraduationProjectEvaluation, GraduationProjectComment, StudentCertificateRecord, StudentWeaknessPoint } from '../types';
 import { markStudentAttendanceSelf, markNotificationRead, saveGraduationProjectSubmission } from '../services/firestore';
 import { 
   Award, CheckCircle, CheckCircle2, Calendar, TrendingUp, AlertTriangle, 
   FileText, BookOpen, MessageSquare, Send, Users, LogOut, 
   Lock, User as UserIcon, Copy, Sparkles, Check, Download, ExternalLink,
-  Bell, BellOff, Video, Zap, ShieldCheck, Loader2
+  Bell, BellOff, Video, Zap, ShieldCheck, Loader2, ShieldAlert, Target,
+  XCircle, Clock, Link as LinkIcon
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -59,6 +60,7 @@ const StudentPortal: React.FC = () => {
   const [penalties, setPenalties] = useState<Penalty[]>([]);
   const [rankings, setRankings] = useState<GroupRanking[]>([]);
   const [sessionMetas, setSessionMetas] = useState<SessionMeta[]>([]);
+  const [studentWeaknesses, setStudentWeaknesses] = useState<StudentWeaknessPoint[]>([]);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [isMuted, setIsMuted] = useState<boolean>(false);
   const [isNotifOpen, setIsNotifOpen] = useState<boolean>(false);
@@ -613,6 +615,25 @@ const StudentPortal: React.FC = () => {
     });
     return () => unsubCert();
   }, [currentStudent?.id, currentStudent?.groupId]);
+
+  // Real-time subscription to Student's Weakness Points
+  useEffect(() => {
+    if (!currentStudent?.id) return;
+    const qWeak = query(collection(db, 'studentWeaknesses'), where('studentId', '==', currentStudent.id));
+    const unsubWeak = onSnapshot(qWeak, (snapshot: any) => {
+      const list = snapshot.docs.map((d: any) => ({ id: d.id, ...d.data() } as StudentWeaknessPoint));
+      list.sort((a, b) => {
+        if (a.resolved === b.resolved) {
+          return (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0);
+        }
+        return a.resolved ? 1 : -1;
+      });
+      setStudentWeaknesses(list);
+    }, (err: any) => {
+      console.error("Error subscribing to student weaknesses:", err);
+    });
+    return () => unsubWeak();
+  }, [currentStudent?.id]);
 
   // Real-time subscription to all student submissions for metrics calculation
   useEffect(() => {
@@ -3733,6 +3754,91 @@ const StudentPortal: React.FC = () => {
               <div className="text-[9px] font-bold text-slate-500">بسبب تسليم تاسكات متأخرة أو غياب بدون اعتذار</div>
             </div>
           </div>
+        </section>
+
+        {/* STUDENT WEAKNESS POINTS & AREAS FOR IMPROVEMENT */}
+        <section className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-black text-white pr-1 flex items-center gap-2">
+              <Target size={18} className="text-amber-400" />
+              <span>نقاط الضعف ومواضع التطوير الموجهة لك</span>
+            </h3>
+            {studentWeaknesses.filter(w => !w.resolved).length > 0 ? (
+              <span className="px-3 py-1 rounded-full text-xs font-black bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center gap-1.5">
+                <AlertTriangle size={12} />
+                <span>{studentWeaknesses.filter(w => !w.resolved).length} نقطة تتطلب التركيز</span>
+              </span>
+            ) : studentWeaknesses.length > 0 ? (
+              <span className="px-3 py-1 rounded-full text-xs font-black bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1.5">
+                <CheckCircle2 size={12} />
+                <span>تم معالجة جميع النقاط! 🎉</span>
+              </span>
+            ) : null}
+          </div>
+
+          {studentWeaknesses.length === 0 ? (
+            <div className="bg-slate-900/60 border border-slate-800/80 rounded-3xl p-6 text-center space-y-2">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto">
+                <Sparkles size={24} />
+              </div>
+              <h4 className="text-sm font-black text-white">لا توجد نقاط ضعف مسجلة حالياً ✨</h4>
+              <p className="text-xs text-slate-400 max-w-md mx-auto leading-relaxed">
+                أداؤك يسير بشكل ممتاز بدون أية ملاحظات ضعيفة مسجلة من المدربين. واصل الالتزام بالواجبات والتفاعل بالمحاضرات!
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {studentWeaknesses.map((item) => (
+                <div 
+                  key={item.id}
+                  className={`p-5 rounded-3xl border transition-all space-y-3 relative overflow-hidden ${
+                    item.resolved
+                      ? 'bg-emerald-950/10 border-emerald-500/30 shadow-sm'
+                      : 'bg-slate-900 border-amber-500/30 shadow-md shadow-amber-500/5'
+                  }`}
+                >
+                  <div className="flex justify-between items-start gap-2">
+                    <div className="flex items-center gap-2">
+                      <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
+                        item.resolved 
+                          ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' 
+                          : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                      }`}>
+                        {item.resolved ? <CheckCircle2 size={16} /> : <AlertTriangle size={16} />}
+                      </div>
+                      <div>
+                        <span className={`text-[10px] font-black uppercase tracking-wider block ${
+                          item.resolved ? 'text-emerald-400' : 'text-amber-400'
+                        }`}>
+                          {item.resolved ? '✅ تم المعالجة والتغلب عليها' : '⚠️ نقطة ضعف محتاجة تطوير'}
+                        </span>
+                        {item.sessionNumber && (
+                          <span className="text-[9px] font-bold text-slate-500">
+                            ملاحظة محاضرة رقم #{item.sessionNumber}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <p className={`text-xs font-bold leading-relaxed ${
+                    item.resolved ? 'line-through text-slate-400' : 'text-slate-100 font-extrabold'
+                  }`}>
+                    {item.description}
+                  </p>
+
+                  <div className="flex justify-between items-center text-[10px] text-slate-500 font-bold pt-2 border-t border-slate-800/60">
+                    <span>المدرب: {item.createdByName || 'المحاضر'}</span>
+                    {item.resolved && (
+                      <span className="text-emerald-400 font-black">
+                        تم المعالجة بواسطة {item.resolvedByName || 'المدرب'} ✓
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </section>
 
         {/* Group Timeline Tracker && Schedule Details */}

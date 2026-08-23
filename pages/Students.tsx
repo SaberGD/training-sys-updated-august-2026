@@ -21,6 +21,7 @@ import Layout from '../components/Layout';
 import ConfirmDeleteModal from '../components/ConfirmDeleteModal';
 import StudentStatusModal from '../components/StudentStatusModal';
 import AIStudentExportModal from '../components/AIStudentExportModal';
+import { StudentWeaknessModal } from '../components/StudentWeaknessModal';
 import { TrainerBroadcastEmailModal } from '../components/TrainerBroadcastEmailModal';
 import { Clock, Trash2, MessageSquare, Share2, Send, Copy, Check, RotateCcw, Smartphone, Settings, Bot, Mail } from 'lucide-react';
 import { normalizePhoneNumber, getCleanDigitsOnly, COUNTRY_CODES, parsePhoneAndDetect } from '../utils';
@@ -132,6 +133,7 @@ const Students: React.FC<{ user: User }> = ({ user }) => {
   const [phoneLocal, setPhoneLocal] = useState('');
   const [whatsappCountry, setWhatsappCountry] = useState('+20');
   const [whatsappLocal, setWhatsappLocal] = useState('');
+  const [selectedStudentForWeakness, setSelectedStudentForWeakness] = useState<{ id: string, name: string, groupId?: string } | null>(null);
 
   // Allowed to delete: admin, coordinator, team_leader
   const canDelete = ['admin', 'coordinator', 'team_leader'].includes(user.role);
@@ -978,6 +980,13 @@ const Students: React.FC<{ user: User }> = ({ user }) => {
                             title="View History"
                           >
                             📜
+                          </button>
+                          <button 
+                            onClick={() => setSelectedStudentForWeakness({ id: s.id, name: s.name, groupId: s.groupId })}
+                            className="p-2.5 text-slate-400 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-xl transition-all"
+                            title="سجل نقاط الضعف ومواضع التطوير"
+                          >
+                            🎯
                           </button>
                           <button 
                             onClick={() => handleOpenModal(s)}
@@ -1946,6 +1955,18 @@ https://www.facebook.com/photo/?fbid=1014941958047609&set=a.149461877928959
         user={user}
         trainers={allUsers.filter(u => u.role === 'trainer' || u.role === 'admin')}
       />
+
+      {selectedStudentForWeakness && (
+        <StudentWeaknessModal
+          isOpen={!!selectedStudentForWeakness}
+          onClose={() => setSelectedStudentForWeakness(null)}
+          studentId={selectedStudentForWeakness.id}
+          studentName={selectedStudentForWeakness.name}
+          groupId={selectedStudentForWeakness.groupId}
+          groupName={groups.find(g => g.id === selectedStudentForWeakness.groupId)?.name}
+          user={user}
+        />
+      )}
     </Layout>
   );
 };

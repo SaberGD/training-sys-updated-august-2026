@@ -7,8 +7,9 @@ import {
   Group, Student, Session, User, 
   LectureEvaluation, Attendance, GroupRanking, Penalty, Course, SessionMeta,
   StudentFollowUp, FollowUpComment, LabelDefinition, LectureFeedback,
-  GraduationProject, GraduationProjectSubmission, StudentCertificateRecord
+  GraduationProject, GraduationProjectSubmission, StudentCertificateRecord, StudentWeaknessPoint
 } from '../types';
+import { StudentWeaknessModal } from '../components/StudentWeaknessModal';
 import { 
   subscribeToCollection, 
   addPenalty, removePenalty, 
@@ -233,6 +234,8 @@ const GroupDetails: React.FC<{ user: User }> = ({ user }) => {
   const [penaltyFormData, setPenaltyFormData] = useState({ studentId: '', points: 5, reason: '' });
   const [notesModalStudent, setNotesModalStudent] = useState<{ id: string, name: string } | null>(null);
   const [studentNotesText, setStudentNotesText] = useState<string>('');
+  const [groupWeaknesses, setGroupWeaknesses] = useState<StudentWeaknessPoint[]>([]);
+  const [selectedStudentForWeakness, setSelectedStudentForWeakness] = useState<{ id: string, name: string } | null>(null);
 
   // Task Progress Filters
   const [taskSearchQuery, setTaskSearchQuery] = useState('');
@@ -1089,6 +1092,7 @@ const GroupDetails: React.FC<{ user: User }> = ({ user }) => {
     });
     const unsubGradSubmissions = subscribeToCollection<GraduationProjectSubmission>('graduationSubmissions', setGradSubmissions, [where('groupId', '==', groupId)]);
     const unsubCerts = subscribeToCollection<StudentCertificateRecord>('studentCertificates', setCertificateRecords, [where('groupId', '==', groupId)]);
+    const unsubWeaknesses = subscribeToCollection<StudentWeaknessPoint>('studentWeaknesses', setGroupWeaknesses, [where('groupId', '==', groupId)]);
 
     return () => { 
       unsubStudents(); 
@@ -1102,6 +1106,7 @@ const GroupDetails: React.FC<{ user: User }> = ({ user }) => {
       unsubGradProjects();
       unsubGradSubmissions();
       unsubCerts();
+      unsubWeaknesses();
     };
   }, [groupId, navigate]);
 
@@ -3678,6 +3683,35 @@ const GroupDetails: React.FC<{ user: User }> = ({ user }) => {
 
                                 <span className="text-slate-800">|</span>
 
+                                {(() => {
+                                  const studentWeaknesses = groupWeaknesses.filter(w => w.studentId === student.id);
+                                  const unresolvedCount = studentWeaknesses.filter(w => !w.resolved).length;
+                                  return (
+                                    <button 
+                                      onClick={() => setSelectedStudentForWeakness({ id: student.id, name: student.name })}
+                                      className={`flex items-center gap-1 text-[10px] font-black transition-colors ${
+                                        unresolvedCount > 0 
+                                          ? 'text-amber-400 hover:text-amber-300' 
+                                          : studentWeaknesses.length > 0 
+                                          ? 'text-emerald-400 hover:text-emerald-300' 
+                                          : 'text-slate-450 hover:text-amber-400'
+                                      }`}
+                                      title="نقاط الضعف والتطوير"
+                                    >
+                                      <span>🎯 نقاط الضعف</span>
+                                      {unresolvedCount > 0 ? (
+                                        <span className="px-1.5 py-0.2 rounded-full text-[9px] font-black bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                                          {unresolvedCount}
+                                        </span>
+                                      ) : studentWeaknesses.length > 0 ? (
+                                        <span className="text-[9px] text-emerald-400">✓</span>
+                                      ) : null}
+                                    </button>
+                                  );
+                                })()}
+
+                                <span className="text-slate-800">|</span>
+
                                 <button 
                                   onClick={() => setSelectedStudentForLabel({ id: student.id, name: student.name })}
                                   className="flex items-center gap-1 text-[10px] font-black text-slate-450 hover:text-blue-400 transition-colors"
@@ -5800,6 +5834,19 @@ const GroupDetails: React.FC<{ user: User }> = ({ user }) => {
             </div>
           </div>
         </div>
+      )}
+
+      {selectedStudentForWeakness && (
+        <StudentWeaknessModal
+          isOpen={!!selectedStudentForWeakness}
+          onClose={() => setSelectedStudentForWeakness(null)}
+          studentId={selectedStudentForWeakness.id}
+          studentName={selectedStudentForWeakness.name}
+          groupId={groupId!}
+          groupName={group?.name}
+          sessionNumber={selectedSession?.sessionNumber}
+          user={user}
+        />
       )}
 
       <GroupModal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} user={user} editingGroup={group} courses={courses} trainers={trainers} onSuccess={() => {}} />

@@ -13,7 +13,8 @@ import {
   AppNotification, TaskStatus, TaskPriority, SubTask, TaskFile, TaskComment,
   StudentFollowUp, FollowUpComment, Complaint, ComplaintStatus, LabelDefinition,
   CourseChecklistItemTemplate, TrainerPlan, GroupChecklistItem, GroupExecutionPlan,
-  LectureFeedback, GraduationProject, GraduationProjectSubmission, GraduationProjectEvaluation, GraduationProjectComment
+  LectureFeedback, GraduationProject, GraduationProjectSubmission, GraduationProjectEvaluation, GraduationProjectComment,
+  StudentWeaknessPoint
 } from '../types';
 
 const { 
@@ -3217,6 +3218,130 @@ export const toggleGroupCertificatesVisibility = async (
     performedByName: performedBy.name,
     performedByRole: performedBy.role,
     details: { visible }
+  });
+};
+
+export const addStudentWeaknessPoint = async (
+  data: {
+    studentId: string;
+    studentName?: string;
+    groupId?: string;
+    groupName?: string;
+    description: string;
+    notes?: string;
+    sessionNumber?: number;
+  },
+  user: { uid: string; name: string; role: string }
+) => {
+  if (!data.studentId || !data.description.trim()) {
+    throw new Error('بيانات نقطة الضعف غير مكتملة');
+  }
+
+  const weaknessRef = doc(collection(db, 'studentWeaknesses'));
+  const weaknessData: StudentWeaknessPoint = {
+    id: weaknessRef.id,
+    studentId: data.studentId,
+    studentName: data.studentName || '',
+    groupId: data.groupId || '',
+    groupName: data.groupName || '',
+    description: data.description.trim(),
+    notes: data.notes || '',
+    sessionNumber: data.sessionNumber || undefined,
+    resolved: false,
+    createdAt: serverTimestamp(),
+    createdByUid: user.uid,
+    createdByName: user.name
+  };
+
+  await setDoc(weaknessRef, weaknessData);
+
+  // Send notification to the student
+  try {
+    await sendNotification({
+      userId: data.studentId,
+      title: `🎯 تم إضافة نقطة ضعف تحتاج لتطوير`,
+      message: `تم إضافة نقطة ضعف في ملفك التقييمي: "${data.description.trim()}". اضغط لمتابعة التفاصيل والعمل على معالجتها.`,
+      type: 'task_review',
+      link: `/student-portal?studentId=${data.studentId}`
+    });
+  } catch (err) {
+    console.error('Failed to notify student about weakness point:', err);
+  }
+
+  await logActivity({
+    action: 'ADD_STUDENT_WEAKNESS',
+    entityType: 'student',
+    entityId: data.studentId,
+    entityName: data.studentName || data.studentId,
+    performedByUid: user.uid,
+    performedByName: user.name,
+    performedByRole: user.role,
+    details: { description: data.description, groupId: data.groupId }
+  });
+
+  return weaknessRef.id;
+};
+
+export const toggleStudentWeaknessPointResolved = async (
+  weaknessId: string,
+  resolved: boolean,
+  user: { uid: string; name: string; role: string },
+  studentId?: string,
+  description?: string
+) => {
+  const ref = doc(db, 'studentWeaknesses', weaknessId);
+  const updatePayload: any = {
+    resolved,
+    resolvedAt: resolved ? serverTimestamp() : null,
+    resolvedByUid: resolved ? user.uid : null,
+    resolvedByName: resolved ? user.name : null
+  };
+
+  await updateDoc(ref, updatePayload);
+
+  if (studentId) {
+    try {
+      if (resolved) {
+        await sendNotification({
+          userId: studentId,
+          title: `✅ تم تأكيد معالجة نقطة الضعف`,
+          message: `تهانينا! أكد المدرب معالجة نقطة الضعف الخاصة بك (${description || ''}). استمر في التطور الممتاز!`,
+          type: 'task_status',
+          link: `/student-portal?studentId=${studentId}`
+        });
+      }
+    } catch (err) {
+      console.error('Failed to notify student about weakness point resolution:', err);
+    }
+  }
+
+  await logActivity({
+    action: 'TOGGLE_STUDENT_WEAKNESS_RESOLVED',
+    entityType: 'studentWeakness',
+    entityId: weaknessId,
+    entityName: description || weaknessId,
+    performedByUid: user.uid,
+    performedByName: user.name,
+    performedByRole: user.role,
+    details: { resolved }
+  });
+};
+
+export const deleteStudentWeaknessPoint = async (
+  weaknessId: string,
+  user: { uid: string; name: string; role: string }
+) => {
+  const ref = doc(db, 'studentWeaknesses', weaknessId);
+  await deleteDoc(ref);
+
+  await logActivity({
+    action: 'DELETE_STUDENT_WEAKNESS',
+    entityType: 'studentWeakness',
+    entityId: weaknessId,
+    entityName: weaknessId,
+    performedByUid: user.uid,
+    performedByName: user.name,
+    performedByRole: user.role
   });
 };
 

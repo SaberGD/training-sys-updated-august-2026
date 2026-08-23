@@ -649,6 +649,24 @@ export interface LectureEvaluation {
   updatedAt: any;
 }
 
+export interface StudentWeaknessPoint {
+  id: string;
+  studentId: string;
+  studentName?: string;
+  groupId?: string;
+  groupName?: string;
+  description: string;
+  resolved: boolean;
+  createdAt: any;
+  createdByUid: string;
+  createdByName: string;
+  resolvedAt?: any;
+  resolvedByUid?: string;
+  resolvedByName?: string;
+  notes?: string;
+  sessionNumber?: number;
+}
+
 export interface LectureFeedback {
   id: string;
   groupId: string;
