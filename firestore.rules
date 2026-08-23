@@ -186,6 +186,18 @@ service cloud.firestore {
       allow write: if isSignedIn();
     }
 
+    // Student Weakness Points
+    match /studentWeaknesses/{id} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Student Certificates
+    match /studentCertificates/{id} {
+      allow read: if true;
+      allow write: if true;
+    }
+
     // Label Definitions
     match /labelDefinitions/{id} {
       allow read: if isSignedIn();

@@ -3230,6 +3230,7 @@ export const addStudentWeaknessPoint = async (
     description: string;
     notes?: string;
     sessionNumber?: number;
+    visibleToStudent?: boolean;
   },
   user: { uid: string; name: string; role: string }
 ) => {
@@ -3238,6 +3239,8 @@ export const addStudentWeaknessPoint = async (
   }
 
   const weaknessRef = doc(collection(db, 'studentWeaknesses'));
+  const isVisible = data.visibleToStudent !== undefined ? data.visibleToStudent : true;
+
   const weaknessData: StudentWeaknessPoint = {
     id: weaknessRef.id,
     studentId: data.studentId,
@@ -3247,6 +3250,7 @@ export const addStudentWeaknessPoint = async (
     description: data.description.trim(),
     notes: data.notes || '',
     sessionNumber: data.sessionNumber || undefined,
+    visibleToStudent: isVisible,
     resolved: false,
     createdAt: serverTimestamp(),
     createdByUid: user.uid,
@@ -3255,17 +3259,19 @@ export const addStudentWeaknessPoint = async (
 
   await setDoc(weaknessRef, weaknessData);
 
-  // Send notification to the student
-  try {
-    await sendNotification({
-      userId: data.studentId,
-      title: `🎯 تم إضافة نقطة ضعف تحتاج لتطوير`,
-      message: `تم إضافة نقطة ضعف في ملفك التقييمي: "${data.description.trim()}". اضغط لمتابعة التفاصيل والعمل على معالجتها.`,
-      type: 'task_review',
-      link: `/student-portal?studentId=${data.studentId}`
-    });
-  } catch (err) {
-    console.error('Failed to notify student about weakness point:', err);
+  // Send notification to the student ONLY if visibleToStudent is true
+  if (isVisible) {
+    try {
+      await sendNotification({
+        userId: data.studentId,
+        title: `🎯 تم إضافة نقطة ضعف تحتاج لتطوير`,
+        message: `تم إضافة نقطة ضعف في ملفك التقييمي: "${data.description.trim()}". اضغط لمتابعة التفاصيل والعمل على معالجتها.`,
+        type: 'task_review',
+        link: `/student-portal?studentId=${data.studentId}`
+      });
+    } catch (err) {
+      console.error('Failed to notify student about weakness point:', err);
+    }
   }
 
   await logActivity({
@@ -3276,10 +3282,29 @@ export const addStudentWeaknessPoint = async (
     performedByUid: user.uid,
     performedByName: user.name,
     performedByRole: user.role,
-    details: { description: data.description, groupId: data.groupId }
+    details: { description: data.description, groupId: data.groupId, visibleToStudent: isVisible }
   });
 
   return weaknessRef.id;
+};
+
+export const updateStudentWeaknessPointVisibility = async (
+  weaknessId: string,
+  visibleToStudent: boolean,
+  user: { uid: string; name: string; role: string }
+) => {
+  const ref = doc(db, 'studentWeaknesses', weaknessId);
+  await updateDoc(ref, { visibleToStudent });
+
+  await logActivity({
+    action: 'UPDATE_STUDENT_WEAKNESS_VISIBILITY',
+    entityType: 'studentWeakness',
+    entityId: weaknessId,
+    performedByUid: user.uid,
+    performedByName: user.name,
+    performedByRole: user.role,
+    details: { visibleToStudent }
+  });
 };
 
 export const toggleStudentWeaknessPointResolved = async (

@@ -6,10 +6,11 @@ import { User, AppNotification } from '../types';
 import { useTheme } from '../contexts/ThemeContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { usePermissions } from '../contexts/PermissionsContext';
+import { useSensitiveData } from '../contexts/SensitiveDataContext';
 import { ViewAsContext } from '../App';
 import { subscribeToCollection, markNotificationRead } from '../services/firestore';
 import * as firestore from 'firebase/firestore';
-import { Bell, Check, Eye } from 'lucide-react';
+import { Bell, Check, Eye, EyeOff, Lock } from 'lucide-react';
 import { GemyChatWidget } from './GemyChatWidget';
 
 const { where, orderBy, limit } = firestore as any;
@@ -25,6 +26,7 @@ const Layout: React.FC<LayoutProps> = ({ user, children }) => {
   const { theme, toggleTheme } = useTheme();
   const { lang, setLang, t } = useLanguage();
   const { hasPermission, isPageHidden } = usePermissions();
+  const { showSensitiveData, toggleShowSensitiveData } = useSensitiveData();
   const { viewAsRole, setViewAsRole, actualRole } = React.useContext(ViewAsContext);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => localStorage.getItem('sidebar_collapsed') === 'true');
@@ -194,6 +196,31 @@ const Layout: React.FC<LayoutProps> = ({ user, children }) => {
           </div>
           
           <div className="flex items-center gap-3">
+            {/* Sensitive Data Filter Button */}
+            <button
+              onClick={toggleShowSensitiveData}
+              className={`px-3.5 py-2 rounded-xl border text-xs font-black transition-all flex items-center gap-2 cursor-pointer ${
+                showSensitiveData
+                  ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/40 shadow-sm shadow-amber-500/10'
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:text-slate-900 dark:hover:text-white'
+              }`}
+              title={showSensitiveData ? 'البيانات الحساسة معروضة للمدرب (اضغط للإخفاء)' : 'البيانات الحساسة مخفية للمدرب (اضغط للإظهار)'}
+            >
+              {showSensitiveData ? (
+                <>
+                  <Eye size={15} className="text-amber-500 shrink-0" />
+                  <span className="hidden md:inline">البيانات الحساسة: معروضة 🔓</span>
+                  <span className="md:hidden">حساسة 🔓</span>
+                </>
+              ) : (
+                <>
+                  <EyeOff size={15} className="shrink-0" />
+                  <span className="hidden md:inline">البيانات الحساسة: مخفية 🔒</span>
+                  <span className="md:hidden">مخفية 🔒</span>
+                </>
+              )}
+            </button>
+
             <button 
               onClick={() => {
                 setIsHeaderCollapsed(true);

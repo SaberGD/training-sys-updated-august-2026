@@ -621,7 +621,9 @@ const StudentPortal: React.FC = () => {
     if (!currentStudent?.id) return;
     const qWeak = query(collection(db, 'studentWeaknesses'), where('studentId', '==', currentStudent.id));
     const unsubWeak = onSnapshot(qWeak, (snapshot: any) => {
-      const list = snapshot.docs.map((d: any) => ({ id: d.id, ...d.data() } as StudentWeaknessPoint));
+      const list = snapshot.docs
+        .map((d: any) => ({ id: d.id, ...d.data() } as StudentWeaknessPoint))
+        .filter((w: StudentWeaknessPoint) => w.visibleToStudent !== false);
       list.sort((a, b) => {
         if (a.resolved === b.resolved) {
           return (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0);

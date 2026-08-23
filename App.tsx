@@ -7,6 +7,7 @@ import { getOrCreateUser, runScheduleWeekMigration } from './services/firestore'
 import { User, UserRole } from './types';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { LanguageProvider } from './contexts/LanguageContext';
+import { SensitiveDataProvider } from './contexts/SensitiveDataContext';
 
 // Pages
 import Login from './pages/Login';
@@ -89,7 +90,8 @@ const App: React.FC = () => {
   return (
     <ThemeProvider>
       <LanguageProvider>
-        <ViewAsContext.Provider value={{ viewAsRole, setViewAsRole, actualRole: actualUser?.role || null }}>
+        <SensitiveDataProvider>
+          <ViewAsContext.Provider value={{ viewAsRole, setViewAsRole, actualRole: actualUser?.role || null }}>
           <PermissionsProvider user={user}>
             <Router>
               <Routes>
@@ -133,7 +135,8 @@ const App: React.FC = () => {
             </Router>
           </PermissionsProvider>
         </ViewAsContext.Provider>
-      </LanguageProvider>
+      </SensitiveDataProvider>
+    </LanguageProvider>
     </ThemeProvider>
   );
 };

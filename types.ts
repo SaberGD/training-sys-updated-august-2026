@@ -665,6 +665,7 @@ export interface StudentWeaknessPoint {
   resolvedByName?: string;
   notes?: string;
   sessionNumber?: number;
+  visibleToStudent?: boolean;
 }
 
 export interface LectureFeedback {
