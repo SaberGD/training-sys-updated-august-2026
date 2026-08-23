@@ -10,7 +10,7 @@ import { useSensitiveData } from '../contexts/SensitiveDataContext';
 import { ViewAsContext } from '../App';
 import { subscribeToCollection, markNotificationRead } from '../services/firestore';
 import * as firestore from 'firebase/firestore';
-import { Bell, Check, Eye, EyeOff, Lock } from 'lucide-react';
+import { Bell, Check, Eye, EyeOff, Lock, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, PanelLeftClose, PanelLeftOpen, Menu, X } from 'lucide-react';
 import { GemyChatWidget } from './GemyChatWidget';
 
 const { where, orderBy, limit } = firestore as any;
@@ -112,12 +112,18 @@ const Layout: React.FC<LayoutProps> = ({ user, children }) => {
                 setIsSidebarCollapsed(newVal);
                 localStorage.setItem('sidebar_collapsed', String(newVal));
               }}
-              className="hidden md:flex w-8 h-8 items-center justify-center bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-xl text-xs font-black transition-all text-slate-600 dark:text-slate-300"
+              className="hidden md:flex w-9 h-9 items-center justify-center bg-slate-100 hover:bg-slate-200 dark:bg-slate-800/80 dark:hover:bg-slate-700/80 rounded-xl transition-all text-slate-600 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700/60 shadow-xs active:scale-95 cursor-pointer"
               title={isSidebarCollapsed ? (lang === 'ar' ? 'توسيع القائمة الجانبية' : 'Expand Sidebar') : (lang === 'ar' ? 'طي القائمة الجانبية' : 'Collapse Sidebar')}
             >
-              {isSidebarCollapsed ? (lang === 'ar' ? '◀️' : '▶️') : (lang === 'ar' ? '▶️' : '◀️')}
+              {isSidebarCollapsed ? (
+                lang === 'ar' ? <ChevronLeft size={18} /> : <ChevronRight size={18} />
+              ) : (
+                lang === 'ar' ? <ChevronRight size={18} /> : <ChevronLeft size={18} />
+              )}
             </button>
-            <button onClick={() => setIsSidebarOpen(false)} className="md:hidden text-2xl text-slate-500 hover:text-slate-900 dark:hover:text-white">&times;</button>
+            <button onClick={() => setIsSidebarOpen(false)} className="md:hidden w-8 h-8 flex items-center justify-center text-slate-500 hover:text-slate-900 dark:hover:text-white rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+              <X size={20} />
+            </button>
           </div>
         </div>
         
@@ -176,10 +182,12 @@ const Layout: React.FC<LayoutProps> = ({ user, children }) => {
               setIsHeaderCollapsed(false);
               localStorage.setItem('header_collapsed', 'false');
             }}
-            className="fixed top-0 left-1/2 transform -translate-x-1/2 bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2.5 rounded-b-2xl shadow-xl z-50 text-[10px] font-black tracking-widest flex items-center gap-1.5 transition-all hover:scale-105 active:scale-95 animate-bounce border-t-0 border border-indigo-400/20"
+            className="fixed top-2.5 left-1/2 transform -translate-x-1/2 bg-slate-900/90 dark:bg-slate-800/95 text-white hover:bg-indigo-600 dark:hover:bg-indigo-600 px-4 py-2 rounded-full shadow-2xl z-50 text-xs font-bold tracking-tight flex items-center gap-2 transition-all hover:scale-105 active:scale-95 border border-slate-700/80 backdrop-blur-md group cursor-pointer"
             style={{ direction: 'ltr' }}
+            title={lang === 'ar' ? 'إظهار الشريط العلوي' : 'Show Top Navbar'}
           >
-            ⬇️ {lang === 'ar' ? 'إظهار الشريط العلوي' : 'Show Top Navbar'}
+            <ChevronDown size={15} className="text-indigo-400 group-hover:text-white transition-colors animate-bounce shrink-0" />
+            <span className="text-[11px] font-black">{lang === 'ar' ? 'إظهار الشريط العلوي' : 'Show Top Navbar'}</span>
           </button>
         )}
 
@@ -189,7 +197,9 @@ const Layout: React.FC<LayoutProps> = ({ user, children }) => {
             : 'h-20 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-6 md:px-10'
         }`}>
           <div className="flex items-center gap-6">
-            <button onClick={() => setIsSidebarOpen(true)} className="md:hidden p-2 text-2xl text-slate-600 dark:text-slate-300">☰</button>
+            <button onClick={() => setIsSidebarOpen(true)} className="md:hidden p-2 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+              <Menu size={22} />
+            </button>
             <div className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest hidden sm:block">
               {currentPage}
             </div>
@@ -226,10 +236,10 @@ const Layout: React.FC<LayoutProps> = ({ user, children }) => {
                 setIsHeaderCollapsed(true);
                 localStorage.setItem('header_collapsed', 'true');
               }}
-              className="w-10 h-10 flex items-center justify-center bg-slate-100 dark:bg-slate-800 rounded-xl hover:bg-rose-50 dark:hover:bg-rose-950/25 transition-colors border border-slate-200 dark:border-slate-700"
+              className="w-10 h-10 flex items-center justify-center bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700/80 rounded-xl transition-all text-slate-600 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700/60 shadow-xs cursor-pointer active:scale-95"
               title={lang === 'ar' ? 'إخفاء الشريط العلوي' : 'Collapse Top Navbar'}
             >
-              ⬆️
+              <ChevronUp size={18} />
             </button>
 
             <div className="relative">

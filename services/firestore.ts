@@ -971,7 +971,11 @@ export const batchSaveEvaluations = async (evals: Partial<LectureEvaluation>[]) 
       ? `${ev.groupId}_${(ev as any).sessionId}_${ev.studentId}`
       : `${ev.groupId}_session_${ev.sessionNumber}_${ev.studentId}`;
     
-    const total = (ev.attendance || 0) + (ev.taskDelivered || 0) + (ev.taskOnTime || 0) + (ev.taskQuality || 0) + (ev.taskRedo || 0) + (ev.bonus || 0);
+    const total = (ev.attendance || 0) + (ev.bonus || 0) + (
+      ev.taskNotSubmittedPenalty 
+        ? -1 
+        : ((ev.taskDelivered || 0) + (ev.taskOnTime || 0) + (ev.taskQuality || 0) + (ev.taskRedo || 0))
+    );
     const ref = doc(db, 'lectureEvaluations', docId);
     batch.set(ref, { ...ev, total, updatedAt: serverTimestamp() }, { merge: true });
     studentIds.add(ev.studentId!);

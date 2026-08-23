@@ -646,6 +646,9 @@ export interface LectureEvaluation {
   taskRedo: 0 | 1;
   bonus: 0 | 1;
   total: number;
+  trainerNote?: string;
+  taskNote?: string;
+  taskNotSubmittedPenalty?: boolean;
   updatedAt: any;
 }
 

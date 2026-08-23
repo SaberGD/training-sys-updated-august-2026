@@ -3967,12 +3967,12 @@ const StudentPortal: React.FC = () => {
                     
                     return (
                       <div key={s.id} className="bg-[#0a0a0a] p-4 rounded-2.5xl border border-slate-800 hover:border-red-500/25 transition-all space-y-3">
-                        <div className="flex justify-between items-center">
+                        <div className="flex justify-between items-center flex-wrap gap-2">
                           <span className="text-[9px] font-black uppercase text-red-400 bg-red-950 px-2.5 py-1 rounded-full border border-red-900/60">تاسك سيشن #{s.sessionNumber}</span>
                           
                           {e && (
-                            <span className={`text-[10px] font-black px-2.5 py-0.5 rounded ${e.taskDelivered > 0 ? 'bg-emerald-500/10 text-emerald-400' : 'bg-amber-500/10 text-amber-400'}`}>
-                              {e.taskDelivered > 0 ? `تم تسليمه (نقاط: ${e.taskDelivered})` : 'قيد الانتظار'}
+                            <span className={`text-[10px] font-black px-2.5 py-1 rounded-lg border ${e.taskDelivered > 0 ? 'bg-emerald-950/40 text-emerald-400 border-emerald-800/60' : 'bg-amber-950/40 text-amber-400 border-amber-800/60'}`}>
+                              {e.taskDelivered > 0 ? `✓ تم تسليمه (نقاط: ${e.taskDelivered})` : '⏳ لم يتم التسليم بعد'}
                             </span>
                           )}
                         </div>
@@ -3981,6 +3981,20 @@ const StudentPortal: React.FC = () => {
                         <div className="text-xs text-slate-300 font-bold border-l-2 border-slate-800 pl-3 leading-relaxed whitespace-pre-wrap">
                           {meta?.taskInstructions ? meta.taskInstructions : 'لم يتم تسجيل ملاحظات أو واجبات تخصصية لهذه المحاضرة.'}
                         </div>
+
+                        {/* Trainer's Task Evaluation Note */}
+                        {e?.taskNote && (
+                          <div className="p-3.5 bg-amber-950/20 border border-amber-500/30 rounded-2xl text-xs space-y-1.5 font-arabic">
+                            <div className="flex items-center justify-between">
+                              <span className="flex items-center gap-1.5 font-black text-amber-400 text-xs">
+                                ⭐ تقييم المدرب للتاسك:
+                              </span>
+                            </div>
+                            <p className="text-slate-200 font-bold leading-relaxed whitespace-pre-line text-xs pr-2">
+                              {e.taskNote}
+                            </p>
+                          </div>
+                        )}
 
                         {s.tasksMessageUrl && (
                           <div className="pt-2 border-t border-slate-900">

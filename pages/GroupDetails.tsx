@@ -10,6 +10,7 @@ import {
   GraduationProject, GraduationProjectSubmission, StudentCertificateRecord, StudentWeaknessPoint
 } from '../types';
 import { StudentWeaknessModal } from '../components/StudentWeaknessModal';
+import { StudentHistoryModal } from '../components/StudentHistoryModal';
 import { 
   subscribeToCollection, 
   addPenalty, removePenalty, 
@@ -234,6 +235,8 @@ const GroupDetails: React.FC<{ user: User }> = ({ user }) => {
   const [penaltyFormData, setPenaltyFormData] = useState({ studentId: '', points: 5, reason: '' });
   const [notesModalStudent, setNotesModalStudent] = useState<{ id: string, name: string } | null>(null);
   const [studentNotesText, setStudentNotesText] = useState<string>('');
+  const [studentTaskNoteText, setStudentTaskNoteText] = useState<string>('');
+  const [activeNotesTab, setActiveNotesTab] = useState<'lecture' | 'task'>('lecture');
   const [groupWeaknesses, setGroupWeaknesses] = useState<StudentWeaknessPoint[]>([]);
   const [selectedStudentForWeakness, setSelectedStudentForWeakness] = useState<{ id: string, name: string } | null>(null);
 
@@ -1158,6 +1161,46 @@ const GroupDetails: React.FC<{ user: User }> = ({ user }) => {
     const existing = evaluations.find(e => e.studentId === studentId && e.sessionNumber === selectedSession?.sessionNumber);
     const currentVal = (existing as any)?.[criteria] === 1 ? 0 : 1;
     handleRealTimeEvalUpdate(studentId, criteria, currentVal);
+  };
+
+  const toggleTaskNotSubmittedPenalty = async (studentId: string) => {
+    if (!selectedSession || !groupId || !canEvaluate) return;
+    const existingEval = evaluations.find(e => e.studentId === studentId && e.sessionNumber === selectedSession.sessionNumber) || {};
+    const isCurrentlyPenalized = !!existingEval.taskNotSubmittedPenalty;
+
+    const updatedEval: any = {
+      ...existingEval,
+      taskNotSubmittedPenalty: !isCurrentlyPenalized,
+      ...( !isCurrentlyPenalized ? {
+        taskDelivered: 0,
+        taskOnTime: 0,
+        taskQuality: 0,
+        taskRedo: 0,
+      } : {} ),
+      groupId,
+      studentId,
+      sessionNumber: selectedSession.sessionNumber,
+      sessionId: selectedSession.id,
+      evaluatorId: user.uid,
+      updatedAt: serverTimestamp()
+    };
+
+    try {
+      await batchSaveEvaluations([updatedEval]);
+      
+      if (!isCurrentlyPenalized) {
+        await sendNotification({
+          userId: studentId,
+          title: `⚠️ إلغاء تقييم وخصم نقطة لعدم تسليم التاسك`,
+          message: `تم إلغاء تقييم المحاضرة رقم ${selectedSession.sessionNumber} وخصم 1 نقطة بسبب عدم تسليم الواجب المطلوب.`,
+          type: 'task_status',
+          link: `/student-portal?studentId=${studentId}`
+        });
+      }
+    } catch (err: any) {
+      console.error(err);
+      alert('حدث خطأ أثناء تعديل حالة خصم عدم تسليم التاسك');
+    }
   };
 
   const handlePostpone = async () => {
@@ -3668,20 +3711,38 @@ const GroupDetails: React.FC<{ user: User }> = ({ user }) => {
                               })()}
 
                               {/* Row 3: Aesthetic Action Toolbar */}
-                              <div className="flex items-center gap-3 mt-1 text-slate-500">
+                              <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1 text-slate-400 text-[10px]">
                                 <button 
                                   onClick={() => {
                                     setNotesModalStudent({ id: student.id, name: student.name });
                                     setStudentNotesText(evalData.trainerNote || '');
+                                    setStudentTaskNoteText(evalData.taskNote || '');
+                                    setActiveNotesTab('lecture');
                                   }}
-                                  className={`flex items-center gap-1 text-[10px] font-black transition-colors ${evalData.trainerNote ? 'text-emerald-400 hover:text-emerald-300' : 'text-slate-450 hover:text-indigo-400'}`}
-                                  title="Trainer Notes"
+                                  className={`flex items-center gap-1 font-black transition-colors ${evalData.trainerNote ? 'text-emerald-400 hover:text-emerald-300' : 'text-slate-400 hover:text-indigo-400'}`}
+                                  title="ملاحظة المحاضرة"
                                 >
-                                  <span>📝 الملاحظات</span>
+                                  <span>📝 ملاحظة المحاضرة</span>
                                   {evalData.trainerNote && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>}
                                 </button>
 
-                                <span className="text-slate-800">|</span>
+                                <span className="text-slate-700">•</span>
+
+                                <button 
+                                  onClick={() => {
+                                    setNotesModalStudent({ id: student.id, name: student.name });
+                                    setStudentNotesText(evalData.trainerNote || '');
+                                    setStudentTaskNoteText(evalData.taskNote || '');
+                                    setActiveNotesTab('task');
+                                  }}
+                                  className={`flex items-center gap-1 font-black transition-colors ${evalData.taskNote ? 'text-amber-400 hover:text-amber-300' : 'text-slate-400 hover:text-amber-400'}`}
+                                  title="تقييم التاسك"
+                                >
+                                  <span>📌 تقييم التاسك</span>
+                                  {evalData.taskNote && <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping"></span>}
+                                </button>
+
+                                <span className="text-slate-700">•</span>
 
                                 {(() => {
                                   const studentWeaknesses = groupWeaknesses.filter(w => w.studentId === student.id);
@@ -3689,12 +3750,12 @@ const GroupDetails: React.FC<{ user: User }> = ({ user }) => {
                                   return (
                                     <button 
                                       onClick={() => setSelectedStudentForWeakness({ id: student.id, name: student.name })}
-                                      className={`flex items-center gap-1 text-[10px] font-black transition-colors ${
+                                      className={`flex items-center gap-1 font-black transition-colors ${
                                         unresolvedCount > 0 
                                           ? 'text-amber-400 hover:text-amber-300' 
                                           : studentWeaknesses.length > 0 
                                           ? 'text-emerald-400 hover:text-emerald-300' 
-                                          : 'text-slate-450 hover:text-amber-400'
+                                          : 'text-slate-400 hover:text-amber-400'
                                       }`}
                                       title="نقاط الضعف والتطوير"
                                     >
@@ -3710,17 +3771,17 @@ const GroupDetails: React.FC<{ user: User }> = ({ user }) => {
                                   );
                                 })()}
 
-                                <span className="text-slate-800">|</span>
+                                <span className="text-slate-700">•</span>
 
                                 <button 
                                   onClick={() => setSelectedStudentForLabel({ id: student.id, name: student.name })}
-                                  className="flex items-center gap-1 text-[10px] font-black text-slate-450 hover:text-blue-400 transition-colors"
+                                  className="flex items-center gap-1 font-black text-slate-400 hover:text-blue-400 transition-colors"
                                   title="Add Label"
                                 >
                                   <span>🏷️ التصنيف</span>
                                 </button>
 
-                                <span className="text-slate-800">|</span>
+                                <span className="text-slate-700">•</span>
 
                                 <button 
                                   onClick={() => { 
@@ -3732,13 +3793,35 @@ const GroupDetails: React.FC<{ user: User }> = ({ user }) => {
                                     );
                                     setIsSupervisorModalOpen(true); 
                                   }}
-                                  className="flex items-center gap-1 text-[10px] font-black text-slate-450 hover:text-amber-400 transition-colors"
+                                  className="flex items-center gap-1 font-black text-slate-400 hover:text-amber-400 transition-colors"
                                   title={lang === 'ar' ? "طلب متابعة (Follow Up)" : "Request Follow Up"}
                                 >
                                   <span>🎯 متابعة</span>
                                 </button>
 
-                                <span className="text-slate-800">|</span>
+                                <span className="text-slate-700">•</span>
+
+                                <button 
+                                  onClick={() => toggleTaskNotSubmittedPenalty(student.id)}
+                                  className={`flex items-center gap-1 font-black transition-colors ${
+                                    evalData.taskNotSubmittedPenalty ? 'text-red-400 hover:text-red-300 font-black' : 'text-slate-400 hover:text-red-400'
+                                  }`}
+                                  title="خصم نقطة لعدم تسليم التاسك"
+                                >
+                                  <span>🚫 {evalData.taskNotSubmittedPenalty ? 'خصم عدم التسليم مفعل (-1)' : 'خصم عدم تسليم التاسك'}</span>
+                                </button>
+
+                                <span className="text-slate-700">•</span>
+
+                                <button 
+                                  onClick={() => setSelectedStudentForHistory(student)}
+                                  className="flex items-center gap-1 font-black text-slate-400 hover:text-indigo-400 transition-colors"
+                                  title="سجل وتاريخ الطالب الكامل مع التوقيتات"
+                                >
+                                  <span>📜 السجل الكامل</span>
+                                </button>
+
+                                <span className="text-slate-700">•</span>
 
                                 <div className="flex items-center gap-2">
                                   <button 
@@ -3756,7 +3839,7 @@ const GroupDetails: React.FC<{ user: User }> = ({ user }) => {
                                       });
                                       setIsStudentModalOpen(true);
                                     }}
-                                    className="text-slate-500 hover:text-blue-400 transition-colors p-0.5"
+                                    className="text-slate-400 hover:text-blue-400 transition-colors p-0.5"
                                     title="تعديل بيانات الطالب"
                                   >
                                     <Edit2 size={11} />
@@ -3773,7 +3856,7 @@ const GroupDetails: React.FC<{ user: User }> = ({ user }) => {
                                         }
                                       }
                                     }}
-                                    className="text-slate-500 hover:text-red-400 transition-colors p-0.5"
+                                    className="text-slate-400 hover:text-red-400 transition-colors p-0.5"
                                     title="حذف الطالب"
                                   >
                                     <Trash2 size={11} />
@@ -3782,18 +3865,35 @@ const GroupDetails: React.FC<{ user: User }> = ({ user }) => {
                               </div>
                             </div>
                             <div className={`contents ${student.deactivated ? 'opacity-30 pointer-events-none select-none' : ''}`}>
-                              <button onClick={() => toggleBooleanCriteria(student.id, 'attendance')} className={`w-8 h-8 rounded-full border flex items-center justify-center mx-auto ${evalData.attendance === 1 ? 'bg-white text-black' : 'bg-slate-950 text-slate-700 border-slate-800'}`}>{evalData.attendance === 1 && '✓'}</button>
-                              <div className="flex items-center justify-center gap-1.5 bg-slate-950 p-1 rounded-full border border-slate-800 w-16 mx-auto">
-                                <button onClick={() => updateTaskPoints(student.id, -1)} className="text-slate-500 hover:text-red-500">-</button>
-                                <span className="text-[11px] font-black text-blue-400">{evalData.taskDelivered || 0}</span>
-                                <button onClick={() => updateTaskPoints(student.id, 1)} className="text-slate-500 hover:text-green-500">+</button>
-                              </div>
-                              <button onClick={() => toggleBooleanCriteria(student.id, 'taskOnTime')} className={`w-8 h-8 rounded-full border flex items-center justify-center mx-auto ${evalData.taskOnTime === 1 ? 'bg-white text-black' : 'bg-slate-950 text-slate-700 border-slate-800'}`}>{evalData.taskOnTime === 1 && '✓'}</button>
-                              <button onClick={() => toggleBooleanCriteria(student.id, 'taskQuality')} className={`w-8 h-8 rounded-full border flex items-center justify-center mx-auto ${evalData.taskQuality === 1 ? 'bg-white text-black' : 'bg-slate-950 text-slate-700 border-slate-800'}`}>{evalData.taskQuality === 1 && '✓'}</button>
-                              <button onClick={() => toggleBooleanCriteria(student.id, 'taskRedo')} className={`w-8 h-8 rounded-full border flex items-center justify-center mx-auto ${evalData.taskRedo === 1 ? 'bg-amber-600 text-white border-amber-500' : 'bg-slate-950 text-slate-700 border-slate-800'}`}>{evalData.taskRedo === 1 && '!'}</button>
-                              <button onClick={() => toggleBooleanCriteria(student.id, 'bonus')} className={`w-8 h-8 rounded-full border flex items-center justify-center mx-auto ${evalData.bonus === 1 ? 'bg-emerald-600 text-white' : 'bg-slate-950 text-slate-700 border-slate-800'}`}>{evalData.bonus === 1 && '✓'}</button>
-                              {/* Total Score for this lecture */}
-                              <div className="w-8 h-8 rounded-xl bg-slate-950 border border-blue-900/30 flex items-center justify-center mx-auto text-[11px] font-black text-blue-400">
+                              {/* Column 2: Attendance */}
+                              <button onClick={() => toggleBooleanCriteria(student.id, 'attendance')} className={`w-8 h-8 rounded-full border flex items-center justify-center mx-auto ${evalData.attendance === 1 ? 'bg-white text-black font-bold' : 'bg-slate-950 text-slate-700 border-slate-800'}`}>{evalData.attendance === 1 && '✓'}</button>
+
+                              {/* Columns 3-6: Task evaluation or Task penalty badge */}
+                              {evalData.taskNotSubmittedPenalty ? (
+                                <div className="col-span-4 flex items-center justify-between bg-red-950/60 border border-red-500/40 rounded-xl px-2.5 py-1 text-red-400 font-black text-[10px] shadow-sm">
+                                  <span className="truncate">🚫 لم يسلم التاسك (-1)</span>
+                                  <button onClick={() => toggleTaskNotSubmittedPenalty(student.id)} className="text-[9px] text-red-300 hover:text-white underline cursor-pointer shrink-0 mr-1">إلغاء الخصم</button>
+                                </div>
+                              ) : (
+                                <>
+                                  <div className="flex items-center justify-center gap-1.5 bg-slate-950 p-1 rounded-full border border-slate-800 w-16 mx-auto">
+                                    <button onClick={() => updateTaskPoints(student.id, -1)} className="text-slate-500 hover:text-red-500">-</button>
+                                    <span className="text-[11px] font-black text-blue-400">{evalData.taskDelivered || 0}</span>
+                                    <button onClick={() => updateTaskPoints(student.id, 1)} className="text-slate-500 hover:text-green-500">+</button>
+                                  </div>
+                                  <button onClick={() => toggleBooleanCriteria(student.id, 'taskOnTime')} className={`w-8 h-8 rounded-full border flex items-center justify-center mx-auto ${evalData.taskOnTime === 1 ? 'bg-white text-black font-bold' : 'bg-slate-950 text-slate-700 border-slate-800'}`}>{evalData.taskOnTime === 1 && '✓'}</button>
+                                  <button onClick={() => toggleBooleanCriteria(student.id, 'taskQuality')} className={`w-8 h-8 rounded-full border flex items-center justify-center mx-auto ${evalData.taskQuality === 1 ? 'bg-white text-black font-bold' : 'bg-slate-950 text-slate-700 border-slate-800'}`}>{evalData.taskQuality === 1 && '✓'}</button>
+                                  <button onClick={() => toggleBooleanCriteria(student.id, 'taskRedo')} className={`w-8 h-8 rounded-full border flex items-center justify-center mx-auto ${evalData.taskRedo === 1 ? 'bg-amber-600 text-white border-amber-500 font-bold' : 'bg-slate-950 text-slate-700 border-slate-800'}`}>{evalData.taskRedo === 1 && '!'}</button>
+                                </>
+                              )}
+
+                              {/* Column 7: Bonus */}
+                              <button onClick={() => toggleBooleanCriteria(student.id, 'bonus')} className={`w-8 h-8 rounded-full border flex items-center justify-center mx-auto ${evalData.bonus === 1 ? 'bg-emerald-600 text-white font-bold' : 'bg-slate-950 text-slate-700 border-slate-800'}`}>{evalData.bonus === 1 && '✓'}</button>
+
+                              {/* Column 8: Total Score for this lecture */}
+                              <div className={`w-8 h-8 rounded-xl bg-slate-950 border flex items-center justify-center mx-auto text-[11px] font-black ${
+                                (evalData.total || 0) < 0 ? 'border-red-900/50 text-red-400 bg-red-950/20' : 'border-blue-900/30 text-blue-400'
+                              }`}>
                                 {evalData.total || 0}
                               </div>
                             </div>
@@ -5770,12 +5870,17 @@ const GroupDetails: React.FC<{ user: User }> = ({ user }) => {
         </div>
       )}
 
-      {/* Trainer Notes Modal */}
+      {/* Trainer Notes & Task Evaluation Modal */}
       {notesModalStudent && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm font-arabic text-right" dir="rtl">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl">
-            <div className="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-950/50">
-              <h3 className="text-lg font-black text-white">إضافة ملاحظات للطالب 📝</h3>
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl">
+            <div className="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-950/60">
+              <div>
+                <h3 className="font-black text-white text-base">تقييم وملاحظات المحاضر 📝</h3>
+                <p className="text-xs text-slate-400 font-bold mt-0.5">
+                  المتدرب: <span className="text-amber-400 font-black">{notesModalStudent.name}</span> {selectedSession?.sessionNumber ? `(سيشن #${selectedSession.sessionNumber})` : ''}
+                </p>
+              </div>
               <button 
                 onClick={() => setNotesModalStudent(null)} 
                 className="text-slate-400 hover:text-white text-2xl leading-none"
@@ -5783,20 +5888,64 @@ const GroupDetails: React.FC<{ user: User }> = ({ user }) => {
                 &times;
               </button>
             </div>
+
+            {/* Navigation Tabs */}
+            <div className="flex border-b border-slate-800 bg-slate-950/30">
+              <button
+                type="button"
+                onClick={() => setActiveNotesTab('lecture')}
+                className={`flex-1 py-3 text-xs font-black transition-all border-b-2 flex items-center justify-center gap-1.5 cursor-pointer ${
+                  activeNotesTab === 'lecture'
+                    ? 'border-indigo-500 text-indigo-400 bg-indigo-500/10'
+                    : 'border-transparent text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <span>📝 ملاحظة المحاضرة</span>
+                {studentNotesText && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveNotesTab('task')}
+                className={`flex-1 py-3 text-xs font-black transition-all border-b-2 flex items-center justify-center gap-1.5 cursor-pointer ${
+                  activeNotesTab === 'task'
+                    ? 'border-amber-500 text-amber-400 bg-amber-500/10'
+                    : 'border-transparent text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <span>📌 تقييم التاسك</span>
+                {studentTaskNoteText && <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>}
+              </button>
+            </div>
+
             <div className="p-6 space-y-4">
-              <div className="text-xs text-slate-400 font-bold">
-                طالب: <span className="text-white font-black">{notesModalStudent.name}</span>
-              </div>
-              <div>
-                <label className="text-[10px] text-slate-500 font-black block mb-2 uppercase tracking-widest">الملاحظة الموجهة للطالب:</label>
-                <textarea
-                  value={studentNotesText}
-                  onChange={(e) => setStudentNotesText(e.target.value)}
-                  placeholder="اكتب ملاحظة للمتدرب هنا تظهر له بجانب تسجيل المحاضرة..."
-                  className="w-full px-4 py-3 rounded-2xl border border-slate-800 bg-slate-950 text-white font-bold h-32 outline-none focus:border-indigo-500 transition-all text-xs"
-                />
-              </div>
-              <div className="flex gap-3">
+              {activeNotesTab === 'lecture' ? (
+                <div>
+                  <label className="text-xs font-black text-slate-300 block mb-2">
+                    📝 ملاحظة المحاضرة العامة (تظهر أسفل فيديو تسجيل المحاضرة):
+                  </label>
+                  <textarea
+                    value={studentNotesText}
+                    onChange={(e) => setStudentNotesText(e.target.value)}
+                    placeholder="اكتب ملاحظاتك للمتدرب بخصوص استيعابه أو أداؤه في المحاضرة..."
+                    className="w-full px-4 py-3 rounded-2xl border border-slate-800 bg-slate-950 text-white font-bold h-36 outline-none focus:border-indigo-500 transition-all text-xs leading-relaxed"
+                  />
+                </div>
+              ) : (
+                <div>
+                  <label className="text-xs font-black text-amber-300 block mb-2">
+                    📌 تقييم وملاحظة التاسك (تظهر بجانب حالة تسليم التاسك بصفحة المتدرب):
+                  </label>
+                  <textarea
+                    value={studentTaskNoteText}
+                    onChange={(e) => setStudentTaskNoteText(e.target.value)}
+                    placeholder="اكتب التقييم الخاص بالتاسك (مثال: ممتاز تم قبول الواجب / أداء ممتاز جداً 10/10 / يحتاج تعديل جزء...)"
+                    className="w-full px-4 py-3 rounded-2xl border border-slate-800 bg-slate-950 text-white font-bold h-36 outline-none focus:border-amber-500 transition-all text-xs leading-relaxed"
+                  />
+                </div>
+              )}
+
+              <div className="flex gap-3 pt-2">
                 <button
                   type="button"
                   onClick={() => setNotesModalStudent(null)}
@@ -5808,10 +5957,35 @@ const GroupDetails: React.FC<{ user: User }> = ({ user }) => {
                   type="button"
                   onClick={async () => {
                     try {
-                      await handleRealTimeEvalUpdate(notesModalStudent.id, 'trainerNote' as any, studentNotesText);
+                      if (!selectedSession || !groupId) return;
+                      const evalData = evaluations.find(e => e.studentId === notesModalStudent.id && e.sessionNumber === selectedSession?.sessionNumber) || {} as any;
+                      const prevLectureNote = evalData.trainerNote || '';
+                      const prevTaskNote = evalData.taskNote || '';
+
+                      const updatedEval: any = {
+                        ...evalData,
+                        trainerNote: studentNotesText,
+                        taskNote: studentTaskNoteText,
+                        groupId,
+                        studentId: notesModalStudent.id,
+                        sessionNumber: selectedSession.sessionNumber,
+                        sessionId: selectedSession.id,
+                        evaluatorId: user.uid,
+                        updatedAt: serverTimestamp()
+                      };
+
+                      await batchSaveEvaluations([updatedEval]);
                       
-                      // Notify the student!
-                      if (studentNotesText.trim()) {
+                      // Notifications if updated
+                      if (studentTaskNoteText.trim() && studentTaskNoteText.trim() !== prevTaskNote) {
+                        await sendNotification({
+                          userId: notesModalStudent.id,
+                          title: `📌 تقييم جديد للتاسك من المدرب`,
+                          message: `أضاف المدرب تقييمًا وملاحظةً جديدة لتاسك المحاضرة رقم ${selectedSession?.sessionNumber || ''}: "${studentTaskNoteText.trim()}".`,
+                          type: 'task_review',
+                          link: `/student-portal?studentId=${notesModalStudent.id}`
+                        });
+                      } else if (studentNotesText.trim() && studentNotesText.trim() !== prevLectureNote) {
                         await sendNotification({
                           userId: notesModalStudent.id,
                           title: `📝 ملاحظة جديدة من المدرب`,
@@ -5826,9 +6000,9 @@ const GroupDetails: React.FC<{ user: User }> = ({ user }) => {
                       alert(err.message);
                     }
                   }}
-                  className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-3.5 rounded-2xl text-xs font-black shadow-xl transition-all cursor-pointer"
+                  className="flex-1 bg-amber-500 hover:bg-amber-400 text-slate-950 py-3.5 rounded-2xl text-xs font-black shadow-xl transition-all cursor-pointer"
                 >
-                  حفظ الملاحظة 💾
+                  حفظ الملاحظة والتقييم 💾
                 </button>
               </div>
             </div>
@@ -6094,164 +6268,13 @@ const GroupDetails: React.FC<{ user: User }> = ({ user }) => {
       )}
 
       {selectedStudentForHistory && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-          <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh]">
-            <div className="p-8 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/50">
-              <h2 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-widest">Follow-up History</h2>
-              <button 
-                onClick={() => setSelectedStudentForHistory(null)}
-                className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-200 dark:bg-slate-800 text-slate-500 hover:bg-slate-300 dark:hover:bg-slate-700 transition-colors"
-              >
-                ✕
-              </button>
-            </div>
-            <div className="p-8 overflow-y-auto flex-1">
-              <div className="mb-6">
-                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Student: </span>
-                <span className="text-sm font-bold text-slate-900 dark:text-white">{selectedStudentForHistory.name}</span>
-                
-                {/* Action Figures: Group, Trainer, Supervisor, and Mentions */}
-                {(() => {
-                  const followUp = studentFollowUps.find(f => f.studentId === selectedStudentForHistory.id);
-                  if (!followUp) return null;
-                  const groupTrainers = trainers.filter(u => group?.trainerIds?.includes(u.uid) || group?.assignedTrainerIds?.includes(u.uid)).map(u => u.name);
-                  return (
-                    <div className="flex flex-wrap gap-1.5 mt-4 p-3 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700">
-                      <span className="px-2 py-0.5 bg-slate-100 dark:bg-slate-700 text-slate-705 dark:text-slate-300 rounded-xl text-[8px] font-bold flex items-center gap-1">
-                        🏫 {group?.name || followUp.groupName}
-                      </span>
-                      {groupTrainers.length > 0 && (
-                        <span className="px-2 py-0.5 bg-violet-50 text-violet-700 dark:bg-violet-950/20 dark:text-violet-400 rounded-xl text-[8px] font-bold flex items-center gap-1 border border-violet-100 dark:border-violet-950/30">
-                          👤 المدرب: {groupTrainers.join(', ')}
-                        </span>
-                      )}
-                      {(group?.supervisorName || group?.supervisorId) && (
-                        <span className="px-2 py-0.5 bg-sky-50 text-sky-700 dark:bg-sky-950/20 dark:text-sky-450 rounded-xl text-[8px] font-bold flex items-center gap-1 border border-sky-100 dark:border-sky-950/30">
-                          👑 المشرف: {group?.supervisorName || 'معيّن'}
-                        </span>
-                      )}
-                      {(group?.assistantTrainerName || (group?.assistantTrainerId && trainers.find(t => t.uid === group.assistantTrainerId))) && (
-                        <span className="px-2 py-0.5 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/20 dark:text-emerald-400 rounded-xl text-[8px] font-bold flex items-center gap-1 border border-emerald-100 dark:border-emerald-950/30">
-                          🤝 المساعد: {group?.assistantTrainerName || trainers.find(t => t.uid === group?.assistantTrainerId)?.name}
-                        </span>
-                      )}
-                      {followUp.mentionedUserName && (
-                        <span className="px-2 py-0.5 bg-rose-50 text-rose-700 dark:bg-rose-950/20 dark:text-rose-455 rounded-xl text-[8px] font-bold flex items-center gap-1 border border-rose-100 dark:border-rose-950/30">
-                          🔔 منشن: {followUp.mentionedUserName}
-                        </span>
-                      )}
-                    </div>
-                  );
-                })()}
-              </div>
-              
-              <div className="space-y-6">
-                {(() => {
-                  const followUp = studentFollowUps.find(f => f.studentId === selectedStudentForHistory.id);
-                  if (!followUp) return <div className="text-center text-sm text-slate-500 py-8">No follow-up record found.</div>;
-                  
-                  const comments = followUp.comments || [];
-                  const updates = followUp.updates || [];
-                  
-                  const parseHistoryDateLocal = (dateVal: any): number => {
-                    if (!dateVal) return 0;
-                    if (typeof dateVal === 'string') return new Date(dateVal).getTime();
-                    if (dateVal.seconds) return dateVal.seconds * 1000;
-                    if (dateVal.toDate) return dateVal.toDate().getTime();
-                    return new Date(dateVal).getTime() || 0;
-                  };
-
-                  const formatHistoryDateLocal = (dateVal: any): string => {
-                    if (!dateVal) return "-";
-                    if (dateVal.toDate) return dateVal.toDate().toLocaleString('en-US', { hour12: true });
-                    if (dateVal.seconds) return new Date(dateVal.seconds * 1000).toLocaleString('en-US', { hour12: true });
-                    const parsed = new Date(dateVal);
-                    if (!isNaN(parsed.getTime())) return parsed.toLocaleString('en-US', { hour12: true });
-                    return String(dateVal);
-                  };
-
-                  const combinedList = [
-                    ...comments.map(c => ({
-                      id: c.id,
-                      text: c.text,
-                      createdByUid: c.createdByUid,
-                      createdByName: c.createdByName,
-                      createdByRole: c.createdByRole || (c.createdByUid === 'system' ? 'النظام تلقائياً' : 'مستخدم'),
-                      createdAt: c.createdAt,
-                      type: c.createdByUid === 'system' ? 'system' : 'comment',
-                    })),
-                    ...updates.map(u => ({
-                      id: u.id,
-                      text: u.text,
-                      createdByUid: u.createdByUid,
-                      createdByName: u.createdByName,
-                      createdByRole: 'متابع المتابعة',
-                      createdAt: u.createdAt,
-                      type: 'update',
-                    }))
-                  ].sort((a, b) => parseHistoryDateLocal(b.createdAt) - parseHistoryDateLocal(a.createdAt));
-
-                  if (combinedList.length === 0) {
-                    return <div className="text-center text-sm text-slate-500 py-8">No follow-up history found.</div>;
-                  }
-
-                  return (
-                    <div className="space-y-6 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-slate-200 dark:before:via-slate-800 before:to-transparent">
-                      {combinedList.map((item, idx) => {
-                        const isSystem = item.type === 'system';
-                        const isUpdate = item.type === 'update';
-                        
-                        let cardBg = "bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-800";
-                        let badgeColor = "text-primary-500 bg-primary-100/50 dark:bg-primary-950/40";
-                        let badgeText = "Comment • تعليق";
-                        let userHeader = item.createdByName;
-                        
-                        if (isSystem) {
-                          cardBg = "bg-indigo-50/70 dark:bg-indigo-950/20 border-indigo-100 dark:border-indigo-950/40";
-                          badgeColor = "text-indigo-600 dark:text-indigo-400 bg-indigo-100/50 dark:bg-indigo-950/40";
-                          badgeText = "Notification / System • نظام وتنبيه";
-                        } else if (isUpdate) {
-                          cardBg = "bg-emerald-50/70 dark:bg-emerald-950/10 border-emerald-100/70 dark:border-emerald-950/30";
-                          badgeColor = "text-emerald-600 dark:text-emerald-400 bg-emerald-100/50 dark:bg-emerald-950/40";
-                          badgeText = "Progress Update • تحديث متابعة";
-                        }
-                        
-                        return (
-                          <div key={item.id} className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
-                            <div className="flex items-center justify-center w-10 h-10 rounded-full border-4 border-white dark:border-slate-900 bg-slate-100 dark:bg-slate-800 text-slate-500 shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 z-10 font-bold">
-                              {isSystem ? '⚙️' : isUpdate ? '📈' : '💬'}
-                            </div>
-                            <div className={`w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] p-5 rounded-2xl border ${cardBg} shadow-sm transition-all hover:shadow-md`}>
-                              <div className="flex items-center justify-between gap-2 mb-2">
-                                <span className="text-xs font-bold text-slate-900 dark:text-white leading-tight">{userHeader}</span>
-                                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest font-mono">{formatHistoryDateLocal(item.createdAt)}</span>
-                              </div>
-                              <div className="flex items-center gap-1.5 mb-3 flex-wrap">
-                                <span className={`text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded ${badgeColor}`}>
-                                  {badgeText}
-                                </span>
-                                {!isSystem && !isUpdate && item.createdByRole && (
-                                  <span className="text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded text-slate-500 bg-slate-100 dark:bg-slate-800">
-                                    {item.createdByRole}
-                                  </span>
-                                )}
-                              </div>
-                              <p className="text-sm text-slate-600 dark:text-slate-300 whitespace-pre-wrap font-medium leading-relaxed" dir="auto">
-                                {item.text}
-                              </p>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  );
-                })()}
-              </div>
-            </div>
-          </div>
-        </div>
+        <StudentHistoryModal
+          isOpen={!!selectedStudentForHistory}
+          onClose={() => setSelectedStudentForHistory(null)}
+          student={selectedStudentForHistory}
+          groupName={group?.name}
+        />
       )}
-
       {/* Labels Assignment Modal */}
       {selectedStudentForLabel && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm">

@@ -22,6 +22,7 @@ import ConfirmDeleteModal from '../components/ConfirmDeleteModal';
 import StudentStatusModal from '../components/StudentStatusModal';
 import AIStudentExportModal from '../components/AIStudentExportModal';
 import { StudentWeaknessModal } from '../components/StudentWeaknessModal';
+import { StudentHistoryModal } from '../components/StudentHistoryModal';
 import { TrainerBroadcastEmailModal } from '../components/TrainerBroadcastEmailModal';
 import { Clock, Trash2, MessageSquare, Share2, Send, Copy, Check, RotateCcw, Smartphone, Settings, Bot, Mail } from 'lucide-react';
 import { normalizePhoneNumber, getCleanDigitsOnly, COUNTRY_CODES, parsePhoneAndDetect } from '../utils';
@@ -1965,6 +1966,15 @@ https://www.facebook.com/photo/?fbid=1014941958047609&set=a.149461877928959
           groupId={selectedStudentForWeakness.groupId}
           groupName={groups.find(g => g.id === selectedStudentForWeakness.groupId)?.name}
           user={user}
+        />
+      )}
+
+      {selectedStudentForHistory && (
+        <StudentHistoryModal
+          isOpen={!!selectedStudentForHistory}
+          onClose={() => setSelectedStudentForHistory(null)}
+          student={selectedStudentForHistory}
+          groupName={groups.find(g => g.id === selectedStudentForHistory.groupId)?.name}
         />
       )}
     </Layout>
