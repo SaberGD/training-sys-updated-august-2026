@@ -3,12 +3,14 @@ import { db } from '../firebase';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { Student, LectureEvaluation, StudentWeaknessPoint, Penalty, StudentFollowUp } from '../types';
 import { Clock, FileText, Target, AlertTriangle, MessageSquare, CheckCircle, XCircle, User, Calendar, X, Award, Search, Sparkles } from 'lucide-react';
+import { toggleStudentWeaknessPointResolved } from '../services/firestore';
 
 interface StudentHistoryModalProps {
   isOpen: boolean;
   onClose: () => void;
   student: Student | null;
   groupName?: string;
+  user?: { uid: string; name: string; role: string };
 }
 
 interface CombinedHistoryEvent {
@@ -29,7 +31,8 @@ export const StudentHistoryModal: React.FC<StudentHistoryModalProps> = ({
   isOpen,
   onClose,
   student,
-  groupName
+  groupName,
+  user
 }) => {
   const [activeTab, setActiveTab] = useState<'all' | 'notes' | 'weaknesses' | 'penalties' | 'followups'>('all');
   const [evaluations, setEvaluations] = useState<LectureEvaluation[]>([]);
@@ -187,6 +190,8 @@ export const StudentHistoryModal: React.FC<StudentHistoryModalProps> = ({
       badgeColor: w.resolved ? 'text-emerald-400 border-emerald-500/30' : 'text-amber-400 border-amber-500/30',
       badgeBg: w.resolved ? 'bg-emerald-950/40' : 'bg-amber-950/40',
       meta: {
+        weaknessId: w.id,
+        rawDescription: w.description,
         resolved: w.resolved,
         resolvedByName: w.resolvedByName,
         resolvedAt: w.resolvedAt ? formatExactDateTime(parseTimestamp(w.resolvedAt)) : null
@@ -407,12 +412,50 @@ export const StudentHistoryModal: React.FC<StudentHistoryModalProps> = ({
                       {item.description}
                     </p>
 
-                    {/* Additional Metadata for Weakness points resolution */}
-                    {item.meta?.resolved && (
-                      <div className="pt-2 border-t border-slate-900/80 text-[10px] text-emerald-400 font-bold flex items-center gap-1.5">
-                        <CheckCircle size={12} />
-                        <span>تمت معالجة نقطة الضعف بنجاح بواسطة: {item.meta.resolvedByName || 'المشرف'}</span>
-                        {item.meta.resolvedAt && <span>• ({item.meta.resolvedAt})</span>}
+                    {/* Additional Metadata for Weakness points resolution & Toggle Action */}
+                    {item.type === 'weakness' && item.meta?.weaknessId && (
+                      <div className="pt-2 border-t border-slate-900/80 flex items-center justify-between flex-wrap gap-2">
+                        <button
+                          onClick={async () => {
+                            const currentUser = user || { uid: 'system', name: 'المشرف', role: 'admin' };
+                            try {
+                              await toggleStudentWeaknessPointResolved(
+                                item.meta.weaknessId,
+                                !item.meta.resolved,
+                                currentUser,
+                                student.id,
+                                item.meta.rawDescription
+                              );
+                            } catch (err: any) {
+                              alert(err.message || 'حدث خطأ أثناء تغيير حالة نقطة الضعف');
+                            }
+                          }}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer shadow-xs active:scale-95 ${
+                            item.meta.resolved
+                              ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 hover:bg-emerald-500/30'
+                              : 'bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/30'
+                          }`}
+                          title="انقر لتغيير حالة معالجة نقطة الضعف مباشرة"
+                        >
+                          {item.meta.resolved ? (
+                            <>
+                              <CheckCircle size={14} className="text-emerald-400" />
+                              <span>تمت المعالجة 🟢 (انقر للإلغاء/إعادة الفتح)</span>
+                            </>
+                          ) : (
+                            <>
+                              <CheckCircle size={14} className="text-amber-400" />
+                              <span>تحديد كـ "تمت المعالجة" 🟢</span>
+                            </>
+                          )}
+                        </button>
+
+                        {item.meta.resolved && (
+                          <div className="text-[10px] text-emerald-400 font-bold flex items-center gap-1">
+                            <span>عولجت بواسطة: {item.meta.resolvedByName || 'المشرف'}</span>
+                            {item.meta.resolvedAt && <span>• ({item.meta.resolvedAt})</span>}
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>

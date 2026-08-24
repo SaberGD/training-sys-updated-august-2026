@@ -926,10 +926,40 @@ const GroupDetails: React.FC<{ user: User }> = ({ user }) => {
   }, [isAdmin, group, user.uid, user.role]);
 
   const filteredStudentsForEval = useMemo(() => {
-    if (!evalSearchQuery.trim()) return students;
-    const q = evalSearchQuery.toLowerCase();
-    return students.filter(s => s.name.toLowerCase().includes(q));
-  }, [students, evalSearchQuery]);
+    const totalSessionsDone = sessions.filter(s => s.status === 'done').length;
+
+    let list = students;
+    if (evalSearchQuery.trim()) {
+      const q = evalSearchQuery.toLowerCase().trim();
+      list = list.filter(s => s.name.toLowerCase().includes(q));
+    }
+
+    return [...list].sort((a, b) => {
+      // 1. Sort by Rank Score (highest first)
+      const rankA = rankings.find(r => r.studentId === a.id)?.finalScore || 0;
+      const rankB = rankings.find(r => r.studentId === b.id)?.finalScore || 0;
+
+      if (rankB !== rankA) {
+        return rankB - rankA;
+      }
+
+      // 2. If Rank Score is equal, sort by Attendance % (highest first)
+      const evalsA = evaluations.filter(e => e.studentId === a.id && e.attendance === 1 && e.sessionNumber !== undefined);
+      const attendedA = new Set(evalsA.map(e => e.sessionNumber)).size;
+      const attRateA = totalSessionsDone > 0 ? Math.min(100, Math.round((attendedA / totalSessionsDone) * 100)) : 100;
+
+      const evalsB = evaluations.filter(e => e.studentId === b.id && e.attendance === 1 && e.sessionNumber !== undefined);
+      const attendedB = new Set(evalsB.map(e => e.sessionNumber)).size;
+      const attRateB = totalSessionsDone > 0 ? Math.min(100, Math.round((attendedB / totalSessionsDone) * 100)) : 100;
+
+      if (attRateB !== attRateA) {
+        return attRateB - attRateA;
+      }
+
+      // 3. Alphabetical order by name
+      return a.name.localeCompare(b.name, 'ar');
+    });
+  }, [students, evalSearchQuery, rankings, evaluations, sessions]);
 
   const studentLoginStats = useMemo(() => {
     const total = students.length;
@@ -6273,6 +6303,7 @@ const GroupDetails: React.FC<{ user: User }> = ({ user }) => {
           onClose={() => setSelectedStudentForHistory(null)}
           student={selectedStudentForHistory}
           groupName={group?.name}
+          user={user}
         />
       )}
       {/* Labels Assignment Modal */}

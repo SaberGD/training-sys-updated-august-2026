@@ -1975,6 +1975,7 @@ https://www.facebook.com/photo/?fbid=1014941958047609&set=a.149461877928959
           onClose={() => setSelectedStudentForHistory(null)}
           student={selectedStudentForHistory}
           groupName={groups.find(g => g.id === selectedStudentForHistory.groupId)?.name}
+          user={user}
         />
       )}
     </Layout>
