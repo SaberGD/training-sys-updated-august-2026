@@ -102,11 +102,14 @@ const GroupDetails: React.FC<{ user: User }> = ({ user }) => {
 
   const activeSess = selectedSession;
   const [searchParams] = useSearchParams();
+  const [highlightedStudentId, setHighlightedStudentId] = useState<string | null>(null);
+  const taskProgressRowRefs = useRef<Record<string, HTMLTableRowElement | null>>({});
 
   useEffect(() => {
     const urlSessionId = searchParams.get('sessionId');
     const urlTab = searchParams.get('tab');
     const urlSessionNum = searchParams.get('sessionNumber');
+    const urlStudentId = searchParams.get('studentId');
 
     if (urlTab) {
       setActiveTab(urlTab);
@@ -119,6 +122,15 @@ const GroupDetails: React.FC<{ user: User }> = ({ user }) => {
       if (sFound) {
         setSelectedSessionId(sFound.id);
       }
+    }
+
+    if (urlStudentId) {
+      // Clear any active filters so the deep-linked student is guaranteed visible
+      setTaskSearchQuery('');
+      setTaskFilterMissingOnly(false);
+      setTaskFilterCompletionThreshold(0);
+      setTaskFilterSessionNum('');
+      setHighlightedStudentId(urlStudentId);
     }
   }, [searchParams, sessions]);
 
@@ -1566,6 +1578,16 @@ const GroupDetails: React.FC<{ user: User }> = ({ user }) => {
 
     return data;
   }, [students, evaluations, sessions, taskFilterMissingOnly, taskFilterCompletionThreshold, taskFilterSessionNum, taskSortBy, studentFollowUps, groupId]);
+
+  useEffect(() => {
+    if (!highlightedStudentId || activeTab !== 'taskProgress') return;
+    const row = taskProgressRowRefs.current[highlightedStudentId];
+    if (row) {
+      row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    const timer = setTimeout(() => setHighlightedStudentId(null), 4000);
+    return () => clearTimeout(timer);
+  }, [highlightedStudentId, activeTab, taskProgressData]);
 
   const [labelDefinitions, setLabelDefinitions] = useState<LabelDefinition[]>([]);
   const [selectedStudentForLabel, setSelectedStudentForLabel] = useState<{ id: string, name: string } | null>(null);
@@ -4840,7 +4862,11 @@ const GroupDetails: React.FC<{ user: User }> = ({ user }) => {
                     const lastCommentDate = followUp?.lastUpdatedAt?.toDate ? followUp.lastUpdatedAt.toDate().toLocaleDateString() : 'No follow-up yet';
                     
                     return (
-                      <tr key={student.id} className={`hover:bg-slate-800/40 group ${student.deactivated ? 'opacity-65' : ''}`}>
+                      <tr
+                        key={student.id}
+                        ref={(el) => { taskProgressRowRefs.current[student.id] = el; }}
+                        className={`hover:bg-slate-800/40 group transition-colors ${student.deactivated ? 'opacity-65' : ''} ${highlightedStudentId === student.id ? 'ring-2 ring-primary-500 bg-primary-500/10' : ''}`}
+                      >
                         <td className="px-6 py-4 sticky left-0 bg-slate-900 group-hover:bg-slate-800 z-10 border-r border-slate-800">
                           <div className="flex flex-col">
                             <div className="flex flex-wrap items-center gap-2">

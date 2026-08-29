@@ -37,6 +37,7 @@ const PermissionsPage: React.FC<{ user: User }> = ({ user }) => {
     viewPerformanceReports: 'View Performance Reports',
     submitPerformanceReport: 'Submit Performance Report',
     approvePerformanceReport: 'Approve Performance Report',
+    viewAllFollowUps: lang === 'ar' ? 'عرض كل المتابعات (تاب All)' : 'View All Follow-ups (All tab)',
     viewFollowUpSuggestions: lang === 'ar' ? 'عرض اقتراحات المتابعة' : 'View Follow-up Suggestions',
     approveFollowUpSuggestion: lang === 'ar' ? 'اعتماد اقتراح متابعة' : 'Approve Follow-up Suggestion',
     resolveFollowUp: lang === 'ar' ? 'إغلاق/إعادة فتح متابعة' : 'Resolve/Reopen Follow-up',

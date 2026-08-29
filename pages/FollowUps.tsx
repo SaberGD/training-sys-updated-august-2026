@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   User,
   StudentFollowUp,
@@ -7,6 +8,7 @@ import {
   LectureEvaluation,
   Session,
   FollowUpMention,
+  FollowUpSuggestionRejection,
 } from "../types";
 import Layout from "../components/Layout";
 import { useLanguage } from "../contexts/LanguageContext";
@@ -21,13 +23,14 @@ import {
   scheduleFollowUp,
   autoActivateScheduledFollowUps,
   reactivateScheduledFollowUp,
-  muteStudentFollowUp,
   approveNextFollowUpDate,
   rejectNextFollowUpDate,
   approveFollowUpSuggestion,
+  rejectFollowUpSuggestion,
   escalateFollowUp,
   respondToEscalation,
   markFollowUpMentionDone,
+  snoozeFollowUpMention,
 } from "../services/firestore";
 import { computeFollowUpSuggestions, FollowUpSuggestion } from "../services/followUpSuggestions";
 import {
@@ -46,7 +49,9 @@ import {
   RefreshCcw,
   History,
   Phone,
-  BellOff,
+  Reply,
+  ListTodo,
+  ExternalLink,
 } from "lucide-react";
 import * as firestore from "firebase/firestore";
 
@@ -55,6 +60,7 @@ const { orderBy, limit } = firestore as any;
 const FollowUps: React.FC<{ user: User }> = ({ user }) => {
   const { lang } = useLanguage();
   const { hasPermission } = usePermissions();
+  const navigate = useNavigate();
   const [followUps, setFollowUps] = useState<StudentFollowUp[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
@@ -62,11 +68,14 @@ const FollowUps: React.FC<{ user: User }> = ({ user }) => {
   const [evaluations, setEvaluations] = useState<LectureEvaluation[]>([]);
   const [trainers, setTrainers] = useState<User[]>([]);
   const [mentions, setMentions] = useState<FollowUpMention[]>([]);
+  const [rejections, setRejections] = useState<FollowUpSuggestionRejection[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const canViewAll = hasPermission(user, "viewAllFollowUps");
 
   const [mainView, setMainView] = useState<
     "all" | "suggestions" | "escalations" | "personal"
-  >("all");
+  >(() => (canViewAll ? "all" : "personal"));
   const [personalTab, setPersonalTab] = useState<
     "mine" | "tasks" | "doneByMe" | "doneAll"
   >("mine");
@@ -77,6 +86,12 @@ const FollowUps: React.FC<{ user: User }> = ({ user }) => {
   const [escalateAction, setEscalateAction] = useState("");
   const [replyDraft, setReplyDraft] = useState<Record<string, string>>({});
   const [snoozeDraft, setSnoozeDraft] = useState<Record<string, string>>({});
+  const [rejectModalFor, setRejectModalFor] = useState<FollowUpSuggestion | null>(null);
+  const [rejectReasonText, setRejectReasonText] = useState("");
+  const [showRejectedSuggestions, setShowRejectedSuggestions] = useState(false);
+  const [replyingToUpdate, setReplyingToUpdate] = useState<
+    Record<string, { id: string; authorName: string } | null>
+  >({});
 
   const [expandedGroupId, setExpandedGroupId] = useState<string | null>(null);
   const [expandedStudentId, setExpandedStudentId] = useState<string | null>(
@@ -189,6 +204,10 @@ const FollowUps: React.FC<{ user: User }> = ({ user }) => {
       "followUpMentions",
       setMentions,
     );
+    const unsubRejections = subscribeToCollection<FollowUpSuggestionRejection>(
+      "followUpSuggestionRejections",
+      setRejections,
+    );
 
     setLoading(false);
     return () => {
@@ -199,13 +218,19 @@ const FollowUps: React.FC<{ user: User }> = ({ user }) => {
       unsubEvals();
       unsubUsers();
       unsubMentions();
+      unsubRejections();
     };
   }, []);
 
   const suggestions = useMemo(
-    () => computeFollowUpSuggestions(groups, students, sessions, evaluations, followUps),
-    [groups, students, sessions, evaluations, followUps],
+    () => computeFollowUpSuggestions(groups, students, sessions, evaluations, followUps, rejections),
+    [groups, students, sessions, evaluations, followUps, rejections],
   );
+
+  const activeRejections = useMemo(() => {
+    const todayStr = new Date().toISOString().split("T")[0];
+    return rejections.filter((r) => r.reappearAt > todayStr);
+  }, [rejections]);
 
   const suggestionsByGroup = useMemo(() => {
     const map: Record<string, FollowUpSuggestion[]> = {};
@@ -225,6 +250,17 @@ const FollowUps: React.FC<{ user: User }> = ({ user }) => {
     () => followUps.filter((f) => f.mentionedUserId === user.uid && f.status !== "resolved"),
     [followUps, user.uid],
   );
+
+  const myFollowUpsGrouped = useMemo(() => {
+    return myFollowUps.reduce(
+      (acc, f) => {
+        if (!acc[f.groupId]) acc[f.groupId] = [];
+        acc[f.groupId].push(f);
+        return acc;
+      },
+      {} as Record<string, StudentFollowUp[]>,
+    );
+  }, [myFollowUps]);
 
   const todayStr = new Date().toISOString().split("T")[0];
 
@@ -315,6 +351,9 @@ const FollowUps: React.FC<{ user: User }> = ({ user }) => {
     if (!text) return;
     try {
       setIsSubmitting(true);
+      // submitTrainerFollowUpUpdate automatically closes every pending mention
+      // the current user has on this follow-up (see closeOwnPendingMentions in
+      // services/firestore.ts) — no separate markFollowUpMentionDone call needed.
       await submitTrainerFollowUpUpdate(
         m.groupId,
         m.studentId,
@@ -326,7 +365,6 @@ const FollowUps: React.FC<{ user: User }> = ({ user }) => {
         null,
         m.sourceUpdateId,
       );
-      await markFollowUpMentionDone(m.id, user);
       setReplyDraft((prev) => ({ ...prev, [m.id]: "" }));
     } catch (err: any) {
       alert(err.message);
@@ -343,10 +381,31 @@ const FollowUps: React.FC<{ user: User }> = ({ user }) => {
     }
   };
 
+  const handleRejectSuggestion = async () => {
+    if (!rejectModalFor || !rejectReasonText.trim()) return;
+    try {
+      setIsSubmitting(true);
+      await rejectFollowUpSuggestion(
+        rejectModalFor.groupId,
+        rejectModalFor.groupName,
+        rejectModalFor.studentId,
+        rejectModalFor.studentName,
+        rejectModalFor.reason,
+        rejectReasonText.trim(),
+        user,
+      );
+      setRejectModalFor(null);
+      setRejectReasonText("");
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const handleSnoozeMention = async (m: FollowUpMention) => {
     const date = snoozeDraft[m.id];
     if (!date) return;
-    const { snoozeFollowUpMention } = await import("../services/firestore");
     try {
       await snoozeFollowUpMention(m.id, date);
       setSnoozeDraft((prev) => ({ ...prev, [m.id]: "" }));
@@ -440,12 +499,14 @@ const FollowUps: React.FC<{ user: User }> = ({ user }) => {
         mentionUser?.name || undefined,
         nextDate,
         resetSessionNum,
+        replyingToUpdate[f.id]?.id,
       );
       setTrainerNote("");
       setInteractionTab((prev) => ({ ...prev, [f.id]: "updates" }));
       setMentionUserIdForFollowUp((prev) => ({ ...prev, [f.id]: "" }));
       setNextFollowUpDates((prev) => ({ ...prev, [f.id]: "" }));
       setCancelAbsenceWarnings((prev) => ({ ...prev, [f.id]: false }));
+      setReplyingToUpdate((prev) => ({ ...prev, [f.id]: null }));
     } catch (err: any) {
       alert(err.message);
     } finally {
@@ -499,22 +560,6 @@ const FollowUps: React.FC<{ user: User }> = ({ user }) => {
     }
   };
 
-  const handleMuteFollowUp = async (f: StudentFollowUp) => {
-    if (
-      !confirm(
-        "Are you sure you want to mute updates for this follow-up? This will also unassign you if you are currently mentioned.",
-      )
-    )
-      return;
-    try {
-      setIsSubmitting(true);
-      await muteStudentFollowUp(f.groupId, f.studentId, user.uid, user);
-    } catch (err: any) {
-      alert(err.message);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
 
   const handleOpenRequestForStudent = (f: StudentFollowUp) => {
     setRequestData({
@@ -690,6 +735,10 @@ const FollowUps: React.FC<{ user: User }> = ({ user }) => {
     );
   }, [filteredFollowUps]);
 
+  // "My Follow-ups" reuses this exact same grouped-card rendering with a
+  // different data source, so it gets the full toolset instead of a summary.
+  const activeGroupedFollowUps = mainView === "personal" ? myFollowUpsGrouped : groupedFollowUps;
+
   const getStudentStats = (studentId: string, groupId: string) => {
     const f = followUps.find(
       (item) => item.studentId === studentId && item.groupId === groupId,
@@ -773,12 +822,14 @@ const FollowUps: React.FC<{ user: User }> = ({ user }) => {
     <Layout user={user}>
       {/* Main Section Tabs: All / Suggestions / Escalations / Personal */}
       <div className="flex flex-wrap gap-2 mb-8">
-        <button
-          onClick={() => setMainView("all")}
-          className={`px-6 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest transition-all ${mainView === "all" ? "bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-lg" : "bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-900 dark:hover:text-white"}`}
-        >
-          {lang === "ar" ? "كل المتابعات" : "All Follow-ups"}
-        </button>
+        {canViewAll && (
+          <button
+            onClick={() => setMainView("all")}
+            className={`px-6 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest transition-all ${mainView === "all" ? "bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-lg" : "bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-900 dark:hover:text-white"}`}
+          >
+            {lang === "ar" ? "كل المتابعات" : "All Follow-ups"}
+          </button>
+        )}
         {canViewSuggestions && (
           <button
             onClick={() => setMainView("suggestions")}
@@ -874,6 +925,13 @@ const FollowUps: React.FC<{ user: User }> = ({ user }) => {
                             >
                               {lang === "ar" ? "تحويل لمتابعة" : "Approve"}
                             </button>
+                            <button
+                              disabled={isSubmitting}
+                              onClick={() => setRejectModalFor(s)}
+                              className="px-5 py-2 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-black text-[10px] uppercase tracking-widest"
+                            >
+                              {lang === "ar" ? "رفض" : "Reject"}
+                            </button>
                           </div>
                         )}
                       </div>
@@ -883,6 +941,74 @@ const FollowUps: React.FC<{ user: User }> = ({ user }) => {
               </div>
             ))
           )}
+
+          {activeRejections.length > 0 && (
+            <div className="pt-2">
+              <button
+                onClick={() => setShowRejectedSuggestions((v) => !v)}
+                className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-slate-500 hover:text-slate-700"
+              >
+                {showRejectedSuggestions ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                {lang === "ar" ? `اقتراحات مرفوضة مؤقتاً (${activeRejections.length})` : `Temporarily rejected (${activeRejections.length})`}
+              </button>
+              {showRejectedSuggestions && (
+                <div className="mt-3 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 divide-y divide-slate-100 dark:divide-slate-800">
+                  {activeRejections.map((r) => (
+                    <div key={r.id} className="p-5 flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <p className="font-black text-sm text-slate-800 dark:text-white">
+                          {r.studentName} — {r.groupName}
+                        </p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold mt-1">
+                          {r.reason === "absence" ? (lang === "ar" ? "سبب الحضور" : "attendance") : (lang === "ar" ? "سبب التاسكات" : "tasks")}
+                          {" — "}{r.rejectionReason}
+                        </p>
+                      </div>
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                        {lang === "ar" ? "تظهر تاني بتاريخ" : "Reappears"} {r.reappearAt}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {rejectModalFor && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 w-full max-w-md space-y-4">
+            <h3 className="font-black text-slate-800 dark:text-white">
+              {lang === "ar" ? "رفض الاقتراح" : "Reject suggestion"} — {rejectModalFor.studentName}
+            </h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              {lang === "ar"
+                ? "لن يظهر هذا الاقتراح مرة أخرى قبل 7 أيام على الأقل، حتى لو استمرت الحالة."
+                : "This suggestion won't reappear for at least 7 days, even if the condition persists."}
+            </p>
+            <textarea
+              value={rejectReasonText}
+              onChange={(e) => setRejectReasonText(e.target.value)}
+              placeholder={lang === "ar" ? "سبب الرفض..." : "Rejection reason..."}
+              className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 text-xs font-bold min-h-[100px]"
+            />
+            <div className="flex gap-3">
+              <button
+                onClick={() => { setRejectModalFor(null); setRejectReasonText(""); }}
+                className="flex-1 py-3 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-2xl font-black text-[10px] uppercase tracking-widest"
+              >
+                {lang === "ar" ? "إلغاء" : "Cancel"}
+              </button>
+              <button
+                onClick={handleRejectSuggestion}
+                disabled={!rejectReasonText.trim() || isSubmitting}
+                className="flex-1 py-3 bg-rose-600 hover:bg-rose-700 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest"
+              >
+                {lang === "ar" ? "تأكيد الرفض" : "Confirm Reject"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -977,36 +1103,11 @@ const FollowUps: React.FC<{ user: User }> = ({ user }) => {
             ))}
           </div>
 
-          {personalTab === "mine" && (
-            <div className="space-y-4">
-              {myFollowUps.length === 0 ? (
-                <div className="bg-white dark:bg-slate-900 p-16 rounded-3xl border border-dashed border-slate-200 dark:border-slate-800 text-center text-slate-400 font-bold">
-                  {lang === "ar" ? "لا توجد متابعات مسؤول عنها حالياً" : "No follow-ups you own right now"}
-                </div>
-              ) : (
-                myFollowUps.map((f) => {
-                  const student = students.find((s) => s.id === f.studentId);
-                  const locked = student?.deactivated;
-                  return (
-                    <div key={f.id} className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 space-y-2">
-                      <p className="font-black text-slate-800 dark:text-white">{f.studentName} — {f.groupName}</p>
-                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
-                        {lang === "ar" ? "الحالة" : "Status"}: {f.status}
-                      </p>
-                      {locked && (
-                        <p className="text-xs font-black text-rose-500 bg-rose-50 dark:bg-rose-950/20 rounded-lg p-2">
-                          ⛔ {lang === "ar" ? "الطالب موقوف — المتابعة مجمّدة" : "Student is deactivated — follow-up frozen"}
-                        </p>
-                      )}
-                      <p className="text-[10px] text-slate-400">
-                        {lang === "ar" ? "تفضل هنا لحد ما تُحل أو تُجدول فعلياً من تاب \"كل المتابعات\"." : "Stays here until actually resolved/rescheduled from the \"All Follow-ups\" tab."}
-                      </p>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          )}
+          {/* personalTab === "mine" renders below via the shared "all"-style
+              follow-up card list (see the broadened mainView condition further
+              down) so it shows the exact same full functionality — reply,
+              comments, resolve, schedule, mention, escalate — not a stripped
+              summary. */}
 
           {personalTab === "tasks" && (
             <div className="space-y-4">
@@ -1132,7 +1233,20 @@ const FollowUps: React.FC<{ user: User }> = ({ user }) => {
         </div>
       )}
 
-      {mainView === "all" && (
+      {(mainView === "all" || (mainView === "personal" && personalTab === "mine")) && (
+      <>
+      {mainView === "personal" ? (
+        <div className="mb-8">
+          <h1 className="text-3xl font-black tracking-tighter text-slate-900 dark:text-white mb-1">
+            {lang === "ar" ? "متابعاتي" : "My Follow-ups"}
+          </h1>
+          <p className="text-slate-500 dark:text-slate-400 font-medium text-sm">
+            {lang === "ar"
+              ? "كل المتابعات اللي أنت مسؤول عنها — نفس الأدوات الكاملة (رد، تعليقات، حل، جدولة، تصعيد)."
+              : "Every follow-up you own — the same full toolset (reply, comments, resolve, schedule, escalate)."}
+          </p>
+        </div>
+      ) : (
       <>
       <div className="flex flex-wrap items-end justify-between gap-6 mb-10">
         <div>
@@ -1349,6 +1463,8 @@ const FollowUps: React.FC<{ user: User }> = ({ user }) => {
           </span>
         </div>
       </div>
+      </>
+      )}
 
       {loading ? (
         <div className="flex justify-center py-20">
@@ -1356,18 +1472,20 @@ const FollowUps: React.FC<{ user: User }> = ({ user }) => {
         </div>
       ) : (
         <div className="space-y-6">
-          {Object.keys(groupedFollowUps).length === 0 ? (
+          {Object.keys(activeGroupedFollowUps).length === 0 ? (
             <div className="bg-white dark:bg-slate-900 p-20 rounded-4xl border border-dashed border-slate-200 dark:border-slate-800 text-center">
               <div className="text-6xl mb-6">✅</div>
               <h2 className="text-2xl font-black text-slate-900 dark:text-white mb-2">
-                No results matching your filters
+                {mainView === "personal"
+                  ? (lang === "ar" ? "لا توجد متابعات مسؤول عنها حالياً" : "No follow-ups you own right now")
+                  : "No results matching your filters"}
               </h2>
               <p className="text-slate-500 dark:text-slate-400">
                 Try adjusting your filters or search query.
               </p>
             </div>
           ) : (
-            Object.entries(groupedFollowUps).map(([groupId, items]) => {
+            Object.entries(activeGroupedFollowUps).map(([groupId, items]) => {
               const followUpItems = items as StudentFollowUp[];
               const groupName = followUpItems[0].groupName;
               const trainerNames = getTrainerNames(groupId);
@@ -1690,8 +1808,36 @@ const FollowUps: React.FC<{ user: User }> = ({ user }) => {
                               </div>
                             </div>
 
-                            {isStudentExpanded && (
-                              <div className="mt-8 pt-8 border-t border-slate-200/50 dark:border-slate-800/50 grid grid-cols-1 lg:grid-cols-2 gap-8 animate-slide-down">
+                            {isStudentExpanded && (() => {
+                              const myPendingMention = mentions.find(
+                                (m) =>
+                                  m.followUpId === f.id &&
+                                  m.mentionedUserId === user.uid &&
+                                  m.status === "pending",
+                              );
+                              return (
+                              <div className="mt-8 pt-8 border-t border-slate-200/50 dark:border-slate-800/50 space-y-6 animate-slide-down">
+                                {myPendingMention && (
+                                  <div className="bg-primary-500/10 border border-primary-500/30 p-5 rounded-3xl flex flex-wrap items-center justify-between gap-4">
+                                    <div>
+                                      <h4 className="text-[10px] font-black uppercase tracking-widest text-primary-600 mb-1">
+                                        🔔 {lang === "ar" ? "مطلوب منك رد" : "A response is expected from you"}
+                                      </h4>
+                                      <p className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                                        {lang === "ar" ? "من" : "From"} {myPendingMention.mentionedByName}
+                                        {myPendingMention.note ? `: ${myPendingMention.note}` : ""}
+                                      </p>
+                                    </div>
+                                    <button
+                                      onClick={() => handleMarkMentionDone(myPendingMention)}
+                                      disabled={isSubmitting}
+                                      className="px-5 py-2.5 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-black text-[10px] uppercase tracking-widest shrink-0"
+                                    >
+                                      {lang === "ar" ? "Mark as done for me" : "Mark as done for me"}
+                                    </button>
+                                  </div>
+                                )}
+                              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                                 {/* Left Side: Input Form */}
                                 <div className="space-y-6">
                                   {f.approvalStatus === "pending" && (
@@ -1851,6 +1997,26 @@ const FollowUps: React.FC<{ user: User }> = ({ user }) => {
                                     <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-2 block">
                                       Progress Update & Training Note
                                     </label>
+                                    {replyingToUpdate[f.id] && (
+                                      <div className="flex items-center justify-between bg-primary-500/10 border border-primary-500/30 rounded-xl px-4 py-2">
+                                        <span className="text-[10px] font-black text-primary-600 flex items-center gap-1">
+                                          <Reply size={12} />{" "}
+                                          {lang === "ar" ? "الرد على تحديث " : "Replying to "}
+                                          {replyingToUpdate[f.id]?.authorName}
+                                        </span>
+                                        <button
+                                          onClick={() =>
+                                            setReplyingToUpdate((prev) => ({
+                                              ...prev,
+                                              [f.id]: null,
+                                            }))
+                                          }
+                                          className="text-[10px] font-black text-slate-400 hover:text-slate-600"
+                                        >
+                                          {lang === "ar" ? "إلغاء" : "Cancel"}
+                                        </button>
+                                      </div>
+                                    )}
                                     <textarea
                                       value={trainerNote}
                                       onChange={(e) =>
@@ -1952,20 +2118,36 @@ const FollowUps: React.FC<{ user: User }> = ({ user }) => {
                                             : "Activate Follow-up Now"}
                                         </button>
                                       )}
-                                      {f.status !== "resolved" && (
-                                        <button
-                                          onClick={() => handleMuteFollowUp(f)}
-                                          disabled={
-                                            isSubmitting ||
-                                            f.mutedUserIds?.includes(user.uid)
+                                      <button
+                                        onClick={() =>
+                                          navigate(
+                                            `/groups/${f.groupId}?tab=taskProgress&studentId=${f.studentId}`,
+                                          )
+                                        }
+                                        className="flex-1 py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-indigo-600/20 transition-all flex items-center justify-center gap-2"
+                                      >
+                                        <ListTodo className="w-4 h-4" />{" "}
+                                        {lang === "ar"
+                                          ? "تقدم التاسكات"
+                                          : "Task Progress"}
+                                      </button>
+                                      {students.find((s) => s.id === f.studentId)
+                                        ?.tasksLink && (
+                                        <a
+                                          href={
+                                            students.find(
+                                              (s) => s.id === f.studentId,
+                                            )?.tasksLink
                                           }
-                                          className={`flex-1 py-4 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl transition-all flex items-center justify-center gap-2 ${f.mutedUserIds?.includes(user.uid) ? "bg-slate-400 cursor-not-allowed shadow-none" : "bg-rose-600 hover:bg-rose-700 shadow-rose-600/20"}`}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="flex-1 py-4 bg-sky-500/15 hover:bg-sky-500/25 text-sky-500 border border-sky-500/30 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all flex items-center justify-center gap-2"
                                         >
-                                          <BellOff className="w-4 h-4" />{" "}
-                                          {f.mutedUserIds?.includes(user.uid)
-                                            ? "Muted"
-                                            : "Mute Updates"}
-                                        </button>
+                                          <ExternalLink className="w-4 h-4" />{" "}
+                                          {lang === "ar"
+                                            ? "لينك التاسكات"
+                                            : "Tasks Link"}
+                                        </a>
                                       )}
                                       {canEscalate && f.status === "active" && !f.escalation && (
                                         <button
@@ -2106,6 +2288,23 @@ const FollowUps: React.FC<{ user: User }> = ({ user }) => {
                                                   <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed font-medium whitespace-pre-wrap">
                                                     {u.text}
                                                   </p>
+                                                  {u.createdByUid !== user.uid && (
+                                                    <button
+                                                      onClick={() =>
+                                                        setReplyingToUpdate((prev) => ({
+                                                          ...prev,
+                                                          [f.id]: {
+                                                            id: u.id,
+                                                            authorName: u.createdByName,
+                                                          },
+                                                        }))
+                                                      }
+                                                      className="mt-3 flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-primary-600 hover:text-primary-700"
+                                                    >
+                                                      <Reply size={12} />{" "}
+                                                      {lang === "ar" ? "رد" : "Reply"}
+                                                    </button>
+                                                  )}
                                                 </div>
                                               </div>
                                             ))}
@@ -2187,7 +2386,9 @@ const FollowUps: React.FC<{ user: User }> = ({ user }) => {
                                   </div>
                                 </div>
                               </div>
-                            )}
+                              </div>
+                              );
+                            })()}
                           </div>
                         );
                       })}

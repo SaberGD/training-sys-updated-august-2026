@@ -25,6 +25,7 @@ const DEFAULT_PERMISSIONS: Record<UserRole, RolePermissions['permissions']> = {
     submitDailyReport: true, manageGroups: true, manageCourses: true, manageStudents: true,
     manageUsers: true, viewRanking: true, manageEvaluations: true,
     viewPerformanceReports: true, submitPerformanceReport: true, approvePerformanceReport: true,
+    viewAllFollowUps: true,
     viewFollowUpSuggestions: true, approveFollowUpSuggestion: true, resolveFollowUp: true,
     approveFollowUpReschedule: true, escalateFollowUp: true
   },
@@ -35,6 +36,7 @@ const DEFAULT_PERMISSIONS: Record<UserRole, RolePermissions['permissions']> = {
     submitDailyReport: true, manageGroups: true, manageCourses: true, manageStudents: true,
     manageUsers: false, viewRanking: true, manageEvaluations: true,
     viewPerformanceReports: true, submitPerformanceReport: true, approvePerformanceReport: true,
+    viewAllFollowUps: true,
     viewFollowUpSuggestions: true, approveFollowUpSuggestion: true, resolveFollowUp: true,
     approveFollowUpReschedule: true, escalateFollowUp: true
   },
@@ -45,6 +47,7 @@ const DEFAULT_PERMISSIONS: Record<UserRole, RolePermissions['permissions']> = {
     submitDailyReport: true, manageGroups: true, manageCourses: true, manageStudents: true,
     manageUsers: false, viewRanking: true, manageEvaluations: true,
     viewPerformanceReports: true, submitPerformanceReport: true, approvePerformanceReport: true,
+    viewAllFollowUps: true,
     viewFollowUpSuggestions: false, approveFollowUpSuggestion: false, resolveFollowUp: false,
     approveFollowUpReschedule: false, escalateFollowUp: false
   },
@@ -55,6 +58,7 @@ const DEFAULT_PERMISSIONS: Record<UserRole, RolePermissions['permissions']> = {
     submitDailyReport: true, manageGroups: false, manageCourses: false, manageStudents: false,
     manageUsers: false, viewRanking: true, manageEvaluations: true,
     viewPerformanceReports: true, submitPerformanceReport: true, approvePerformanceReport: false,
+    viewAllFollowUps: false,
     viewFollowUpSuggestions: false, approveFollowUpSuggestion: false, resolveFollowUp: false,
     approveFollowUpReschedule: false, escalateFollowUp: false
   },
@@ -65,6 +69,7 @@ const DEFAULT_PERMISSIONS: Record<UserRole, RolePermissions['permissions']> = {
     submitDailyReport: true, manageGroups: false, manageCourses: false, manageStudents: false,
     manageUsers: false, viewRanking: true, manageEvaluations: true,
     viewPerformanceReports: true, submitPerformanceReport: true, approvePerformanceReport: false,
+    viewAllFollowUps: false,
     viewFollowUpSuggestions: false, approveFollowUpSuggestion: false, resolveFollowUp: false,
     approveFollowUpReschedule: false, escalateFollowUp: false
   }
