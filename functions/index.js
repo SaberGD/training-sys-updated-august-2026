@@ -1528,3 +1528,29 @@ apiApp.post("/google/test-connection", async (req, res) => {
 });
 
 exports.api = onRequest({ cors: true }, apiApp);
+
+// Reliable, server-side replacement for the old client-side "someone happened
+// to have the Follow-ups page open" activation of scheduled follow-ups.
+// Runs daily and flips any follow-up whose scheduled re-check date has
+// arrived back to active, regardless of whether anyone is using the app.
+const { onSchedule } = require("firebase-functions/v2/scheduler");
+
+exports.autoActivateScheduledFollowUps = onSchedule("every day 06:00", async () => {
+  const today = new Date().toISOString().slice(0, 10);
+  const snap = await db.collection("studentFollowUps")
+    .where("status", "==", "scheduled")
+    .where("scheduledAt", "<=", today)
+    .get();
+
+  if (snap.empty) return;
+
+  const batch = db.batch();
+  snap.forEach((docSnap) => {
+    batch.update(docSnap.ref, {
+      status: "active",
+      colorStatus: "yellow",
+      lastUpdatedAt: admin.firestore.FieldValue.serverTimestamp()
+    });
+  });
+  await batch.commit();
+});

@@ -227,6 +227,7 @@ const Users: React.FC<{ user: User }> = ({ user }) => {
                       <option value="trainer">Trainer</option>
                       <option value="team_leader">Team Leader</option>
                       <option value="coordinator">Coordinator</option>
+                      <option value="supervisor">Supervisor</option>
                       <option value="admin">Admin</option>
                     </select>
                   </td>
@@ -332,6 +333,7 @@ const Users: React.FC<{ user: User }> = ({ user }) => {
                   <option value="trainer">Trainer</option>
                   <option value="team_leader">Team Leader</option>
                   <option value="coordinator">Coordinator</option>
+                  <option value="supervisor">Supervisor</option>
                   <option value="admin">Admin</option>
                 </select>
               </div>

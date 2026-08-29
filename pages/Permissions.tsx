@@ -11,7 +11,7 @@ const PermissionsPage: React.FC<{ user: User }> = ({ user }) => {
   const [saving, setSaving] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'permissions' | 'pages'>('permissions');
 
-  const roles: UserRole[] = ['coordinator', 'team_leader', 'trainer'];
+  const roles: UserRole[] = ['supervisor', 'coordinator', 'team_leader', 'trainer'];
   
   const permissionLabels: Record<keyof RolePermissions['permissions'], string> = {
     viewDashboard: 'View Dashboard',
@@ -36,7 +36,12 @@ const PermissionsPage: React.FC<{ user: User }> = ({ user }) => {
     manageEvaluations: 'Submit Evaluations',
     viewPerformanceReports: 'View Performance Reports',
     submitPerformanceReport: 'Submit Performance Report',
-    approvePerformanceReport: 'Approve Performance Report'
+    approvePerformanceReport: 'Approve Performance Report',
+    viewFollowUpSuggestions: lang === 'ar' ? 'عرض اقتراحات المتابعة' : 'View Follow-up Suggestions',
+    approveFollowUpSuggestion: lang === 'ar' ? 'اعتماد اقتراح متابعة' : 'Approve Follow-up Suggestion',
+    resolveFollowUp: lang === 'ar' ? 'إغلاق/إعادة فتح متابعة' : 'Resolve/Reopen Follow-up',
+    approveFollowUpReschedule: lang === 'ar' ? 'اعتماد جدولة متابعة تالية' : 'Approve Follow-up Reschedule',
+    escalateFollowUp: lang === 'ar' ? 'تصعيد متابعة للإدارة' : 'Escalate Follow-up to Admin'
   };
 
   const controllablePages = [
@@ -128,7 +133,7 @@ const PermissionsPage: React.FC<{ user: User }> = ({ user }) => {
 
         {activeTab === 'permissions' ? (
           <>
-            <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
               {roles.map(role => {
                 const perms = rolePermissions[role];
                 if (!perms) return null;

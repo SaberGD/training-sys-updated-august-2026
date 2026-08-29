@@ -6,9 +6,11 @@ import {
   Student,
   LectureEvaluation,
   Session,
+  FollowUpMention,
 } from "../types";
 import Layout from "../components/Layout";
 import { useLanguage } from "../contexts/LanguageContext";
+import { usePermissions } from "../contexts/PermissionsContext";
 import {
   subscribeToCollection,
   submitTrainerFollowUpUpdate,
@@ -22,7 +24,12 @@ import {
   muteStudentFollowUp,
   approveNextFollowUpDate,
   rejectNextFollowUpDate,
+  approveFollowUpSuggestion,
+  escalateFollowUp,
+  respondToEscalation,
+  markFollowUpMentionDone,
 } from "../services/firestore";
+import { computeFollowUpSuggestions, FollowUpSuggestion } from "../services/followUpSuggestions";
 import {
   MessageSquare,
   Calendar,
@@ -47,13 +54,29 @@ const { orderBy, limit } = firestore as any;
 
 const FollowUps: React.FC<{ user: User }> = ({ user }) => {
   const { lang } = useLanguage();
+  const { hasPermission } = usePermissions();
   const [followUps, setFollowUps] = useState<StudentFollowUp[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [evaluations, setEvaluations] = useState<LectureEvaluation[]>([]);
   const [trainers, setTrainers] = useState<User[]>([]);
+  const [mentions, setMentions] = useState<FollowUpMention[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const [mainView, setMainView] = useState<
+    "all" | "suggestions" | "escalations" | "personal"
+  >("all");
+  const [personalTab, setPersonalTab] = useState<
+    "mine" | "tasks" | "doneByMe" | "doneAll"
+  >("mine");
+  const [escalationSection, setEscalationSection] = useState<
+    "pending" | "approved" | "on_hold" | "resolved"
+  >("pending");
+  const [escalateModalFor, setEscalateModalFor] = useState<StudentFollowUp | null>(null);
+  const [escalateAction, setEscalateAction] = useState("");
+  const [replyDraft, setReplyDraft] = useState<Record<string, string>>({});
+  const [snoozeDraft, setSnoozeDraft] = useState<Record<string, string>>({});
 
   const [expandedGroupId, setExpandedGroupId] = useState<string | null>(null);
   const [expandedStudentId, setExpandedStudentId] = useState<string | null>(
@@ -103,7 +126,13 @@ const FollowUps: React.FC<{ user: User }> = ({ user }) => {
     date: "",
   });
 
-  const isAdmin = ["admin", "coordinator", "team_leader"].includes(user.role);
+  const isAdmin = ["admin", "coordinator", "team_leader", "supervisor"].includes(user.role);
+  const canViewSuggestions = hasPermission(user, "viewFollowUpSuggestions");
+  const canApproveSuggestion = hasPermission(user, "approveFollowUpSuggestion");
+  const canResolveFollowUp = hasPermission(user, "resolveFollowUp");
+  const canApproveReschedule = hasPermission(user, "approveFollowUpReschedule");
+  const canEscalate = hasPermission(user, "escalateFollowUp");
+  const isFollowUpAdminUser = user.role === "admin";
 
   const getTomorrowDateStr = (): string => {
     try {
@@ -152,9 +181,13 @@ const FollowUps: React.FC<{ user: User }> = ({ user }) => {
     const unsubUsers = subscribeToCollection<User>("users", (data) =>
       setTrainers(
         data.filter((u) =>
-          ["trainer", "team_leader", "coordinator", "admin"].includes(u.role),
+          ["trainer", "team_leader", "coordinator", "admin", "supervisor"].includes(u.role),
         ),
       ),
+    );
+    const unsubMentions = subscribeToCollection<FollowUpMention>(
+      "followUpMentions",
+      setMentions,
     );
 
     setLoading(false);
@@ -165,11 +198,165 @@ const FollowUps: React.FC<{ user: User }> = ({ user }) => {
       unsubSessions();
       unsubEvals();
       unsubUsers();
+      unsubMentions();
     };
   }, []);
 
+  const suggestions = useMemo(
+    () => computeFollowUpSuggestions(groups, students, sessions, evaluations, followUps),
+    [groups, students, sessions, evaluations, followUps],
+  );
+
+  const suggestionsByGroup = useMemo(() => {
+    const map: Record<string, FollowUpSuggestion[]> = {};
+    suggestions.forEach((s) => {
+      if (!map[s.groupId]) map[s.groupId] = [];
+      map[s.groupId].push(s);
+    });
+    return map;
+  }, [suggestions]);
+
+  const escalatedFollowUps = useMemo(
+    () => followUps.filter((f) => !!f.escalation),
+    [followUps],
+  );
+
+  const myFollowUps = useMemo(
+    () => followUps.filter((f) => f.mentionedUserId === user.uid && f.status !== "resolved"),
+    [followUps, user.uid],
+  );
+
+  const todayStr = new Date().toISOString().split("T")[0];
+
+  const myPendingTasks = useMemo(
+    () =>
+      mentions.filter(
+        (m) =>
+          m.mentionedUserId === user.uid &&
+          m.status === "pending" &&
+          (!m.snoozedUntil || m.snoozedUntil <= todayStr),
+      ),
+    [mentions, user.uid, todayStr],
+  );
+
+  const myDoneTasks = useMemo(
+    () => mentions.filter((m) => m.mentionedUserId === user.uid && m.status === "done"),
+    [mentions, user.uid],
+  );
+
+  const allResolvedFollowUps = useMemo(
+    () => followUps.filter((f) => f.status === "resolved"),
+    [followUps],
+  );
+
+  const [suggestionMentionPick, setSuggestionMentionPick] = useState<Record<string, string>>({});
+
+  const handleApproveSuggestion = async (s: FollowUpSuggestion) => {
+    try {
+      setIsSubmitting(true);
+      const key = `${s.groupId}_${s.studentId}_${s.reason}`;
+      const mentionId = suggestionMentionPick[key];
+      const mentionUser = trainers.find((t) => t.uid === mentionId);
+      await approveFollowUpSuggestion(
+        s.groupId,
+        s.groupName,
+        s.studentId,
+        s.studentName,
+        s.reason,
+        user,
+        mentionId || undefined,
+        mentionUser?.name || undefined,
+      );
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleEscalate = async () => {
+    if (!escalateModalFor || !escalateAction.trim()) return;
+    try {
+      setIsSubmitting(true);
+      const adminUsers = trainers.filter((t) => t.role === "admin");
+      await escalateFollowUp(
+        escalateModalFor.groupId,
+        escalateModalFor.studentId,
+        escalateAction.trim(),
+        user,
+        adminUsers,
+      );
+      setEscalateModalFor(null);
+      setEscalateAction("");
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleEscalationResponse = async (
+    f: StudentFollowUp,
+    status: "approved" | "on_hold" | "resolved",
+  ) => {
+    const note = status === "resolved" ? "" : prompt(lang === "ar" ? "ملحوظة (اختياري):" : "Note (optional):") || "";
+    try {
+      setIsSubmitting(true);
+      await respondToEscalation(f.groupId, f.studentId, status, note, user);
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleReplyToMention = async (m: FollowUpMention) => {
+    const text = replyDraft[m.id]?.trim();
+    if (!text) return;
+    try {
+      setIsSubmitting(true);
+      await submitTrainerFollowUpUpdate(
+        m.groupId,
+        m.studentId,
+        text,
+        user,
+        undefined,
+        undefined,
+        undefined,
+        null,
+        m.sourceUpdateId,
+      );
+      await markFollowUpMentionDone(m.id, user);
+      setReplyDraft((prev) => ({ ...prev, [m.id]: "" }));
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleMarkMentionDone = async (m: FollowUpMention) => {
+    try {
+      await markFollowUpMentionDone(m.id, user);
+    } catch (err: any) {
+      alert(err.message);
+    }
+  };
+
+  const handleSnoozeMention = async (m: FollowUpMention) => {
+    const date = snoozeDraft[m.id];
+    if (!date) return;
+    const { snoozeFollowUpMention } = await import("../services/firestore");
+    try {
+      await snoozeFollowUpMention(m.id, date);
+      setSnoozeDraft((prev) => ({ ...prev, [m.id]: "" }));
+    } catch (err: any) {
+      alert(err.message);
+    }
+  };
+
   const handleResolve = async (f: StudentFollowUp) => {
-    if (!isAdmin) {
+    if (!canResolveFollowUp) {
       alert("Only supervisors can resolve follow-ups.");
       return;
     }
@@ -185,7 +372,7 @@ const FollowUps: React.FC<{ user: User }> = ({ user }) => {
   };
 
   const handleReopen = async (f: StudentFollowUp) => {
-    if (!isAdmin) return;
+    if (!canResolveFollowUp) return;
     if (!confirm("Reopen this follow-up for further tracking?")) return;
     try {
       setIsSubmitting(true);
@@ -267,7 +454,7 @@ const FollowUps: React.FC<{ user: User }> = ({ user }) => {
   };
 
   const handleApproveNextFollowUp = async (f: StudentFollowUp) => {
-    if (!isAdmin) {
+    if (!canApproveReschedule) {
       alert("Only supervisors can approve follow-up postponements.");
       return;
     }
@@ -290,7 +477,7 @@ const FollowUps: React.FC<{ user: User }> = ({ user }) => {
   };
 
   const handleRejectNextFollowUp = async (f: StudentFollowUp) => {
-    if (!isAdmin) {
+    if (!canApproveReschedule) {
       alert("Only supervisors can reject follow-up postponements.");
       return;
     }
@@ -584,6 +771,369 @@ const FollowUps: React.FC<{ user: User }> = ({ user }) => {
 
   return (
     <Layout user={user}>
+      {/* Main Section Tabs: All / Suggestions / Escalations / Personal */}
+      <div className="flex flex-wrap gap-2 mb-8">
+        <button
+          onClick={() => setMainView("all")}
+          className={`px-6 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest transition-all ${mainView === "all" ? "bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-lg" : "bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-900 dark:hover:text-white"}`}
+        >
+          {lang === "ar" ? "كل المتابعات" : "All Follow-ups"}
+        </button>
+        {canViewSuggestions && (
+          <button
+            onClick={() => setMainView("suggestions")}
+            className={`px-6 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 ${mainView === "suggestions" ? "bg-amber-500 text-white shadow-lg" : "bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-900 dark:hover:text-white"}`}
+          >
+            💡 {lang === "ar" ? "اقتراحات المتابعة" : "Suggestions"}
+            {suggestions.length > 0 && (
+              <span className="bg-white/20 rounded-full px-2 py-0.5 text-[10px]">{suggestions.length}</span>
+            )}
+          </button>
+        )}
+        {isAdmin && (
+          <button
+            onClick={() => setMainView("escalations")}
+            className={`px-6 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 ${mainView === "escalations" ? "bg-rose-600 text-white shadow-lg" : "bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-900 dark:hover:text-white"}`}
+          >
+            🔺 {lang === "ar" ? "تصعيدات الإدارة" : "Escalations"}
+            {escalatedFollowUps.filter((f) => f.escalation?.status === "pending").length > 0 && (
+              <span className="bg-white/20 rounded-full px-2 py-0.5 text-[10px]">
+                {escalatedFollowUps.filter((f) => f.escalation?.status === "pending").length}
+              </span>
+            )}
+          </button>
+        )}
+        <button
+          onClick={() => setMainView("personal")}
+          className={`px-6 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 ${mainView === "personal" ? "bg-primary-600 text-white shadow-lg" : "bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-900 dark:hover:text-white"}`}
+        >
+          👤 {lang === "ar" ? "متابعاتي" : "My Follow-ups"}
+          {myPendingTasks.length > 0 && (
+            <span className="bg-white/20 rounded-full px-2 py-0.5 text-[10px]">{myPendingTasks.length}</span>
+          )}
+        </button>
+      </div>
+
+      {mainView === "suggestions" && canViewSuggestions && (
+        <div className="space-y-6">
+          <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40 rounded-3xl p-6">
+            <h2 className="text-lg font-black text-amber-800 dark:text-amber-400 mb-1">
+              {lang === "ar" ? "اقتراحات المتابعة" : "Follow-up Suggestions"}
+            </h2>
+            <p className="text-xs text-amber-700 dark:text-amber-500 font-semibold">
+              {lang === "ar"
+                ? "هذه اقتراحات لحظية فقط — لم يُنشأ أي شيء بعد. راجعها ثم اعتمد ما يستحق تحويله لمتابعة فعلية."
+                : "These are live suggestions only — nothing has been created yet. Review and approve what deserves becoming a real follow-up."}
+            </p>
+          </div>
+
+          {suggestions.length === 0 ? (
+            <div className="bg-white dark:bg-slate-900 p-16 rounded-3xl border border-dashed border-slate-200 dark:border-slate-800 text-center">
+              <div className="text-5xl mb-4">✅</div>
+              <p className="text-slate-500 dark:text-slate-400 font-bold">
+                {lang === "ar" ? "لا توجد اقتراحات متابعة حالياً" : "No follow-up suggestions right now"}
+              </p>
+            </div>
+          ) : (
+            Object.entries(suggestionsByGroup).map(([groupId, items]: [string, FollowUpSuggestion[]]) => (
+              <div key={groupId} className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+                <div className="p-5 bg-slate-50 dark:bg-slate-800/40 border-b border-slate-200 dark:border-slate-800">
+                  <h3 className="font-black text-sm text-slate-800 dark:text-white">{items[0].groupName}</h3>
+                </div>
+                <div className="divide-y divide-slate-100 dark:divide-slate-800">
+                  {items.map((s) => {
+                    const key = `${s.groupId}_${s.studentId}_${s.reason}`;
+                    return (
+                      <div key={key} className="p-5 flex flex-wrap items-center justify-between gap-4">
+                        <div>
+                          <p className="font-black text-sm text-slate-800 dark:text-white">{s.studentName}</p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold mt-1">
+                            {s.reason === "absence"
+                              ? (lang === "ar" ? `⚠️ نسبة الحضور ${s.rate}%` : `⚠️ Attendance ${s.rate}%`)
+                              : (lang === "ar" ? `⚠️ نسبة تسليم التاسكات ${s.rate}%` : `⚠️ Task delivery ${s.rate}%`)}
+                          </p>
+                        </div>
+                        {canApproveSuggestion && (
+                          <div className="flex items-center gap-2">
+                            <select
+                              value={suggestionMentionPick[key] || ""}
+                              onChange={(e) =>
+                                setSuggestionMentionPick((prev) => ({ ...prev, [key]: e.target.value }))
+                              }
+                              className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl py-2 px-3 text-xs font-bold"
+                            >
+                              <option value="">{lang === "ar" ? "بدون توجيه" : "No mention"}</option>
+                              {trainers.map((t) => (
+                                <option key={t.uid} value={t.uid}>{t.name}</option>
+                              ))}
+                            </select>
+                            <button
+                              disabled={isSubmitting}
+                              onClick={() => handleApproveSuggestion(s)}
+                              className="px-5 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest"
+                            >
+                              {lang === "ar" ? "تحويل لمتابعة" : "Approve"}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      )}
+
+      {mainView === "escalations" && isAdmin && (
+        <div className="space-y-6">
+          <div className="flex gap-2">
+            {(["pending", "approved", "on_hold", "resolved"] as const).map((sec) => (
+              <button
+                key={sec}
+                onClick={() => setEscalationSection(sec)}
+                className={`px-5 py-2 rounded-xl text-xs font-black uppercase tracking-widest ${escalationSection === sec ? "bg-rose-600 text-white" : "bg-slate-100 dark:bg-slate-800 text-slate-500"}`}
+              >
+                {sec === "pending" ? (lang === "ar" ? "بانتظار الرد" : "Pending")
+                  : sec === "approved" ? (lang === "ar" ? "معتمد" : "Approved")
+                  : sec === "on_hold" ? (lang === "ar" ? "معلق" : "On Hold")
+                  : (lang === "ar" ? "منتهي" : "Resolved")}
+              </button>
+            ))}
+          </div>
+
+          <div className="space-y-4">
+            {escalatedFollowUps.filter((f) => f.escalation?.status === escalationSection).length === 0 ? (
+              <div className="bg-white dark:bg-slate-900 p-16 rounded-3xl border border-dashed border-slate-200 dark:border-slate-800 text-center text-slate-400 font-bold">
+                {lang === "ar" ? "لا يوجد شيء هنا" : "Nothing here"}
+              </div>
+            ) : (
+              escalatedFollowUps
+                .filter((f) => f.escalation?.status === escalationSection)
+                .map((f) => (
+                  <div key={f.id} className="bg-white dark:bg-slate-900 rounded-3xl border border-rose-200 dark:border-rose-900/40 p-6 space-y-3">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <p className="font-black text-slate-800 dark:text-white">{f.studentName} — {f.groupName}</p>
+                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-1">
+                          {lang === "ar" ? "صعّدها" : "Escalated by"} {f.escalation?.escalatedByName}
+                        </p>
+                      </div>
+                    </div>
+                    <p className="text-sm font-bold bg-rose-50 dark:bg-rose-950/20 text-rose-700 dark:text-rose-400 rounded-xl p-3">
+                      {f.escalation?.proposedAction}
+                    </p>
+                    {f.escalation?.adminNote && (
+                      <p className="text-xs text-slate-500 dark:text-slate-400 italic">
+                        {lang === "ar" ? "ملحوظة الأدمن: " : "Admin note: "}{f.escalation.adminNote}
+                      </p>
+                    )}
+                    {isFollowUpAdminUser && escalationSection !== "resolved" && (
+                      <div className="flex gap-2 pt-2">
+                        <button
+                          onClick={() => handleEscalationResponse(f, "approved")}
+                          className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-black text-[10px] uppercase tracking-widest"
+                        >
+                          {lang === "ar" ? "موافقة" : "Approve"}
+                        </button>
+                        <button
+                          onClick={() => handleEscalationResponse(f, "on_hold")}
+                          className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest"
+                        >
+                          {lang === "ar" ? "تعليق" : "On Hold"}
+                        </button>
+                        <button
+                          onClick={() => handleEscalationResponse(f, "resolved")}
+                          className="px-4 py-2 bg-slate-700 hover:bg-slate-800 text-white rounded-xl font-black text-[10px] uppercase tracking-widest"
+                        >
+                          {lang === "ar" ? "إنهاء التصعيد" : "Resolve"}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ))
+            )}
+          </div>
+        </div>
+      )}
+
+      {mainView === "personal" && (
+        <div className="space-y-6">
+          <div className="flex flex-wrap gap-2">
+            {([
+              ["mine", lang === "ar" ? "متابعاتي" : "My Follow-ups", myFollowUps.length],
+              ["tasks", lang === "ar" ? "مهام موجهة لي" : "Follow-up Tasks", myPendingTasks.length],
+              ["doneByMe", lang === "ar" ? "أنهيتها بنفسي" : "Mark as done for me", myDoneTasks.length],
+              ["doneAll", lang === "ar" ? "المنتهية (عموماً)" : "Mark as done (all)", allResolvedFollowUps.length],
+            ] as const).map(([key, label, count]) => (
+              <button
+                key={key}
+                onClick={() => setPersonalTab(key)}
+                className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest flex items-center gap-2 ${personalTab === key ? "bg-primary-600 text-white" : "bg-slate-100 dark:bg-slate-800 text-slate-500"}`}
+              >
+                {label} <span className="opacity-70">({count})</span>
+              </button>
+            ))}
+          </div>
+
+          {personalTab === "mine" && (
+            <div className="space-y-4">
+              {myFollowUps.length === 0 ? (
+                <div className="bg-white dark:bg-slate-900 p-16 rounded-3xl border border-dashed border-slate-200 dark:border-slate-800 text-center text-slate-400 font-bold">
+                  {lang === "ar" ? "لا توجد متابعات مسؤول عنها حالياً" : "No follow-ups you own right now"}
+                </div>
+              ) : (
+                myFollowUps.map((f) => {
+                  const student = students.find((s) => s.id === f.studentId);
+                  const locked = student?.deactivated;
+                  return (
+                    <div key={f.id} className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 space-y-2">
+                      <p className="font-black text-slate-800 dark:text-white">{f.studentName} — {f.groupName}</p>
+                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                        {lang === "ar" ? "الحالة" : "Status"}: {f.status}
+                      </p>
+                      {locked && (
+                        <p className="text-xs font-black text-rose-500 bg-rose-50 dark:bg-rose-950/20 rounded-lg p-2">
+                          ⛔ {lang === "ar" ? "الطالب موقوف — المتابعة مجمّدة" : "Student is deactivated — follow-up frozen"}
+                        </p>
+                      )}
+                      <p className="text-[10px] text-slate-400">
+                        {lang === "ar" ? "تفضل هنا لحد ما تُحل أو تُجدول فعلياً من تاب \"كل المتابعات\"." : "Stays here until actually resolved/rescheduled from the \"All Follow-ups\" tab."}
+                      </p>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          )}
+
+          {personalTab === "tasks" && (
+            <div className="space-y-4">
+              {myPendingTasks.length === 0 ? (
+                <div className="bg-white dark:bg-slate-900 p-16 rounded-3xl border border-dashed border-slate-200 dark:border-slate-800 text-center text-slate-400 font-bold">
+                  {lang === "ar" ? "لا توجد مهام موجهة لك حالياً" : "No tasks assigned to you right now"}
+                </div>
+              ) : (
+                myPendingTasks.map((m) => (
+                  <div key={m.id} className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 space-y-3">
+                    <div>
+                      <p className="font-black text-slate-800 dark:text-white">{m.studentName}</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold mt-1">
+                        {lang === "ar" ? "من" : "From"} {m.mentionedByName}{m.note ? `: ${m.note}` : ""}
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <input
+                        type="text"
+                        value={replyDraft[m.id] || ""}
+                        onChange={(e) => setReplyDraft((prev) => ({ ...prev, [m.id]: e.target.value }))}
+                        placeholder={lang === "ar" ? "اكتب رد..." : "Write a reply..."}
+                        className="flex-1 min-w-[200px] bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl py-2 px-3 text-xs font-bold"
+                      />
+                      <button
+                        onClick={() => handleReplyToMention(m)}
+                        disabled={isSubmitting}
+                        className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-black text-[10px] uppercase tracking-widest"
+                      >
+                        {lang === "ar" ? "رد وإنهاء" : "Reply & Done"}
+                      </button>
+                      <button
+                        onClick={() => handleMarkMentionDone(m)}
+                        className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-black text-[10px] uppercase tracking-widest"
+                      >
+                        {lang === "ar" ? "Mark as done" : "Mark as done"}
+                      </button>
+                      <input
+                        type="date"
+                        value={snoozeDraft[m.id] || ""}
+                        onChange={(e) => setSnoozeDraft((prev) => ({ ...prev, [m.id]: e.target.value }))}
+                        className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl py-2 px-3 text-xs font-bold"
+                      />
+                      <button
+                        onClick={() => handleSnoozeMention(m)}
+                        className="px-4 py-2 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl font-black text-[10px] uppercase tracking-widest"
+                      >
+                        {lang === "ar" ? "ذكرني لاحقاً" : "Remind me later"}
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+
+          {personalTab === "doneByMe" && (
+            <div className="space-y-3">
+              {myDoneTasks.length === 0 ? (
+                <div className="bg-white dark:bg-slate-900 p-16 rounded-3xl border border-dashed border-slate-200 dark:border-slate-800 text-center text-slate-400 font-bold">
+                  {lang === "ar" ? "لا يوجد شيء هنا بعد" : "Nothing here yet"}
+                </div>
+              ) : (
+                myDoneTasks.map((m) => (
+                  <div key={m.id} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 flex items-center justify-between">
+                    <p className="text-sm font-bold text-slate-700 dark:text-slate-300">{m.studentName}</p>
+                    <span className="text-[10px] text-slate-400 font-bold">✅ {lang === "ar" ? "تم" : "Done"}</span>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+
+          {personalTab === "doneAll" && (
+            <div className="space-y-3">
+              {allResolvedFollowUps.length === 0 ? (
+                <div className="bg-white dark:bg-slate-900 p-16 rounded-3xl border border-dashed border-slate-200 dark:border-slate-800 text-center text-slate-400 font-bold">
+                  {lang === "ar" ? "لا يوجد شيء هنا بعد" : "Nothing here yet"}
+                </div>
+              ) : (
+                allResolvedFollowUps.map((f) => (
+                  <div key={f.id} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 flex items-center justify-between">
+                    <p className="text-sm font-bold text-slate-700 dark:text-slate-300">{f.studentName} — {f.groupName}</p>
+                    <span className="text-[10px] text-slate-400 font-bold">
+                      ✅ {f.resolvedByName || (lang === "ar" ? "تم" : "Done")}
+                    </span>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {escalateModalFor && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 w-full max-w-md space-y-4">
+            <h3 className="font-black text-slate-800 dark:text-white">
+              {lang === "ar" ? "تصعيد للإدارة" : "Escalate to admin"} — {escalateModalFor.studentName}
+            </h3>
+            <textarea
+              value={escalateAction}
+              onChange={(e) => setEscalateAction(e.target.value)}
+              placeholder={lang === "ar" ? "الإجراء المقترح..." : "Proposed action..."}
+              className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 text-xs font-bold min-h-[100px]"
+            />
+            <div className="flex gap-3">
+              <button
+                onClick={() => { setEscalateModalFor(null); setEscalateAction(""); }}
+                className="flex-1 py-3 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-2xl font-black text-[10px] uppercase tracking-widest"
+              >
+                {lang === "ar" ? "إلغاء" : "Cancel"}
+              </button>
+              <button
+                onClick={handleEscalate}
+                disabled={!escalateAction.trim() || isSubmitting}
+                className="flex-1 py-3 bg-rose-600 hover:bg-rose-700 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest"
+              >
+                {lang === "ar" ? "تصعيد" : "Escalate"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {mainView === "all" && (
+      <>
       <div className="flex flex-wrap items-end justify-between gap-6 mb-10">
         <div>
           <h1 className="text-4xl font-black tracking-tighter text-slate-900 dark:text-white mb-2">
@@ -1417,6 +1967,20 @@ const FollowUps: React.FC<{ user: User }> = ({ user }) => {
                                             : "Mute Updates"}
                                         </button>
                                       )}
+                                      {canEscalate && f.status === "active" && !f.escalation && (
+                                        <button
+                                          onClick={() => setEscalateModalFor(f)}
+                                          disabled={isSubmitting}
+                                          className="flex-1 py-4 bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-rose-600/20 transition-all flex items-center justify-center gap-2"
+                                        >
+                                          🔺 {lang === "ar" ? "تصعيد للإدارة" : "Escalate to Admin"}
+                                        </button>
+                                      )}
+                                      {f.escalation && (
+                                        <div className="flex-1 py-4 bg-rose-50 dark:bg-rose-950/20 text-rose-600 dark:text-rose-400 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2">
+                                          🔺 {lang === "ar" ? "تم التصعيد" : "Escalated"} ({f.escalation.status})
+                                        </div>
+                                      )}
                                       {isAdmin && f.status === "resolved" && (
                                         <button
                                           onClick={() => handleReopen(f)}
@@ -1867,6 +2431,8 @@ const FollowUps: React.FC<{ user: User }> = ({ user }) => {
             </div>
           </div>
         </div>
+      )}
+      </>
       )}
     </Layout>
   );

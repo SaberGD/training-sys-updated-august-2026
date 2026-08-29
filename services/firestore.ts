@@ -11,7 +11,8 @@ import {
   AssignedTask, RecurringTaskTemplate, TrainerDailyReport,
   RolePermissions, PerformanceDailyReport, PerformanceWeeklyReport,
   AppNotification, TaskStatus, TaskPriority, SubTask, TaskFile, TaskComment,
-  StudentFollowUp, FollowUpComment, Complaint, ComplaintStatus, LabelDefinition,
+  StudentFollowUp, FollowUpComment, FollowUpUpdate, FollowUpMention, FollowUpEscalation, FollowUpEventType,
+  Complaint, ComplaintStatus, LabelDefinition,
   CourseChecklistItemTemplate, TrainerPlan, GroupChecklistItem, GroupExecutionPlan,
   LectureFeedback, GraduationProject, GraduationProjectSubmission, GraduationProjectEvaluation, GraduationProjectComment,
   StudentWeaknessPoint
@@ -1570,17 +1571,33 @@ export const savePerformanceWeeklyReport = async (report: Partial<PerformanceWee
   });
 };
 
+// A deactivated student's follow-ups are frozen — no updates, mentions, resolves,
+// schedules or escalations may be written against them until reactivated.
+const assertStudentActiveForFollowUp = async (studentId: string) => {
+  const studentSnap = await getDoc(doc(db, 'students', studentId));
+  if (studentSnap.exists()) {
+    const st = studentSnap.data() as Student;
+    if (st.deactivated) {
+      throw new Error('لا يمكن التعديل على متابعة هذا الطالب — الطالب موقوف حالياً. أعد تفعيله أولاً.');
+    }
+  }
+};
+
 export const saveStudentFollowUpComment = async (
-  groupId: string, 
-  studentId: string, 
-  text: string, 
+  groupId: string,
+  studentId: string,
+  text: string,
   performedBy: User,
   mentionUserId?: string,
   mentionUserName?: string
 ) => {
+  await assertStudentActiveForFollowUp(studentId);
+
   const docId = `${groupId}_${studentId}`;
   const followUpRef = doc(db, 'studentFollowUps', docId);
-  
+  const existingSnap = await getDoc(followUpRef);
+  const existingStudentName = existingSnap.exists() ? (existingSnap.data() as StudentFollowUp).studentName : studentId;
+
   const nowStr = new Date().toISOString();
   const newComment: FollowUpComment = {
     id: Math.random().toString(36).substring(2, 11),
@@ -1632,13 +1649,17 @@ export const saveStudentFollowUpComment = async (
     details: `Added a comment: "${text.substring(0, 50)}${text.length > 50 ? '...' : ''}"`
   });
 
-  if (mentionUserId) {
-    await sendNotification({
-      userId: mentionUserId,
-      title: 'إشارة جديدة في المتابعة 🔔',
-      message: `قام ${performedBy.name} بالإشارة إليك لمتابعة الطالب. التعليق: ${text}`,
-      type: 'task_assigned',
-      link: `/follow-ups`
+  if (mentionUserId && mentionUserName) {
+    await createFollowUpMention({
+      followUpId: docId,
+      groupId,
+      studentId,
+      studentName: existingStudentName,
+      mentionedUserId: mentionUserId,
+      mentionedUserName: mentionUserName,
+      mentionedByUid: performedBy.uid,
+      mentionedByName: performedBy.name,
+      note: text
     });
   }
 };
@@ -1778,8 +1799,10 @@ export const requestFollowUp = async (data: {
   mentionedUserName?: string,
   labels?: string[]
 }, performedBy: User) => {
+  await assertStudentActiveForFollowUp(data.studentId);
+
   const docId = `${data.groupId}_${data.studentId}`;
-  
+
   let finalLabels = data.labels || [];
   try {
     const groupDoc = await getDoc(doc(db, 'groups', data.groupId));
@@ -1850,18 +1873,23 @@ export const requestFollowUp = async (data: {
     details: `Follow-up requested for ${data.studentName}. Responsible: ${data.mentionedUserName || 'Not specified'}. Deadline: ${data.deadline}. Note: ${data.note}`
   });
 
-  if (data.mentionedUserId) {
-    await sendNotification({
-      userId: data.mentionedUserId,
-      title: 'طلب متابعة جديد',
-      message: `${performedBy.name} طلب منك متابعة الطالب ${data.studentName}. الموعد النهائي: ${data.deadline}`,
-      type: 'task_assigned',
-      link: `/follow-ups`
+  if (data.mentionedUserId && data.mentionedUserName) {
+    await createFollowUpMention({
+      followUpId: docId,
+      groupId: data.groupId,
+      studentId: data.studentId,
+      studentName: data.studentName,
+      mentionedUserId: data.mentionedUserId,
+      mentionedUserName: data.mentionedUserName,
+      mentionedByUid: performedBy.uid,
+      mentionedByName: performedBy.name,
+      note: data.note
     });
   }
 };
 
 export const scheduleFollowUp = async (groupId: string, studentId: string, scheduledDate: string, performedBy: User) => {
+  await assertStudentActiveForFollowUp(studentId);
   const docId = `${groupId}_${studentId}`;
   await updateDoc(doc(db, 'studentFollowUps', docId), {
     status: 'scheduled',
@@ -1911,20 +1939,25 @@ export const submitTrainerFollowUpUpdate = async (
   mentionUserId?: string,
   mentionUserName?: string,
   nextFollowUpDate?: string,
-  resetAttendanceOnSession?: number | null
+  resetAttendanceOnSession?: number | null,
+  replyToUpdateId?: string
 ) => {
+  await assertStudentActiveForFollowUp(studentId);
+
   const docId = `${groupId}_${studentId}`;
   const followUpRef = doc(db, 'studentFollowUps', docId);
   const snap = await getDoc(followUpRef);
   const existingData = snap.exists() ? (snap.data() as StudentFollowUp) : null;
   const nowStr = new Date().toISOString();
-  
-  const updateEntry = {
+
+  const updateEntry: FollowUpUpdate = {
     id: Math.random().toString(36).substring(7),
     text: note,
     createdByUid: performedBy.uid,
     createdByName: performedBy.name,
-    createdAt: nowStr
+    createdAt: nowStr,
+    eventType: replyToUpdateId ? 'reply' : (nextFollowUpDate ? 'schedule_next' : 'note'),
+    replyToUpdateId
   };
 
   const updatesPayload: any = {
@@ -2016,18 +2049,45 @@ export const submitTrainerFollowUpUpdate = async (
     details: `Trainer updated student progress. Note: ${note.substring(0, 60)}${note.length > 60 ? '...' : ''}`
   });
 
-  if (mentionUserId) {
-    await sendNotification({
-      userId: mentionUserId,
-      title: 'إشارة جديدة في تحديث المتابعة 🔔',
-      message: `قام ${performedBy.name} بالإشارة إليك لمتابعة الطالب: ${note}`,
-      type: 'task_assigned',
-      link: `/follow-ups`
+  const followUpStudentName = existingData?.studentName || studentId;
+
+  if (mentionUserId && mentionUserName) {
+    await createFollowUpMention({
+      followUpId: docId,
+      groupId,
+      studentId,
+      studentName: followUpStudentName,
+      mentionedUserId: mentionUserId,
+      mentionedUserName: mentionUserName,
+      mentionedByUid: performedBy.uid,
+      mentionedByName: performedBy.name,
+      note
     });
+  }
+
+  // A reply to a specific earlier update re-opens a task for whoever wrote it —
+  // even if they aren't the follow-up's current mentionedUserId.
+  if (replyToUpdateId && existingData?.updates) {
+    const originalUpdate = existingData.updates.find(u => u.id === replyToUpdateId);
+    if (originalUpdate && originalUpdate.createdByUid !== performedBy.uid) {
+      await createFollowUpMention({
+        followUpId: docId,
+        groupId,
+        studentId,
+        studentName: followUpStudentName,
+        mentionedUserId: originalUpdate.createdByUid,
+        mentionedUserName: originalUpdate.createdByName,
+        mentionedByUid: performedBy.uid,
+        mentionedByName: performedBy.name,
+        sourceUpdateId: updateEntry.id,
+        note: `رد على تحديثك: ${note}`
+      });
+    }
   }
 };
 
 export const approveNextFollowUpDate = async (groupId: string, studentId: string, performedBy: User) => {
+  await assertStudentActiveForFollowUp(studentId);
   const docId = `${groupId}_${studentId}`;
   const followUpRef = doc(db, 'studentFollowUps', docId);
   const snap = await getDoc(followUpRef);
@@ -2071,6 +2131,7 @@ export const approveNextFollowUpDate = async (groupId: string, studentId: string
 };
 
 export const rejectNextFollowUpDate = async (groupId: string, studentId: string, performedBy: User) => {
+  await assertStudentActiveForFollowUp(studentId);
   const docId = `${groupId}_${studentId}`;
   const followUpRef = doc(db, 'studentFollowUps', docId);
   const snap = await getDoc(followUpRef);
@@ -2108,6 +2169,7 @@ export const rejectNextFollowUpDate = async (groupId: string, studentId: string,
 };
 
 export const muteStudentFollowUp = async (groupId: string, studentId: string, userId: string, performedBy: User) => {
+  await assertStudentActiveForFollowUp(studentId);
   const docId = `${groupId}_${studentId}`;
   const followUpRef = doc(db, 'studentFollowUps', docId);
   const nowStr = new Date().toISOString();
@@ -2151,6 +2213,7 @@ export const muteStudentFollowUp = async (groupId: string, studentId: string, us
 };
 
 export const reopenStudentFollowUp = async (groupId: string, studentId: string, performedBy: User) => {
+  await assertStudentActiveForFollowUp(studentId);
   const docId = `${groupId}_${studentId}`;
   await updateDoc(doc(db, 'studentFollowUps', docId), {
     status: 'active',
@@ -2170,6 +2233,7 @@ export const reopenStudentFollowUp = async (groupId: string, studentId: string, 
 };
 
 export const reactivateScheduledFollowUp = async (groupId: string, studentId: string, performedBy: User) => {
+  await assertStudentActiveForFollowUp(studentId);
   const docId = `${groupId}_${studentId}`;
   await updateDoc(doc(db, 'studentFollowUps', docId), {
     status: 'active',
@@ -2188,16 +2252,28 @@ export const reactivateScheduledFollowUp = async (groupId: string, studentId: st
 };
 
 export const resolveStudentFollowUp = async (groupId: string, studentId: string, performedBy: User) => {
+  await assertStudentActiveForFollowUp(studentId);
+
   const docId = `${groupId}_${studentId}`;
+  const doneEntry: FollowUpUpdate = {
+    id: Math.random().toString(36).substring(2, 11),
+    text: `✅ قام ${performedBy.name} بإغلاق المتابعة نهائياً.`,
+    createdByUid: performedBy.uid,
+    createdByName: performedBy.name,
+    createdAt: new Date().toISOString(),
+    eventType: 'mark_done'
+  };
   await updateDoc(doc(db, 'studentFollowUps', docId), {
     status: 'resolved',
     resolvedAt: serverTimestamp(),
     resolvedByUid: performedBy.uid,
     resolvedByName: performedBy.name,
     colorStatus: 'default',
+    escalation: null,
+    updates: arrayUnion(doneEntry),
     lastUpdatedAt: serverTimestamp()
   });
-  
+
   await logActivity({
     action: 'FOLLOWUP_RESOLVE',
     entityType: 'follow_up',
@@ -2206,6 +2282,273 @@ export const resolveStudentFollowUp = async (groupId: string, studentId: string,
     performedByName: performedBy.name,
     performedByRole: performedBy.role,
     details: `Follow-up resolved for student ${studentId}`
+  });
+};
+
+// ── Follow-up mentions (per-person task tracking) ──────────────────────────
+// Each mention is its own independent row: when Sami is mentioned and Alaa is
+// mentioned in the same update, each gets their own pending mention that they
+// close individually — replying or marking done never affects the other's.
+
+export const createFollowUpMention = async (params: {
+  followUpId: string;
+  groupId: string;
+  studentId: string;
+  studentName: string;
+  mentionedUserId: string;
+  mentionedUserName: string;
+  mentionedByUid: string;
+  mentionedByName: string;
+  sourceUpdateId?: string;
+  note?: string;
+}) => {
+  const payload: Omit<FollowUpMention, 'id'> = {
+    followUpId: params.followUpId,
+    groupId: params.groupId,
+    studentId: params.studentId,
+    studentName: params.studentName,
+    mentionedUserId: params.mentionedUserId,
+    mentionedUserName: params.mentionedUserName,
+    mentionedByUid: params.mentionedByUid,
+    mentionedByName: params.mentionedByName,
+    createdAt: serverTimestamp(),
+    sourceUpdateId: params.sourceUpdateId,
+    note: params.note,
+    status: 'pending',
+    snoozedUntil: null
+  };
+  await addDoc(collection(db, 'followUpMentions'), payload);
+
+  await sendNotification({
+    userId: params.mentionedUserId,
+    title: 'مهمة متابعة جديدة 🔔',
+    message: `${params.mentionedByName} أشار إليك بخصوص متابعة الطالب ${params.studentName}${params.note ? `: ${params.note}` : ''}`,
+    type: 'followup_mention',
+    link: `/follow-ups`
+  });
+};
+
+export const markFollowUpMentionDone = async (mentionId: string, performedBy: User) => {
+  await updateDoc(doc(db, 'followUpMentions', mentionId), {
+    status: 'done',
+    doneAt: serverTimestamp(),
+    doneByUid: performedBy.uid
+  });
+};
+
+export const snoozeFollowUpMention = async (mentionId: string, snoozedUntil: string) => {
+  await updateDoc(doc(db, 'followUpMentions', mentionId), { snoozedUntil });
+};
+
+// ── Follow-up suggestions (replaces automatic transfer) ─────────────────────
+// A suggestion is never written to Firestore on its own (see
+// services/followUpSuggestions.ts for the live, unsaved computation). Only
+// once a supervisor explicitly approves one does a real StudentFollowUp doc
+// get created here.
+export const approveFollowUpSuggestion = async (
+  groupId: string,
+  groupName: string,
+  studentId: string,
+  studentName: string,
+  reason: 'absence' | 'tasks',
+  performedBy: User,
+  mentionUserId?: string,
+  mentionUserName?: string
+) => {
+  await assertStudentActiveForFollowUp(studentId);
+
+  const docId = `${groupId}_${studentId}`;
+  const followUpRef = doc(db, 'studentFollowUps', docId);
+  const nowStr = new Date().toISOString();
+
+  let finalLabels: string[] = [reason];
+  try {
+    const groupDoc = await getDoc(doc(db, 'groups', groupId));
+    if (groupDoc.exists()) {
+      const gType = groupDoc.data()?.groupType || 'online';
+      finalLabels.push(gType === 'offline' ? 'offline' : 'online');
+    }
+  } catch (err) {
+    console.error('Error setting online/offline label inside approveFollowUpSuggestion', err);
+  }
+
+  const systemEntry: FollowUpUpdate = {
+    id: Math.random().toString(36).substring(2, 11),
+    text: `⚠️ اعتمد ${performedBy.name} اقتراح النظام وحوّله لمتابعة فعلية (السبب: ${reason === 'absence' ? 'نسبة الحضور' : 'نسبة تسليم التاسكات'}).`,
+    createdByUid: performedBy.uid,
+    createdByName: performedBy.name,
+    createdAt: nowStr,
+    eventType: 'system'
+  };
+
+  const payload: any = {
+    id: docId,
+    groupId,
+    groupName,
+    studentId,
+    studentName,
+    status: 'active',
+    colorStatus: 'red',
+    labels: finalLabels,
+    updates: arrayUnion(systemEntry),
+    mentionedUserId: mentionUserId || null,
+    mentionedUserName: mentionUserName || null,
+    lastUpdatedAt: serverTimestamp()
+  };
+
+  try {
+    const { studentEvals, groupSessions, totalRequired, totalCompleted } =
+      await calculateStudentAcademicStats(groupId, studentId);
+    const totalAttended = studentEvals.filter((e) => e.attendance === 1).length;
+    payload.tasksDone = totalCompleted;
+    payload.totalTasks = totalRequired;
+    payload.attendanceCount = totalAttended;
+    payload.totalSessions = groupSessions.length;
+  } catch (err) {
+    console.error('Error computing stats in approveFollowUpSuggestion:', err);
+  }
+
+  await setDoc(followUpRef, payload, { merge: true });
+
+  await logActivity({
+    action: 'FOLLOWUP_SUGGESTION_APPROVED',
+    entityType: 'follow_up',
+    entityId: docId,
+    entityName: studentName,
+    performedByUid: performedBy.uid,
+    performedByName: performedBy.name,
+    performedByRole: performedBy.role,
+    details: `Supervisor approved an automatic follow-up suggestion for ${studentName} (reason: ${reason})`
+  });
+
+  if (mentionUserId && mentionUserName) {
+    await createFollowUpMention({
+      followUpId: docId,
+      groupId,
+      studentId,
+      studentName,
+      mentionedUserId: mentionUserId,
+      mentionedUserName: mentionUserName,
+      mentionedByUid: performedBy.uid,
+      mentionedByName: performedBy.name,
+      note: `متابعة جديدة (${reason === 'absence' ? 'الحضور' : 'التاسكات'})`
+    });
+  }
+};
+
+// ── Escalation to admin ─────────────────────────────────────────────────────
+export const escalateFollowUp = async (
+  groupId: string,
+  studentId: string,
+  proposedAction: string,
+  performedBy: User,
+  adminUsers: User[]
+) => {
+  await assertStudentActiveForFollowUp(studentId);
+
+  const docId = `${groupId}_${studentId}`;
+  const nowStr = new Date().toISOString();
+
+  const escalation: FollowUpEscalation = {
+    status: 'pending',
+    proposedAction,
+    escalatedByUid: performedBy.uid,
+    escalatedByName: performedBy.name,
+    escalatedAt: serverTimestamp()
+  };
+
+  const timelineEntry: FollowUpUpdate = {
+    id: Math.random().toString(36).substring(2, 11),
+    text: `🔺 صعّد ${performedBy.name} هذه المتابعة للإدارة. الإجراء المقترح: ${proposedAction}`,
+    createdByUid: performedBy.uid,
+    createdByName: performedBy.name,
+    createdAt: nowStr,
+    eventType: 'escalate'
+  };
+
+  await updateDoc(doc(db, 'studentFollowUps', docId), {
+    escalation,
+    updates: arrayUnion(timelineEntry),
+    lastUpdatedAt: serverTimestamp()
+  });
+
+  await logActivity({
+    action: 'FOLLOWUP_ESCALATE',
+    entityType: 'follow_up',
+    entityId: docId,
+    performedByUid: performedBy.uid,
+    performedByName: performedBy.name,
+    performedByRole: performedBy.role,
+    details: `Escalated to admin. Proposed action: ${proposedAction}`
+  });
+
+  await Promise.all(
+    adminUsers.map((admin) =>
+      sendNotification({
+        userId: admin.uid,
+        title: 'تصعيد متابعة عاجل 🔺',
+        message: `${performedBy.name} صعّد متابعة طالب للإدارة. الإجراء المقترح: ${proposedAction}`,
+        type: 'followup_escalation',
+        link: `/follow-ups`
+      })
+    )
+  );
+};
+
+export const respondToEscalation = async (
+  groupId: string,
+  studentId: string,
+  status: 'approved' | 'on_hold' | 'resolved',
+  adminNote: string,
+  performedBy: User
+) => {
+  const docId = `${groupId}_${studentId}`;
+  const followUpRef = doc(db, 'studentFollowUps', docId);
+  const snap = await getDoc(followUpRef);
+  if (!snap.exists()) throw new Error('Follow-up record not found');
+
+  const nowStr = new Date().toISOString();
+  const statusLabel = status === 'approved' ? 'بالموافقة' : status === 'on_hold' ? 'بالتعليق مؤقتاً' : 'بالإغلاق';
+
+  const timelineEntry: FollowUpUpdate = {
+    id: Math.random().toString(36).substring(2, 11),
+    text: `🛡️ رد الأدمن ${performedBy.name} على التصعيد ${statusLabel}.${adminNote ? ` ملحوظة: ${adminNote}` : ''}`,
+    createdByUid: performedBy.uid,
+    createdByName: performedBy.name,
+    createdAt: nowStr,
+    eventType: 'escalate'
+  };
+
+  const updatePayload: any = {
+    updates: arrayUnion(timelineEntry),
+    lastUpdatedAt: serverTimestamp()
+  };
+
+  if (status === 'resolved') {
+    // Escalation fully clears — the follow-up drops back to a normal internal
+    // item between staff, and the admin mention disappears from the UI.
+    updatePayload.escalation = null;
+  } else {
+    updatePayload.escalation = {
+      ...(snap.data() as StudentFollowUp).escalation,
+      status,
+      adminUid: performedBy.uid,
+      adminName: performedBy.name,
+      adminNote: adminNote || null,
+      resolvedAt: status === 'approved' || status === 'on_hold' ? null : serverTimestamp()
+    };
+  }
+
+  await updateDoc(followUpRef, updatePayload);
+
+  await logActivity({
+    action: 'FOLLOWUP_ESCALATION_RESPONSE',
+    entityType: 'follow_up',
+    entityId: docId,
+    performedByUid: performedBy.uid,
+    performedByName: performedBy.name,
+    performedByRole: performedBy.role,
+    details: `Admin responded to escalation with status: ${status}`
   });
 };
 
@@ -2267,7 +2610,8 @@ export const deleteLabelDefinition = async (id: string) => {
   await deleteDoc(doc(db, 'labelDefinitions', id));
 };
 
-export const updateFollowUpLabels = async (groupId: string, groupName: string, studentId: string, studentName: string, labels: string[]) => {
+export const updateFollowUpLabels = async (groupId: string, groupName: string, studentId: string, studentName: string, labels: string[], options?: { isAutomaticSync?: boolean }) => {
+  const isAutomaticSync = options?.isAutomaticSync === true;
   const docId = `${groupId}_${studentId}`;
   const docRef = doc(db, 'studentFollowUps', docId);
   const snap = await getDoc(docRef);
@@ -2351,18 +2695,27 @@ export const updateFollowUpLabels = async (groupId: string, groupName: string, s
 
   if (snap.exists()) {
     const data = snap.data() as StudentFollowUp;
-    const updateData: any = { 
-      labels: finalLabels, 
+
+    // Automatic threshold sync must never silently reactivate a resolved follow-up —
+    // that would recreate the old "auto-transfer" behavior. A resolved follow-up only
+    // comes back via an explicit human suggestion approval or reopen action, so the
+    // automatic sync does nothing at all here (it's surfaced as a live suggestion instead).
+    if (isAutomaticSync && data.status === 'resolved') {
+      return;
+    }
+
+    const updateData: any = {
+      labels: finalLabels,
       lastUpdatedAt: serverTimestamp(),
       studentName,
       groupName
     };
-    
+
     if (data.status === 'resolved' && finalLabels.length > 0) {
       updateData.status = 'active';
       updateData.colorStatus = 'red';
     }
-    
+
     if (newComments.length > 0) {
       updateData.comments = arrayUnion(...newComments);
     }
@@ -2387,7 +2740,11 @@ export const updateFollowUpLabels = async (groupId: string, groupName: string, s
     }
     
     await updateDoc(docRef, updateData);
-  } else if (finalLabels.length > 0) {
+  } else if (finalLabels.length > 0 && !isAutomaticSync) {
+    // A brand-new follow-up is only ever created by an explicit human action
+    // (manual label toggle, or approveFollowUpSuggestion). Automatic threshold
+    // detection with no existing doc is surfaced only as a live suggestion —
+    // see computeFollowUpSuggestions in services/followUpSuggestions.ts.
     const insertData: any = {
       id: docId,
       groupId,

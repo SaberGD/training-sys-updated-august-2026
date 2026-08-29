@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, Group, Student, Course, StudentFollowUp, LectureEvaluation, Session } from '../types';
-import { subscribeToCollection, submitTrainerFollowUpUpdate } from '../services/firestore';
+import { User, Group, Student, Course, StudentFollowUp, LectureEvaluation, Session, FollowUpMention } from '../types';
+import { subscribeToCollection, submitTrainerFollowUpUpdate, markFollowUpMentionDone } from '../services/firestore';
 import Layout from '../components/Layout';
 import StudentStatusModal from '../components/StudentStatusModal';
 import { formatTime12h } from '../utils';
@@ -40,6 +40,7 @@ const Dashboard: React.FC<{ user: User }> = ({ user }) => {
   const [allEvaluations, setAllEvaluations] = useState<LectureEvaluation[]>([]);
   const [allUsers, setAllUsers] = useState<any[]>([]);
   const [allSessions, setAllSessions] = useState<Session[]>([]);
+  const [allMentions, setAllMentions] = useState<FollowUpMention[]>([]);
   const [weekPivot, setWeekPivot] = useState<Date>(() => new Date());
   
   // States of loading / UI interaction
@@ -75,7 +76,10 @@ const Dashboard: React.FC<{ user: User }> = ({ user }) => {
     const unsubSessions = subscribeToCollection<Session>('sessions', (data) => {
       setAllSessions(data);
     });
-    
+    const unsubMentions = subscribeToCollection<FollowUpMention>('followUpMentions', (data) => {
+      setAllMentions(data);
+    });
+
     return () => {
       unsubGStats();
       unsubSStats();
@@ -84,21 +88,37 @@ const Dashboard: React.FC<{ user: User }> = ({ user }) => {
       unsubEvals();
       unsubUsers();
       unsubSessions();
+      unsubMentions();
     };
   }, []);
 
-  // Filter pending active follow ups where current user is mentioned AND has not updated/commented yet
-  const myPendingFollowUps = useMemo(() => {
-    return allFollowUps.filter(f => {
-      // Must be active
-      if (f.status !== 'active') return false;
-      // Must target the logged-in user specifically
-      if (f.mentionedUserId !== user.uid) return false;
-      // Must not be already updated by the user in the updates logs
-      const hasMyUpdate = f.updates && f.updates.some(u => u.createdByUid === user.uid);
-      return !hasMyUpdate;
+  // My pending follow-up tasks — driven by the independent per-person mentions
+  // collection, not a single overwritable mentionedUserId field. A deactivated
+  // student's follow-up is frozen and excluded here.
+  const todayStr = new Date().toISOString().split('T')[0];
+  const myPendingMentions = useMemo(() => {
+    return allMentions.filter(m => {
+      if (m.mentionedUserId !== user.uid) return false;
+      if (m.status !== 'pending') return false;
+      if (m.snoozedUntil && m.snoozedUntil > todayStr) return false;
+      const student = allStudents.find(s => s.id === m.studentId);
+      if (student?.deactivated) return false;
+      return true;
     });
-  }, [allFollowUps, user.uid]);
+  }, [allMentions, allStudents, user.uid, todayStr]);
+
+  const myPendingFollowUps = useMemo(() => {
+    return myPendingMentions
+      .map(m => allFollowUps.find(f => f.id === m.followUpId))
+      .filter((f): f is StudentFollowUp => !!f && f.status === 'active');
+  }, [myPendingMentions, allFollowUps]);
+
+  const handleMarkMentionDoneFromDashboard = async (followUpId: string) => {
+    const mention = myPendingMentions.find(m => m.followUpId === followUpId);
+    if (mention) {
+      await markFollowUpMentionDone(mention.id, user);
+    }
+  };
 
   // Handle submitting a quick update/note
   const handleQuickUpdateSubmit = async (f: StudentFollowUp, customNote?: string) => {
@@ -108,6 +128,7 @@ const Dashboard: React.FC<{ user: User }> = ({ user }) => {
     setSubmittingId(f.id);
     try {
       await submitTrainerFollowUpUpdate(f.groupId, f.studentId, noteText, user);
+      await handleMarkMentionDoneFromDashboard(f.id);
       // Clear local text state
       setQuickNotes(prev => {
         const copy = { ...prev };

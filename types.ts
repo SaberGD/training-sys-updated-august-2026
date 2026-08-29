@@ -44,7 +44,7 @@ export interface GoogleConnection {
   updatedAt: any;
 }
 
-export type UserRole = 'admin' | 'coordinator' | 'team_leader' | 'trainer';
+export type UserRole = 'admin' | 'coordinator' | 'team_leader' | 'trainer' | 'supervisor';
 
 export interface User {
   uid: string;
@@ -201,7 +201,7 @@ export interface AppNotification {
   userId: string;
   title: string;
   message: string;
-  type: 'task_assigned' | 'task_status' | 'task_deadline' | 'task_overdue' | 'task_review';
+  type: 'task_assigned' | 'task_status' | 'task_deadline' | 'task_overdue' | 'task_review' | 'followup_mention' | 'followup_suggestion' | 'followup_escalation' | 'followup_reply';
   read: boolean;
   createdAt: any;
   link?: string;
@@ -275,6 +275,11 @@ export interface RolePermissions {
     viewPerformanceReports: boolean;
     submitPerformanceReport: boolean;
     approvePerformanceReport: boolean;
+    viewFollowUpSuggestions: boolean;
+    approveFollowUpSuggestion: boolean;
+    resolveFollowUp: boolean;
+    approveFollowUpReschedule: boolean;
+    escalateFollowUp: boolean;
   }
 }
 
@@ -578,12 +583,48 @@ export interface LabelDefinition {
   visibleOnScreen?: boolean;
 }
 
+export type FollowUpEventType = 'note' | 'mark_done' | 'schedule_next' | 'mention' | 'reply' | 'escalate' | 'system';
+
 export interface FollowUpUpdate {
   id: string;
   text: string;
   createdByUid: string;
   createdByName: string;
   createdAt: any;
+  eventType?: FollowUpEventType;
+  replyToUpdateId?: string;
+}
+
+export interface FollowUpEscalation {
+  status: 'pending' | 'approved' | 'on_hold' | 'resolved';
+  proposedAction: string;
+  escalatedByUid: string;
+  escalatedByName: string;
+  escalatedAt: any;
+  adminUid?: string;
+  adminName?: string;
+  adminNote?: string;
+  resolvedAt?: any;
+  resolvedByUid?: string;
+}
+
+export interface FollowUpMention {
+  id: string;
+  followUpId: string;
+  groupId: string;
+  studentId: string;
+  studentName: string;
+  mentionedUserId: string;
+  mentionedUserName: string;
+  mentionedByUid: string;
+  mentionedByName: string;
+  createdAt: any;
+  sourceUpdateId?: string;
+  note?: string;
+  status: 'pending' | 'done';
+  doneAt?: any;
+  doneByUid?: string;
+  snoozedUntil?: string | null;
 }
 
 export interface StudentFollowUp {
@@ -620,6 +661,7 @@ export interface StudentFollowUp {
   totalTasks?: number;
   attendanceCount?: number;
   totalSessions?: number;
+  escalation?: FollowUpEscalation | null;
 }
 
 export interface Attendance {
