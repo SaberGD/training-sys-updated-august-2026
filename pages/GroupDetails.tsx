@@ -1619,7 +1619,7 @@ const GroupDetails: React.FC<{ user: User }> = ({ user }) => {
         
         if (hasChanged) {
           try {
-             await updateFollowUpLabels(group.id, group.name, d.student.id, d.student.name, finalLabels);
+             await updateFollowUpLabels(group.id, group.name, d.student.id, d.student.name, finalLabels, { isAutomaticSync: true });
           } catch (err) {
              console.error("Error syncing follow up labels:", err);
           }

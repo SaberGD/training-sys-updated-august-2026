@@ -24,7 +24,19 @@ const DEFAULT_PERMISSIONS: Record<UserRole, RolePermissions['permissions']> = {
     viewTasks: true, createTasks: true, manageTemplates: true, viewAllReports: true,
     submitDailyReport: true, manageGroups: true, manageCourses: true, manageStudents: true,
     manageUsers: true, viewRanking: true, manageEvaluations: true,
-    viewPerformanceReports: true, submitPerformanceReport: true, approvePerformanceReport: true
+    viewPerformanceReports: true, submitPerformanceReport: true, approvePerformanceReport: true,
+    viewFollowUpSuggestions: true, approveFollowUpSuggestion: true, resolveFollowUp: true,
+    approveFollowUpReschedule: true, escalateFollowUp: true
+  },
+  supervisor: {
+    viewDashboard: true, viewUsers: false, viewCourses: true, viewGroups: true, viewStudents: true,
+    viewMarketing: true, viewWeeklySchedule: true, viewExports: true, viewActivityLog: true,
+    viewTasks: true, createTasks: true, manageTemplates: true, viewAllReports: true,
+    submitDailyReport: true, manageGroups: true, manageCourses: true, manageStudents: true,
+    manageUsers: false, viewRanking: true, manageEvaluations: true,
+    viewPerformanceReports: true, submitPerformanceReport: true, approvePerformanceReport: true,
+    viewFollowUpSuggestions: true, approveFollowUpSuggestion: true, resolveFollowUp: true,
+    approveFollowUpReschedule: true, escalateFollowUp: true
   },
   coordinator: {
     viewDashboard: true, viewUsers: false, viewCourses: true, viewGroups: true, viewStudents: true,
@@ -32,7 +44,9 @@ const DEFAULT_PERMISSIONS: Record<UserRole, RolePermissions['permissions']> = {
     viewTasks: true, createTasks: true, manageTemplates: true, viewAllReports: true,
     submitDailyReport: true, manageGroups: true, manageCourses: true, manageStudents: true,
     manageUsers: false, viewRanking: true, manageEvaluations: true,
-    viewPerformanceReports: true, submitPerformanceReport: true, approvePerformanceReport: true
+    viewPerformanceReports: true, submitPerformanceReport: true, approvePerformanceReport: true,
+    viewFollowUpSuggestions: false, approveFollowUpSuggestion: false, resolveFollowUp: false,
+    approveFollowUpReschedule: false, escalateFollowUp: false
   },
   team_leader: {
     viewDashboard: true, viewUsers: false, viewCourses: true, viewGroups: true, viewStudents: true,
@@ -40,7 +54,9 @@ const DEFAULT_PERMISSIONS: Record<UserRole, RolePermissions['permissions']> = {
     viewTasks: true, createTasks: false, manageTemplates: false, viewAllReports: false,
     submitDailyReport: true, manageGroups: false, manageCourses: false, manageStudents: false,
     manageUsers: false, viewRanking: true, manageEvaluations: true,
-    viewPerformanceReports: true, submitPerformanceReport: true, approvePerformanceReport: false
+    viewPerformanceReports: true, submitPerformanceReport: true, approvePerformanceReport: false,
+    viewFollowUpSuggestions: false, approveFollowUpSuggestion: false, resolveFollowUp: false,
+    approveFollowUpReschedule: false, escalateFollowUp: false
   },
   trainer: {
     viewDashboard: true, viewUsers: false, viewCourses: true, viewGroups: true, viewStudents: true,
@@ -48,13 +64,15 @@ const DEFAULT_PERMISSIONS: Record<UserRole, RolePermissions['permissions']> = {
     viewTasks: true, createTasks: false, manageTemplates: false, viewAllReports: false,
     submitDailyReport: true, manageGroups: false, manageCourses: false, manageStudents: false,
     manageUsers: false, viewRanking: true, manageEvaluations: true,
-    viewPerformanceReports: true, submitPerformanceReport: true, approvePerformanceReport: false
+    viewPerformanceReports: true, submitPerformanceReport: true, approvePerformanceReport: false,
+    viewFollowUpSuggestions: false, approveFollowUpSuggestion: false, resolveFollowUp: false,
+    approveFollowUpReschedule: false, escalateFollowUp: false
   }
 };
 
 export const PermissionsProvider: React.FC<{ children: React.ReactNode; user: User | null }> = ({ children, user }) => {
   const [rolePermissions, setRolePermissions] = useState<Record<UserRole, RolePermissions['permissions'] | null>>({
-    admin: null, coordinator: null, team_leader: null, trainer: null
+    admin: null, coordinator: null, team_leader: null, trainer: null, supervisor: null
   });
   const [hiddenPages, setHiddenPages] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
