@@ -275,6 +275,7 @@ export interface RolePermissions {
     viewPerformanceReports: boolean;
     submitPerformanceReport: boolean;
     approvePerformanceReport: boolean;
+    viewAllFollowUps: boolean;
     viewFollowUpSuggestions: boolean;
     approveFollowUpSuggestion: boolean;
     resolveFollowUp: boolean;
@@ -625,6 +626,20 @@ export interface FollowUpMention {
   doneAt?: any;
   doneByUid?: string;
   snoozedUntil?: string | null;
+}
+
+export interface FollowUpSuggestionRejection {
+  id: string; // `${groupId}_${studentId}_${reason}`
+  groupId: string;
+  groupName: string;
+  studentId: string;
+  studentName: string;
+  reason: 'absence' | 'tasks';
+  rejectedByUid: string;
+  rejectedByName: string;
+  rejectedAt: any;
+  rejectionReason: string;
+  reappearAt: string; // YYYY-MM-DD — suggestion is suppressed until this date
 }
 
 export interface StudentFollowUp {

@@ -12,6 +12,7 @@ import {
   RolePermissions, PerformanceDailyReport, PerformanceWeeklyReport,
   AppNotification, TaskStatus, TaskPriority, SubTask, TaskFile, TaskComment,
   StudentFollowUp, FollowUpComment, FollowUpUpdate, FollowUpMention, FollowUpEscalation, FollowUpEventType,
+  FollowUpSuggestionRejection,
   Complaint, ComplaintStatus, LabelDefinition,
   CourseChecklistItemTemplate, TrainerPlan, GroupChecklistItem, GroupExecutionPlan,
   LectureFeedback, GraduationProject, GraduationProjectSubmission, GraduationProjectEvaluation, GraduationProjectComment,
@@ -2084,6 +2085,11 @@ export const submitTrainerFollowUpUpdate = async (
       });
     }
   }
+
+  // Posting a progress update satisfies any pending task the author had on
+  // this follow-up — they don't get pinged again unless someone mentions them
+  // (or replies to one of their updates) afterwards.
+  await closeOwnPendingMentions(docId, performedBy.uid);
 };
 
 export const approveNextFollowUpDate = async (groupId: string, studentId: string, performedBy: User) => {
@@ -2165,50 +2171,6 @@ export const rejectNextFollowUpDate = async (groupId: string, studentId: string,
     performedByName: performedBy.name,
     performedByRole: performedBy.role,
     details: `Supervisor rejected next follow-up date for student ${studentId}`
-  });
-};
-
-export const muteStudentFollowUp = async (groupId: string, studentId: string, userId: string, performedBy: User) => {
-  await assertStudentActiveForFollowUp(studentId);
-  const docId = `${groupId}_${studentId}`;
-  const followUpRef = doc(db, 'studentFollowUps', docId);
-  const nowStr = new Date().toISOString();
-
-  const snap = await getDoc(followUpRef);
-  const data = snap.exists() ? (snap.data() as StudentFollowUp) : null;
-  const wasAssignee = data?.mentionedUserId === userId;
-
-  const updatesPayload: any = {
-    mutedUserIds: arrayUnion(userId),
-    lastUpdatedAt: serverTimestamp()
-  };
-
-  if (wasAssignee) {
-    updatesPayload.mentionedUserId = null;
-    updatesPayload.mentionedUserName = null;
-  }
-
-  const logComment = {
-    id: Math.random().toString(36).substring(2, 11),
-    text: `🔕 قام ${performedBy.name} بكتم وإلغاء اشتراكه من هذه المتابعة.`,
-    createdByUid: 'system',
-    createdByName: 'النظام تلقائياً',
-    createdByRole: 'مساعد ذكي',
-    createdAt: nowStr
-  };
-
-  updatesPayload.comments = arrayUnion(logComment);
-
-  await setDoc(followUpRef, updatesPayload, { merge: true });
-
-  await logActivity({
-    action: 'FOLLOWUP_MUTE',
-    entityType: 'follow_up',
-    entityId: docId,
-    performedByUid: performedBy.uid,
-    performedByName: performedBy.name,
-    performedByRole: performedBy.role,
-    details: `${performedBy.name} muted updates for follow-up`
   });
 };
 
@@ -2340,6 +2302,25 @@ export const snoozeFollowUpMention = async (mentionId: string, snoozedUntil: str
   await updateDoc(doc(db, 'followUpMentions', mentionId), { snoozedUntil });
 };
 
+// Closes every pending mention a given user has on a given follow-up — used
+// whenever they post a progress update, since that satisfies whatever they
+// were pinged for (mirrors markFollowUpMentionDone but resolves the mention
+// id(s) automatically instead of requiring the caller to know it).
+const closeOwnPendingMentions = async (followUpId: string, userId: string) => {
+  const snap = await getDocs(query(
+    collection(db, 'followUpMentions'),
+    where('followUpId', '==', followUpId),
+    where('mentionedUserId', '==', userId),
+    where('status', '==', 'pending')
+  ));
+  if (snap.empty) return;
+  const batch = writeBatch(db);
+  snap.docs.forEach((d: any) => {
+    batch.update(d.ref, { status: 'done', doneAt: serverTimestamp(), doneByUid: userId });
+  });
+  await batch.commit();
+};
+
 // ── Follow-up suggestions (replaces automatic transfer) ─────────────────────
 // A suggestion is never written to Firestore on its own (see
 // services/followUpSuggestions.ts for the live, unsaved computation). Only
@@ -2434,6 +2415,49 @@ export const approveFollowUpSuggestion = async (
       note: `متابعة جديدة (${reason === 'absence' ? 'الحضور' : 'التاسكات'})`
     });
   }
+};
+
+const SUGGESTION_REJECTION_COOLDOWN_DAYS = 7;
+
+export const rejectFollowUpSuggestion = async (
+  groupId: string,
+  groupName: string,
+  studentId: string,
+  studentName: string,
+  reason: 'absence' | 'tasks',
+  rejectionReason: string,
+  performedBy: User
+) => {
+  const id = `${groupId}_${studentId}_${reason}`;
+  const reappearDate = new Date();
+  reappearDate.setDate(reappearDate.getDate() + SUGGESTION_REJECTION_COOLDOWN_DAYS);
+  const reappearAt = reappearDate.toISOString().slice(0, 10);
+
+  const payload: Omit<FollowUpSuggestionRejection, 'id'> = {
+    groupId,
+    groupName,
+    studentId,
+    studentName,
+    reason,
+    rejectedByUid: performedBy.uid,
+    rejectedByName: performedBy.name,
+    rejectedAt: serverTimestamp(),
+    rejectionReason,
+    reappearAt
+  };
+
+  await setDoc(doc(db, 'followUpSuggestionRejections', id), payload);
+
+  await logActivity({
+    action: 'FOLLOWUP_SUGGESTION_REJECTED',
+    entityType: 'follow_up_suggestion',
+    entityId: id,
+    entityName: studentName,
+    performedByUid: performedBy.uid,
+    performedByName: performedBy.name,
+    performedByRole: performedBy.role,
+    details: `Supervisor rejected an automatic follow-up suggestion for ${studentName} (reason: ${reason}). Won't reappear before ${reappearAt}. Note: ${rejectionReason}`
+  });
 };
 
 // ── Escalation to admin ─────────────────────────────────────────────────────

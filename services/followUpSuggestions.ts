@@ -1,4 +1,4 @@
-import { Group, Student, Session, LectureEvaluation, StudentFollowUp } from '../types';
+import { Group, Student, Session, LectureEvaluation, StudentFollowUp, FollowUpSuggestionRejection } from '../types';
 
 export interface FollowUpSuggestion {
   groupId: string;
@@ -23,9 +23,15 @@ export const computeFollowUpSuggestions = (
   students: Student[],
   sessions: Session[],
   evaluations: LectureEvaluation[],
-  existingFollowUps: StudentFollowUp[]
+  existingFollowUps: StudentFollowUp[],
+  rejections: FollowUpSuggestionRejection[] = []
 ): FollowUpSuggestion[] => {
   const suggestions: FollowUpSuggestion[] = [];
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const isCoolingDown = (groupId: string, studentId: string, reason: 'absence' | 'tasks') => {
+    const rejection = rejections.find(r => r.groupId === groupId && r.studentId === studentId && r.reason === reason);
+    return !!rejection && rejection.reappearAt > todayStr;
+  };
 
   for (const group of groups) {
     if (group.archived) continue;
@@ -47,7 +53,7 @@ export const computeFollowUpSuggestions = (
       const totalCompleted = studentEvals.reduce((sum, e) => sum + (e.taskDelivered || 0), 0);
       const completionRate = totalRequired > 0 ? Math.round((totalCompleted / totalRequired) * 100) : 100;
 
-      if (totalSessionsDoneOverall >= 3 && completionRate < 70 && !existingLabels.includes('tasks')) {
+      if (totalSessionsDoneOverall >= 3 && completionRate < 70 && !existingLabels.includes('tasks') && !isCoolingDown(group.id, student.id, 'tasks')) {
         suggestions.push({
           groupId: group.id,
           groupName: group.name,
@@ -73,7 +79,7 @@ export const computeFollowUpSuggestions = (
         sessionsDoneCountAfterReset >= 2 ||
         (resetSessionNum === 0 && totalSessionsDoneOverall >= 3);
 
-      if (attendanceEligible && attendanceRate < 70 && !existingLabels.includes('absence')) {
+      if (attendanceEligible && attendanceRate < 70 && !existingLabels.includes('absence') && !isCoolingDown(group.id, student.id, 'absence')) {
         suggestions.push({
           groupId: group.id,
           groupName: group.name,

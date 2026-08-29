@@ -192,6 +192,12 @@ service cloud.firestore {
       allow write: if isSignedIn();
     }
 
+    // Rejected follow-up suggestions (cooldown before they can reappear)
+    match /followUpSuggestionRejections/{id} {
+      allow read: if isSignedIn();
+      allow write: if isStaff();
+    }
+
     // Student Weakness Points
     match /studentWeaknesses/{id} {
       allow read: if true;
