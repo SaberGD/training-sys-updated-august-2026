@@ -2247,6 +2247,74 @@ export const resolveStudentFollowUp = async (groupId: string, studentId: string,
   });
 };
 
+// Bulk-closes every non-resolved follow-up (and every still-pending mention
+// task) in one shot, so the system can be started fresh. Admin-only — this is
+// a blunt, whole-system action, not a per-student one.
+export const resetAllFollowUps = async (performedBy: User): Promise<number> => {
+  const followUpsSnap = await getDocs(query(
+    collection(db, 'studentFollowUps'),
+    where('status', 'in', ['active', 'scheduled'])
+  ));
+
+  const nowStr = new Date().toISOString();
+  const resetEntry: FollowUpUpdate = {
+    id: Math.random().toString(36).substring(2, 11),
+    text: `🔄 قام ${performedBy.name} بإعادة تصفير كل المتابعات وإغلاقها دفعة واحدة للبدء من جديد.`,
+    createdByUid: performedBy.uid,
+    createdByName: performedBy.name,
+    createdAt: nowStr,
+    eventType: 'mark_done'
+  };
+
+  const followUpDocs = followUpsSnap.docs;
+  for (let i = 0; i < followUpDocs.length; i += 400) {
+    const chunk = followUpDocs.slice(i, i + 400);
+    const batch = writeBatch(db);
+    chunk.forEach((d: any) => {
+      batch.update(d.ref, {
+        status: 'resolved',
+        resolvedAt: serverTimestamp(),
+        resolvedByUid: performedBy.uid,
+        resolvedByName: performedBy.name,
+        colorStatus: 'default',
+        escalation: null,
+        updates: arrayUnion(resetEntry),
+        lastUpdatedAt: serverTimestamp()
+      });
+    });
+    await batch.commit();
+  }
+
+  // Also clear every still-pending mention task, whether or not it belonged
+  // to one of the follow-ups just closed above — a full reset shouldn't leave
+  // anyone with a dangling task pointing at now-closed tracking.
+  const mentionsSnap = await getDocs(query(
+    collection(db, 'followUpMentions'),
+    where('status', '==', 'pending')
+  ));
+  const mentionDocs = mentionsSnap.docs;
+  for (let i = 0; i < mentionDocs.length; i += 400) {
+    const chunk = mentionDocs.slice(i, i + 400);
+    const batch = writeBatch(db);
+    chunk.forEach((d: any) => {
+      batch.update(d.ref, { status: 'done', doneAt: serverTimestamp(), doneByUid: performedBy.uid });
+    });
+    await batch.commit();
+  }
+
+  await logActivity({
+    action: 'FOLLOWUP_RESET_ALL',
+    entityType: 'follow_up',
+    entityId: 'all',
+    performedByUid: performedBy.uid,
+    performedByName: performedBy.name,
+    performedByRole: performedBy.role,
+    details: `Bulk-reset ${followUpDocs.length} follow-up(s) and ${mentionDocs.length} pending mention(s) to start fresh`
+  });
+
+  return followUpDocs.length;
+};
+
 // ── Follow-up mentions (per-person task tracking) ──────────────────────────
 // Each mention is its own independent row: when Sami is mentioned and Alaa is
 // mentioned in the same update, each gets their own pending mention that they
