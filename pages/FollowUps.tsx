@@ -27,6 +27,7 @@ import {
   rejectNextFollowUpDate,
   approveFollowUpSuggestion,
   rejectFollowUpSuggestion,
+  resetAllFollowUps,
   escalateFollowUp,
   respondToEscalation,
   markFollowUpMentionDone,
@@ -423,6 +424,39 @@ const FollowUps: React.FC<{ user: User }> = ({ user }) => {
     try {
       setIsSubmitting(true);
       await resolveStudentFollowUp(f.groupId, f.studentId, user);
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleResetAllFollowUps = async () => {
+    if (!isFollowUpAdminUser) return;
+    const pendingCount = followUps.filter(
+      (f) => f.status === "active" || f.status === "scheduled",
+    ).length;
+    if (pendingCount === 0) {
+      alert(
+        lang === "ar"
+          ? "لا توجد متابعات نشطة أو مجدولة لتصفيرها حالياً."
+          : "There are no active or scheduled follow-ups to reset right now.",
+      );
+      return;
+    }
+    const confirmMsg =
+      lang === "ar"
+        ? `هيتقفل ${pendingCount} متابعة (نشطة/مجدولة) وتتحول لـ "منتهية" دفعة واحدة، وأي مهام معلقة على أي حد هتتقفل معاها. الإجراء ده مش قابل للتراجع. متأكد؟`
+        : `This will close ${pendingCount} active/scheduled follow-up(s) as done in one shot, and every pending mention task will close with them. This cannot be undone. Are you sure?`;
+    if (!confirm(confirmMsg)) return;
+    try {
+      setIsSubmitting(true);
+      const count = await resetAllFollowUps(user);
+      alert(
+        lang === "ar"
+          ? `تم تصفير ${count} متابعة بنجاح. النظام جاهز للبدء من جديد.`
+          : `Successfully reset ${count} follow-up(s). The system is ready for a fresh start.`,
+      );
     } catch (err: any) {
       alert(err.message);
     } finally {
@@ -1262,12 +1296,23 @@ const FollowUps: React.FC<{ user: User }> = ({ user }) => {
             challenges.
           </p>
         </div>
-        <button
-          onClick={() => setIsRequestModalOpen(true)}
-          className="px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-primary-600/20 transition-all flex items-center gap-2"
-        >
-          <Send size={16} /> Request Follow-up
-        </button>
+        <div className="flex items-center gap-3">
+          {isFollowUpAdminUser && (
+            <button
+              onClick={handleResetAllFollowUps}
+              disabled={isSubmitting}
+              className="px-5 py-3 bg-rose-600/10 hover:bg-rose-600/20 text-rose-600 border border-rose-600/30 rounded-2xl font-black text-xs uppercase tracking-widest transition-all flex items-center gap-2"
+            >
+              🔄 {lang === "ar" ? "تصفير كل المتابعات" : "Reset All Follow-ups"}
+            </button>
+          )}
+          <button
+            onClick={() => setIsRequestModalOpen(true)}
+            className="px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-primary-600/20 transition-all flex items-center gap-2"
+          >
+            <Send size={16} /> Request Follow-up
+          </button>
+        </div>
       </div>
 
       {/* Smart Usage Guide / دليل الاستخدام الذكي */}
