@@ -1958,7 +1958,9 @@ export const submitTrainerFollowUpUpdate = async (
     createdByName: performedBy.name,
     createdAt: nowStr,
     eventType: replyToUpdateId ? 'reply' : (nextFollowUpDate ? 'schedule_next' : 'note'),
-    replyToUpdateId
+    // Firestore rejects `undefined` field values inside arrayUnion() entries —
+    // only include this key at all when there's an actual value.
+    ...(replyToUpdateId ? { replyToUpdateId } : {})
   };
 
   const updatesPayload: any = {
@@ -2332,6 +2334,8 @@ export const createFollowUpMention = async (params: {
   sourceUpdateId?: string;
   note?: string;
 }) => {
+  // Firestore rejects `undefined` field values — only include these optional
+  // keys when there's an actual value.
   const payload: Omit<FollowUpMention, 'id'> = {
     followUpId: params.followUpId,
     groupId: params.groupId,
@@ -2342,10 +2346,10 @@ export const createFollowUpMention = async (params: {
     mentionedByUid: params.mentionedByUid,
     mentionedByName: params.mentionedByName,
     createdAt: serverTimestamp(),
-    sourceUpdateId: params.sourceUpdateId,
-    note: params.note,
     status: 'pending',
-    snoozedUntil: null
+    snoozedUntil: null,
+    ...(params.sourceUpdateId ? { sourceUpdateId: params.sourceUpdateId } : {}),
+    ...(params.note ? { note: params.note } : {})
   };
   await addDoc(collection(db, 'followUpMentions'), payload);
 
