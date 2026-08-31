@@ -642,6 +642,30 @@ export interface FollowUpSuggestionRejection {
   reappearAt: string; // YYYY-MM-DD — suggestion is suppressed until this date
 }
 
+// A suggestion that needs an administrative decision beyond simple
+// approve/reject — e.g. the student turns out to have already dropped out,
+// so the real decision is whether to remove them from the system entirely.
+// This tracks that decision loop; it never performs the action itself.
+export interface SuggestionEscalation {
+  id: string;
+  groupId: string;
+  groupName: string;
+  studentId: string;
+  studentName: string;
+  reason: 'absence' | 'tasks';
+  proposedAction: string;
+  escalatedByUid: string;
+  escalatedByName: string;
+  escalatedAt: any;
+  status: 'pending' | 'approved' | 'done';
+  adminUid?: string;
+  adminName?: string;
+  adminRespondedAt?: any;
+  adminNote?: string;
+  executedByUid?: string;
+  executedAt?: any;
+}
+
 export interface StudentFollowUp {
   id: string; // groupId_studentId
   studentId: string;

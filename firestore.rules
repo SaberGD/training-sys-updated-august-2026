@@ -198,6 +198,12 @@ service cloud.firestore {
       allow write: if isStaff();
     }
 
+    // Suggestion decisions escalated to admin (e.g. remove a student entirely)
+    match /suggestionEscalations/{id} {
+      allow read: if isSignedIn();
+      allow write: if isStaff();
+    }
+
     // Student Weakness Points
     match /studentWeaknesses/{id} {
       allow read: if true;
