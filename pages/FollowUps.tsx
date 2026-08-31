@@ -105,6 +105,8 @@ const FollowUps: React.FC<{ user: User }> = ({ user }) => {
   const [rejectModalFor, setRejectModalFor] = useState<FollowUpSuggestion | null>(null);
   const [rejectReasonText, setRejectReasonText] = useState("");
   const [rejectAlsoExempt, setRejectAlsoExempt] = useState(false);
+  const [approveModalFor, setApproveModalFor] = useState<FollowUpSuggestion | null>(null);
+  const [approveNoteText, setApproveNoteText] = useState("");
   const [showRejectedSuggestions, setShowRejectedSuggestions] = useState(false);
   const [showExemptions, setShowExemptions] = useState(false);
   const [suggestionEscalateModalFor, setSuggestionEscalateModalFor] = useState<FollowUpSuggestion | null>(null);
@@ -469,7 +471,9 @@ const FollowUps: React.FC<{ user: User }> = ({ user }) => {
 
   const [suggestionMentionPick, setSuggestionMentionPick] = useState<Record<string, string>>({});
 
-  const handleApproveSuggestion = async (s: FollowUpSuggestion) => {
+  const handleConfirmApprove = async () => {
+    if (!approveModalFor || !approveNoteText.trim()) return;
+    const s = approveModalFor;
     try {
       setIsSubmitting(true);
       const key = `${s.groupId}_${s.studentId}_${s.reason}`;
@@ -481,10 +485,13 @@ const FollowUps: React.FC<{ user: User }> = ({ user }) => {
         s.studentId,
         s.studentName,
         s.reason,
+        approveNoteText.trim(),
         user,
         mentionId || undefined,
         mentionUser?.name || undefined,
       );
+      setApproveModalFor(null);
+      setApproveNoteText("");
     } catch (err: any) {
       alert(err.message);
     } finally {
@@ -1309,21 +1316,9 @@ const FollowUps: React.FC<{ user: User }> = ({ user }) => {
                             </div>
                             {canApproveSuggestion && !openEscalation && (
                               <div className="flex items-center gap-2 flex-wrap">
-                                <select
-                                  value={suggestionMentionPick[key] || ""}
-                                  onChange={(e) =>
-                                    setSuggestionMentionPick((prev) => ({ ...prev, [key]: e.target.value }))
-                                  }
-                                  className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl py-2 px-3 text-xs font-bold"
-                                >
-                                  <option value="">{lang === "ar" ? "بدون توجيه" : "No mention"}</option>
-                                  {trainers.map((t) => (
-                                    <option key={t.uid} value={t.uid}>{t.name}</option>
-                                  ))}
-                                </select>
                                 <button
                                   disabled={isSubmitting}
-                                  onClick={() => handleApproveSuggestion(s)}
+                                  onClick={() => { setApproveModalFor(s); setApproveNoteText(""); }}
                                   className="px-5 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest"
                                 >
                                   {lang === "ar" ? "تحويل لمتابعة" : "Approve"}
@@ -1536,6 +1531,60 @@ const FollowUps: React.FC<{ user: User }> = ({ user }) => {
               )}
             </div>
           )}
+        </div>
+      )}
+
+      {approveModalFor && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 w-full max-w-md space-y-4">
+            <h3 className="font-black text-slate-800 dark:text-white">
+              {lang === "ar" ? "تحويل لمتابعة" : "Approve suggestion"} — {approveModalFor.studentName}
+            </h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              {lang === "ar"
+                ? "هتتسجل كأمر متابعة منك أنت شخصياً — اكتب سبب المتابعة، وحدد لو حابب توجهها لحد معين."
+                : "This will be recorded as your own supervisor order — write the follow-up reason, and optionally mention someone."}
+            </p>
+            <textarea
+              value={approveNoteText}
+              onChange={(e) => setApproveNoteText(e.target.value)}
+              placeholder={lang === "ar" ? "سبب المتابعة..." : "Follow-up reason..."}
+              className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 text-xs font-bold min-h-[100px]"
+            />
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-2">
+                {lang === "ar" ? "توجيه لحد معين (اختياري)" : "Mention someone (optional)"}
+              </label>
+              <select
+                value={suggestionMentionPick[`${approveModalFor.groupId}_${approveModalFor.studentId}_${approveModalFor.reason}`] || ""}
+                onChange={(e) => {
+                  const key = `${approveModalFor.groupId}_${approveModalFor.studentId}_${approveModalFor.reason}`;
+                  setSuggestionMentionPick((prev) => ({ ...prev, [key]: e.target.value }));
+                }}
+                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl py-3 px-4 text-xs font-bold"
+              >
+                <option value="">{lang === "ar" ? "بدون توجيه" : "No mention"}</option>
+                {trainers.map((t) => (
+                  <option key={t.uid} value={t.uid}>{t.name}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => { setApproveModalFor(null); setApproveNoteText(""); }}
+                className="flex-1 py-3 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-2xl font-black text-[10px] uppercase tracking-widest"
+              >
+                {lang === "ar" ? "إلغاء" : "Cancel"}
+              </button>
+              <button
+                onClick={handleConfirmApprove}
+                disabled={!approveNoteText.trim() || isSubmitting}
+                className="flex-1 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest disabled:opacity-50"
+              >
+                {lang === "ar" ? "تأكيد التحويل" : "Confirm Approve"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -2422,6 +2471,7 @@ const FollowUps: React.FC<{ user: User }> = ({ user }) => {
                                   </div>
                                   <div className="flex flex-wrap gap-2">
                                     {f.labels?.map((label) => {
+                                      if (label === "system_sug") return null;
                                       let text = label;
                                       let color =
                                         "bg-slate-500/10 text-slate-600";
@@ -2734,9 +2784,11 @@ const FollowUps: React.FC<{ user: User }> = ({ user }) => {
                                           BY:{" "}
                                           {f.supervisorOrder.requestedByName}
                                         </span>
-                                        <span className="text-red-600 bg-white dark:bg-slate-800 px-3 py-1 rounded-xl shadow-sm border border-red-50">
-                                          BY: {f.supervisorOrder.deadline}
-                                        </span>
+                                        {f.supervisorOrder.deadline && (
+                                          <span className="text-red-600 bg-white dark:bg-slate-800 px-3 py-1 rounded-xl shadow-sm border border-red-50">
+                                            BY: {f.supervisorOrder.deadline}
+                                          </span>
+                                        )}
                                       </div>
                                     </div>
                                   )}
