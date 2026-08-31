@@ -9,10 +9,12 @@ import {
   Session,
   FollowUpMention,
   FollowUpSuggestionRejection,
+  SuggestionEscalation,
 } from "../types";
 import Layout from "../components/Layout";
 import { useLanguage } from "../contexts/LanguageContext";
 import { usePermissions } from "../contexts/PermissionsContext";
+import { formatTime12h } from "../utils";
 import {
   subscribeToCollection,
   submitTrainerFollowUpUpdate,
@@ -32,6 +34,11 @@ import {
   respondToEscalation,
   markFollowUpMentionDone,
   snoozeFollowUpMention,
+  escalateSuggestionToAdmin,
+  approveSuggestionEscalation,
+  markSuggestionEscalationDone,
+  revertSuggestionEscalation,
+  cancelSuggestionEscalation,
 } from "../services/firestore";
 import { computeFollowUpSuggestions, FollowUpSuggestion } from "../services/followUpSuggestions";
 import {
@@ -70,6 +77,7 @@ const FollowUps: React.FC<{ user: User }> = ({ user }) => {
   const [trainers, setTrainers] = useState<User[]>([]);
   const [mentions, setMentions] = useState<FollowUpMention[]>([]);
   const [rejections, setRejections] = useState<FollowUpSuggestionRejection[]>([]);
+  const [suggestionEscalations, setSuggestionEscalations] = useState<SuggestionEscalation[]>([]);
   const [loading, setLoading] = useState(true);
 
   const canViewAll = hasPermission(user, "viewAllFollowUps");
@@ -90,6 +98,10 @@ const FollowUps: React.FC<{ user: User }> = ({ user }) => {
   const [rejectModalFor, setRejectModalFor] = useState<FollowUpSuggestion | null>(null);
   const [rejectReasonText, setRejectReasonText] = useState("");
   const [showRejectedSuggestions, setShowRejectedSuggestions] = useState(false);
+  const [suggestionEscalateModalFor, setSuggestionEscalateModalFor] = useState<FollowUpSuggestion | null>(null);
+  const [suggestionEscalateAction, setSuggestionEscalateAction] = useState("");
+  const [expandedSuggestionGroupId, setExpandedSuggestionGroupId] = useState<string | null>(null);
+  const [showSuggestionDecisions, setShowSuggestionDecisions] = useState(true);
   const [replyingToUpdate, setReplyingToUpdate] = useState<
     Record<string, { id: string; authorName: string } | null>
   >({});
@@ -209,6 +221,10 @@ const FollowUps: React.FC<{ user: User }> = ({ user }) => {
       "followUpSuggestionRejections",
       setRejections,
     );
+    const unsubSuggestionEscalations = subscribeToCollection<SuggestionEscalation>(
+      "suggestionEscalations",
+      setSuggestionEscalations,
+    );
 
     setLoading(false);
     return () => {
@@ -220,6 +236,7 @@ const FollowUps: React.FC<{ user: User }> = ({ user }) => {
       unsubUsers();
       unsubMentions();
       unsubRejections();
+      unsubSuggestionEscalations();
     };
   }, []);
 
@@ -232,6 +249,29 @@ const FollowUps: React.FC<{ user: User }> = ({ user }) => {
     const todayStr = new Date().toISOString().split("T")[0];
     return rejections.filter((r) => r.reappearAt > todayStr);
   }, [rejections]);
+
+  // Suggestions with a still-open (pending/approved) admin decision are
+  // hidden from the normal approve/reject buttons — they're being tracked in
+  // the decisions section instead, to avoid double-processing the same case.
+  const openSuggestionEscalationByKey = useMemo(() => {
+    const map: Record<string, SuggestionEscalation> = {};
+    suggestionEscalations
+      .filter((e) => e.status !== "done")
+      .forEach((e) => {
+        map[`${e.groupId}_${e.studentId}_${e.reason}`] = e;
+      });
+    return map;
+  }, [suggestionEscalations]);
+
+  const openSuggestionDecisions = useMemo(
+    () => suggestionEscalations.filter((e) => e.status !== "done"),
+    [suggestionEscalations],
+  );
+
+  const doneSuggestionDecisions = useMemo(
+    () => suggestionEscalations.filter((e) => e.status === "done"),
+    [suggestionEscalations],
+  );
 
   const suggestionsByGroup = useMemo(() => {
     const map: Record<string, FollowUpSuggestion[]> = {};
@@ -397,6 +437,86 @@ const FollowUps: React.FC<{ user: User }> = ({ user }) => {
       );
       setRejectModalFor(null);
       setRejectReasonText("");
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleEscalateSuggestion = async () => {
+    if (!suggestionEscalateModalFor || !suggestionEscalateAction.trim()) return;
+    try {
+      setIsSubmitting(true);
+      const adminUsers = trainers.filter((t) => t.role === "admin");
+      await escalateSuggestionToAdmin(
+        suggestionEscalateModalFor.groupId,
+        suggestionEscalateModalFor.groupName,
+        suggestionEscalateModalFor.studentId,
+        suggestionEscalateModalFor.studentName,
+        suggestionEscalateModalFor.reason,
+        suggestionEscalateAction.trim(),
+        user,
+        adminUsers,
+      );
+      setSuggestionEscalateModalFor(null);
+      setSuggestionEscalateAction("");
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleApproveSuggestionEscalation = async (e: SuggestionEscalation) => {
+    const note = prompt(lang === "ar" ? "ملحوظة (اختياري):" : "Note (optional):") || "";
+    try {
+      setIsSubmitting(true);
+      await approveSuggestionEscalation(e.id, note, user);
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleMarkSuggestionEscalationDone = async (e: SuggestionEscalation) => {
+    if (
+      !confirm(
+        lang === "ar"
+          ? "تأكيد إنك نفّذت الإجراء المعتمد بالفعل؟"
+          : "Confirm you've actually carried out the approved action?",
+      )
+    )
+      return;
+    try {
+      setIsSubmitting(true);
+      await markSuggestionEscalationDone(e.id, user);
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleRevertSuggestionEscalation = async (e: SuggestionEscalation) => {
+    if (e.status !== "approved" && e.status !== "done") return;
+    if (!confirm(lang === "ar" ? "تراجع خطوة واحدة للخلف؟" : "Undo one step back?")) return;
+    try {
+      setIsSubmitting(true);
+      await revertSuggestionEscalation(e.id, e.status, user);
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleCancelSuggestionEscalation = async (e: SuggestionEscalation) => {
+    if (!confirm(lang === "ar" ? "إلغاء هذا التصعيد نهائياً؟" : "Cancel this escalation entirely?")) return;
+    try {
+      setIsSubmitting(true);
+      await cancelSuggestionEscalation(e.id, user);
     } catch (err: any) {
       alert(err.message);
     } finally {
@@ -920,60 +1040,221 @@ const FollowUps: React.FC<{ user: User }> = ({ user }) => {
               </p>
             </div>
           ) : (
-            Object.entries(suggestionsByGroup).map(([groupId, items]: [string, FollowUpSuggestion[]]) => (
-              <div key={groupId} className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 overflow-hidden">
-                <div className="p-5 bg-slate-50 dark:bg-slate-800/40 border-b border-slate-200 dark:border-slate-800">
-                  <h3 className="font-black text-sm text-slate-800 dark:text-white">{items[0].groupName}</h3>
+            Object.entries(suggestionsByGroup).map(([groupId, items]: [string, FollowUpSuggestion[]]) => {
+              const g = groups.find((grp) => grp.id === groupId);
+              const isGroupExpanded = expandedSuggestionGroupId === groupId;
+              const scheduleText = g
+                ? `${(g.daysOfWeek || []).join(", ")} — ${formatTime12h(g.sessionTime)}`
+                : "";
+              return (
+                <div key={groupId} className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+                  <div
+                    className="p-5 bg-slate-50 dark:bg-slate-800/40 border-b border-slate-200 dark:border-slate-800 cursor-pointer flex items-center justify-between gap-4"
+                    onClick={() => setExpandedSuggestionGroupId(isGroupExpanded ? null : groupId)}
+                  >
+                    <div>
+                      <h3 className="font-black text-sm text-slate-800 dark:text-white flex items-center gap-2">
+                        {items[0].groupName}
+                        <span className="bg-amber-500/10 text-amber-600 rounded-full px-2 py-0.5 text-[10px] font-black">
+                          {items.length}
+                        </span>
+                      </h3>
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold mt-1 flex flex-wrap gap-x-3">
+                        <span>👤 {getTrainerNames(groupId)}</span>
+                        {g?.courseName && <span>📚 {g.courseName}</span>}
+                        {g && <span>🗓️ {scheduleText}</span>}
+                      </p>
+                    </div>
+                    {isGroupExpanded ? (
+                      <ChevronUp className="w-4 h-4 text-slate-400 shrink-0" />
+                    ) : (
+                      <ChevronDown className="w-4 h-4 text-slate-400 shrink-0" />
+                    )}
+                  </div>
+                  {isGroupExpanded && (
+                    <div className="divide-y divide-slate-100 dark:divide-slate-800">
+                      {items.map((s) => {
+                        const key = `${s.groupId}_${s.studentId}_${s.reason}`;
+                        const openEscalation = openSuggestionEscalationByKey[key];
+                        return (
+                          <div key={key} className="p-5 flex flex-wrap items-center justify-between gap-4">
+                            <div>
+                              <a
+                                href={`/#/groups/${s.groupId}?tab=taskProgress&studentId=${s.studentId}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={(e) => e.stopPropagation()}
+                                className="font-black text-sm text-primary-600 hover:text-primary-700 hover:underline"
+                              >
+                                {s.studentName}
+                              </a>
+                              <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold mt-1">
+                                {s.reason === "absence"
+                                  ? (lang === "ar" ? `⚠️ نسبة الحضور ${s.rate}%` : `⚠️ Attendance ${s.rate}%`)
+                                  : (lang === "ar" ? `⚠️ نسبة تسليم التاسكات ${s.rate}%` : `⚠️ Task delivery ${s.rate}%`)}
+                              </p>
+                              {openEscalation && (
+                                <p className="text-[10px] font-black text-indigo-600 uppercase tracking-widest mt-1">
+                                  🏛️ {lang === "ar" ? "بانتظار قرار الإدارة" : "Awaiting admin decision"} ({openEscalation.status})
+                                </p>
+                              )}
+                            </div>
+                            {canApproveSuggestion && !openEscalation && (
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <select
+                                  value={suggestionMentionPick[key] || ""}
+                                  onChange={(e) =>
+                                    setSuggestionMentionPick((prev) => ({ ...prev, [key]: e.target.value }))
+                                  }
+                                  className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl py-2 px-3 text-xs font-bold"
+                                >
+                                  <option value="">{lang === "ar" ? "بدون توجيه" : "No mention"}</option>
+                                  {trainers.map((t) => (
+                                    <option key={t.uid} value={t.uid}>{t.name}</option>
+                                  ))}
+                                </select>
+                                <button
+                                  disabled={isSubmitting}
+                                  onClick={() => handleApproveSuggestion(s)}
+                                  className="px-5 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest"
+                                >
+                                  {lang === "ar" ? "تحويل لمتابعة" : "Approve"}
+                                </button>
+                                <button
+                                  disabled={isSubmitting}
+                                  onClick={() => setRejectModalFor(s)}
+                                  className="px-5 py-2 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-black text-[10px] uppercase tracking-widest"
+                                >
+                                  {lang === "ar" ? "رفض" : "Reject"}
+                                </button>
+                                <button
+                                  disabled={isSubmitting}
+                                  onClick={() => setSuggestionEscalateModalFor(s)}
+                                  className="px-5 py-2 bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-600 border border-indigo-600/30 rounded-xl font-black text-[10px] uppercase tracking-widest"
+                                >
+                                  🏛️ {lang === "ar" ? "تصعيد للإدارة" : "Escalate"}
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
-                <div className="divide-y divide-slate-100 dark:divide-slate-800">
-                  {items.map((s) => {
-                    const key = `${s.groupId}_${s.studentId}_${s.reason}`;
-                    return (
-                      <div key={key} className="p-5 flex flex-wrap items-center justify-between gap-4">
+              );
+            })
+          )}
+
+          {openSuggestionDecisions.length > 0 && (
+            <div className="bg-indigo-50 dark:bg-indigo-950/20 border border-indigo-200 dark:border-indigo-900/40 rounded-3xl overflow-hidden">
+              <button
+                onClick={() => setShowSuggestionDecisions((v) => !v)}
+                className="w-full p-5 flex items-center justify-between gap-3 text-left"
+              >
+                <h3 className="font-black text-sm text-indigo-700 dark:text-indigo-400">
+                  🏛️ {lang === "ar" ? `قرارات إدارية معلقة (${openSuggestionDecisions.length})` : `Pending admin decisions (${openSuggestionDecisions.length})`}
+                </h3>
+                {showSuggestionDecisions ? <ChevronUp size={16} className="text-indigo-400" /> : <ChevronDown size={16} className="text-indigo-400" />}
+              </button>
+              {showSuggestionDecisions && (
+                <div className="divide-y divide-indigo-100 dark:divide-indigo-900/30">
+                  {openSuggestionDecisions.map((e) => (
+                    <div key={e.id} className="p-5 space-y-3">
+                      <div className="flex flex-wrap items-center justify-between gap-3">
                         <div>
-                          <p className="font-black text-sm text-slate-800 dark:text-white">{s.studentName}</p>
-                          <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold mt-1">
-                            {s.reason === "absence"
-                              ? (lang === "ar" ? `⚠️ نسبة الحضور ${s.rate}%` : `⚠️ Attendance ${s.rate}%`)
-                              : (lang === "ar" ? `⚠️ نسبة تسليم التاسكات ${s.rate}%` : `⚠️ Task delivery ${s.rate}%`)}
+                          <p className="font-black text-sm text-slate-800 dark:text-white">
+                            {e.studentName} — {e.groupName}
+                          </p>
+                          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-1">
+                            {lang === "ar" ? "صعّدها" : "Escalated by"} {e.escalatedByName}
                           </p>
                         </div>
-                        {canApproveSuggestion && (
-                          <div className="flex items-center gap-2">
-                            <select
-                              value={suggestionMentionPick[key] || ""}
-                              onChange={(e) =>
-                                setSuggestionMentionPick((prev) => ({ ...prev, [key]: e.target.value }))
-                              }
-                              className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl py-2 px-3 text-xs font-bold"
-                            >
-                              <option value="">{lang === "ar" ? "بدون توجيه" : "No mention"}</option>
-                              {trainers.map((t) => (
-                                <option key={t.uid} value={t.uid}>{t.name}</option>
-                              ))}
-                            </select>
-                            <button
-                              disabled={isSubmitting}
-                              onClick={() => handleApproveSuggestion(s)}
-                              className="px-5 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest"
-                            >
-                              {lang === "ar" ? "تحويل لمتابعة" : "Approve"}
-                            </button>
-                            <button
-                              disabled={isSubmitting}
-                              onClick={() => setRejectModalFor(s)}
-                              className="px-5 py-2 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-black text-[10px] uppercase tracking-widest"
-                            >
-                              {lang === "ar" ? "رفض" : "Reject"}
-                            </button>
-                          </div>
+                        <span
+                          className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
+                            e.status === "pending"
+                              ? "bg-amber-500/10 text-amber-600"
+                              : "bg-emerald-500/10 text-emerald-600"
+                          }`}
+                        >
+                          {e.status === "pending"
+                            ? (lang === "ar" ? "بانتظار الأدمن" : "Awaiting admin")
+                            : (lang === "ar" ? "معتمد — بانتظار التنفيذ" : "Approved — awaiting execution")}
+                        </span>
+                      </div>
+                      <p className="text-sm font-bold bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 rounded-xl p-3">
+                        {e.proposedAction}
+                      </p>
+                      {e.adminNote && (
+                        <p className="text-xs text-slate-500 dark:text-slate-400 italic">
+                          {lang === "ar" ? "ملحوظة الأدمن: " : "Admin note: "}{e.adminNote}
+                        </p>
+                      )}
+                      <div className="flex flex-wrap gap-2">
+                        {isFollowUpAdminUser && e.status === "pending" && (
+                          <button
+                            onClick={() => handleApproveSuggestionEscalation(e)}
+                            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-black text-[10px] uppercase tracking-widest"
+                          >
+                            {lang === "ar" ? "موافقة على الإجراء" : "Approve action"}
+                          </button>
+                        )}
+                        {e.status === "approved" && (
+                          <button
+                            onClick={() => handleMarkSuggestionEscalationDone(e)}
+                            className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-black text-[10px] uppercase tracking-widest"
+                          >
+                            {lang === "ar" ? "تم التنفيذ" : "Mark executed"}
+                          </button>
+                        )}
+                        {e.status === "approved" && (
+                          <button
+                            onClick={() => handleRevertSuggestionEscalation(e)}
+                            className="px-4 py-2 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl font-black text-[10px] uppercase tracking-widest"
+                          >
+                            {lang === "ar" ? "تراجع" : "Revert"}
+                          </button>
+                        )}
+                        {e.status === "pending" && (
+                          <button
+                            onClick={() => handleCancelSuggestionEscalation(e)}
+                            className="px-4 py-2 bg-rose-600/10 hover:bg-rose-600/20 text-rose-600 rounded-xl font-black text-[10px] uppercase tracking-widest"
+                          >
+                            {lang === "ar" ? "إلغاء التصعيد" : "Cancel escalation"}
+                          </button>
                         )}
                       </div>
-                    );
-                  })}
+                    </div>
+                  ))}
                 </div>
+              )}
+            </div>
+          )}
+
+          {doneSuggestionDecisions.length > 0 && (
+            <div className="pt-2">
+              <p className="text-xs font-black uppercase tracking-widest text-slate-400 mb-2">
+                {lang === "ar" ? "قرارات مُنفَّذة" : "Executed decisions"}
+              </p>
+              <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 divide-y divide-slate-100 dark:divide-slate-800">
+                {doneSuggestionDecisions.map((e) => (
+                  <div key={e.id} className="p-4 flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-bold text-slate-700 dark:text-slate-300">
+                        {e.studentName} — {e.groupName}
+                      </p>
+                      <p className="text-xs text-slate-400">{e.proposedAction}</p>
+                    </div>
+                    <button
+                      onClick={() => handleRevertSuggestionEscalation(e)}
+                      className="text-[10px] font-black text-slate-400 hover:text-slate-600 uppercase tracking-widest shrink-0"
+                    >
+                      {lang === "ar" ? "تراجع" : "Revert"}
+                    </button>
+                  </div>
+                ))}
               </div>
-            ))
+            </div>
           )}
 
           {activeRejections.length > 0 && (
@@ -1040,6 +1321,42 @@ const FollowUps: React.FC<{ user: User }> = ({ user }) => {
                 className="flex-1 py-3 bg-rose-600 hover:bg-rose-700 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest"
               >
                 {lang === "ar" ? "تأكيد الرفض" : "Confirm Reject"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {suggestionEscalateModalFor && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 w-full max-w-md space-y-4">
+            <h3 className="font-black text-slate-800 dark:text-white">
+              🏛️ {lang === "ar" ? "تصعيد الاقتراح للإدارة" : "Escalate suggestion to admin"} — {suggestionEscalateModalFor.studentName}
+            </h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              {lang === "ar"
+                ? "استخدمها لما القرار المطلوب أكبر من متابعة أو رفض عادي — مثلاً الطالب مش موجود في الجروب أصلاً والقرار المطلوب حذفه من النظام. اكتب الإجراء المقترح، والأدمن هيوافق عليه قبل أي تنفيذ."
+                : "Use this when the decision needed is bigger than a normal follow-up/reject — e.g. the student isn't even in the group anymore and the decision is removing them from the system. Write the proposed action; the admin approves before anything is done."}
+            </p>
+            <textarea
+              value={suggestionEscalateAction}
+              onChange={(e) => setSuggestionEscalateAction(e.target.value)}
+              placeholder={lang === "ar" ? "الإجراء المقترح وسببه..." : "Proposed action and reason..."}
+              className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 text-xs font-bold min-h-[100px]"
+            />
+            <div className="flex gap-3">
+              <button
+                onClick={() => { setSuggestionEscalateModalFor(null); setSuggestionEscalateAction(""); }}
+                className="flex-1 py-3 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-2xl font-black text-[10px] uppercase tracking-widest"
+              >
+                {lang === "ar" ? "إلغاء" : "Cancel"}
+              </button>
+              <button
+                onClick={handleEscalateSuggestion}
+                disabled={!suggestionEscalateAction.trim() || isSubmitting}
+                className="flex-1 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest"
+              >
+                {lang === "ar" ? "تصعيد" : "Escalate"}
               </button>
             </div>
           </div>

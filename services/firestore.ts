@@ -12,7 +12,7 @@ import {
   RolePermissions, PerformanceDailyReport, PerformanceWeeklyReport,
   AppNotification, TaskStatus, TaskPriority, SubTask, TaskFile, TaskComment,
   StudentFollowUp, FollowUpComment, FollowUpUpdate, FollowUpMention, FollowUpEscalation, FollowUpEventType,
-  FollowUpSuggestionRejection,
+  FollowUpSuggestionRejection, SuggestionEscalation,
   Complaint, ComplaintStatus, LabelDefinition,
   CourseChecklistItemTemplate, TrainerPlan, GroupChecklistItem, GroupExecutionPlan,
   LectureFeedback, GraduationProject, GraduationProjectSubmission, GraduationProjectEvaluation, GraduationProjectComment,
@@ -2529,6 +2529,127 @@ export const rejectFollowUpSuggestion = async (
     performedByName: performedBy.name,
     performedByRole: performedBy.role,
     details: `Supervisor rejected an automatic follow-up suggestion for ${studentName} (reason: ${reason}). Won't reappear before ${reappearAt}. Note: ${rejectionReason}`
+  });
+};
+
+// ── Suggestion escalations (decision needed beyond approve/reject, e.g. the
+// student may need removing from the system entirely) ──────────────────────
+// This only tracks the decision loop — pending → approved → done — it never
+// performs the proposed action itself; that stays a manual step the
+// supervisor does elsewhere in the app, confirmed here once actually done.
+export const escalateSuggestionToAdmin = async (
+  groupId: string,
+  groupName: string,
+  studentId: string,
+  studentName: string,
+  reason: 'absence' | 'tasks',
+  proposedAction: string,
+  performedBy: User,
+  adminUsers: User[]
+) => {
+  const payload: Omit<SuggestionEscalation, 'id'> = {
+    groupId,
+    groupName,
+    studentId,
+    studentName,
+    reason,
+    proposedAction,
+    escalatedByUid: performedBy.uid,
+    escalatedByName: performedBy.name,
+    escalatedAt: serverTimestamp(),
+    status: 'pending'
+  };
+  const docRef = await addDoc(collection(db, 'suggestionEscalations'), payload);
+
+  await logActivity({
+    action: 'SUGGESTION_ESCALATED',
+    entityType: 'follow_up_suggestion',
+    entityId: docRef.id,
+    entityName: studentName,
+    performedByUid: performedBy.uid,
+    performedByName: performedBy.name,
+    performedByRole: performedBy.role,
+    details: `Escalated suggestion for ${studentName} to admin for a decision. Proposed action: ${proposedAction}`
+  });
+
+  await Promise.all(
+    adminUsers.map((admin) =>
+      sendNotification({
+        userId: admin.uid,
+        title: 'قرار مطلوب بخصوص اقتراح متابعة 🏛️',
+        message: `${performedBy.name} صعّد اقتراح متابعة الطالب ${studentName} يحتاج قرارك. الإجراء المقترح: ${proposedAction}`,
+        type: 'followup_escalation',
+        link: `/follow-ups`
+      })
+    )
+  );
+};
+
+export const approveSuggestionEscalation = async (id: string, adminNote: string, performedBy: User) => {
+  await updateDoc(doc(db, 'suggestionEscalations', id), {
+    status: 'approved',
+    adminUid: performedBy.uid,
+    adminName: performedBy.name,
+    adminRespondedAt: serverTimestamp(),
+    ...(adminNote ? { adminNote } : {})
+  });
+
+  await logActivity({
+    action: 'SUGGESTION_ESCALATION_APPROVED',
+    entityType: 'follow_up_suggestion',
+    entityId: id,
+    performedByUid: performedBy.uid,
+    performedByName: performedBy.name,
+    performedByRole: performedBy.role,
+    details: `Admin approved the proposed action for suggestion escalation ${id}`
+  });
+};
+
+export const markSuggestionEscalationDone = async (id: string, performedBy: User) => {
+  await updateDoc(doc(db, 'suggestionEscalations', id), {
+    status: 'done',
+    executedByUid: performedBy.uid,
+    executedAt: serverTimestamp()
+  });
+
+  await logActivity({
+    action: 'SUGGESTION_ESCALATION_DONE',
+    entityType: 'follow_up_suggestion',
+    entityId: id,
+    performedByUid: performedBy.uid,
+    performedByName: performedBy.name,
+    performedByRole: performedBy.role,
+    details: `Supervisor confirmed the approved action was executed for suggestion escalation ${id}`
+  });
+};
+
+// Undoes exactly one step: done → approved, approved → pending.
+export const revertSuggestionEscalation = async (id: string, currentStatus: 'approved' | 'done', performedBy: User) => {
+  const previousStatus = currentStatus === 'done' ? 'approved' : 'pending';
+  await updateDoc(doc(db, 'suggestionEscalations', id), { status: previousStatus });
+
+  await logActivity({
+    action: 'SUGGESTION_ESCALATION_REVERTED',
+    entityType: 'follow_up_suggestion',
+    entityId: id,
+    performedByUid: performedBy.uid,
+    performedByName: performedBy.name,
+    performedByRole: performedBy.role,
+    details: `Reverted suggestion escalation ${id} from ${currentStatus} back to ${previousStatus}`
+  });
+};
+
+export const cancelSuggestionEscalation = async (id: string, performedBy: User) => {
+  await deleteDoc(doc(db, 'suggestionEscalations', id));
+
+  await logActivity({
+    action: 'SUGGESTION_ESCALATION_CANCELLED',
+    entityType: 'follow_up_suggestion',
+    entityId: id,
+    performedByUid: performedBy.uid,
+    performedByName: performedBy.name,
+    performedByRole: performedBy.role,
+    details: `Cancelled a pending suggestion escalation`
   });
 };
 
