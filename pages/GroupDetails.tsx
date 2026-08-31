@@ -2402,7 +2402,7 @@ const GroupDetails: React.FC<{ user: User }> = ({ user }) => {
                                       }
 
                                       const currentTimeStr = getCairoTimeStr();
-                                      
+
                                       await execSave(activeSess.id, {
                                         startTimeActual: currentTimeStr,
                                         actualStartDate: todayCairo,
@@ -2417,6 +2417,12 @@ const GroupDetails: React.FC<{ user: User }> = ({ user }) => {
                                           }
                                         ]
                                       });
+
+                                      // Online lectures jump straight to the meeting link in a new tab;
+                                      // offline (in-person) lectures just start the timer, no redirect.
+                                      if (!activeSess.isOffline && activeSess.meetingLink) {
+                                        window.open(activeSess.meetingLink, '_blank', 'noopener,noreferrer');
+                                      }
 
                                       // Send notifications to all students of this group
                                       try {
@@ -2477,6 +2483,10 @@ const GroupDetails: React.FC<{ user: User }> = ({ user }) => {
                                             }
                                           ]
                                         });
+
+                                        if (!activeSess.isOffline && activeSess.meetingLink) {
+                                          window.open(activeSess.meetingLink, '_blank', 'noopener,noreferrer');
+                                        }
 
                                         // Send notifications to all students of this group
                                         try {
