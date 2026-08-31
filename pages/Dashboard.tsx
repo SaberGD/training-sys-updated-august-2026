@@ -646,11 +646,11 @@ const Dashboard: React.FC<{ user: User }> = ({ user }) => {
                         </div>
 
                         {/* Active labels */}
-                        {f.labels && f.labels.length > 0 && (
+                        {f.labels && f.labels.filter(l => l !== 'system_sug').length > 0 && (
                           <div className="flex flex-wrap gap-1.5 mt-1">
-                            {f.labels.map((lbl, idx) => (
-                              <span 
-                                key={idx} 
+                            {f.labels.filter(l => l !== 'system_sug').map((lbl, idx) => (
+                              <span
+                                key={idx}
                                 className="bg-slate-50 dark:bg-slate-950 text-slate-500 dark:text-slate-400 border border-slate-150 dark:border-slate-800 px-2 py-0.5 rounded-lg text-[9px] font-extrabold font-sans uppercase tracking-wider"
                               >
                                 #{lbl === 'absence' ? 'غياب متكرر 🛑' : lbl === 'tasks' ? 'تأخر بالمهام 📝' : lbl}

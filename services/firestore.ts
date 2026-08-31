@@ -2406,6 +2406,7 @@ export const approveFollowUpSuggestion = async (
   studentId: string,
   studentName: string,
   reason: 'absence' | 'tasks',
+  note: string,
   performedBy: User,
   mentionUserId?: string,
   mentionUserName?: string
@@ -2414,9 +2415,8 @@ export const approveFollowUpSuggestion = async (
 
   const docId = `${groupId}_${studentId}`;
   const followUpRef = doc(db, 'studentFollowUps', docId);
-  const nowStr = new Date().toISOString();
 
-  let finalLabels: string[] = [reason];
+  let finalLabels: string[] = [reason, 'system_sug'];
   try {
     const groupDoc = await getDoc(doc(db, 'groups', groupId));
     if (groupDoc.exists()) {
@@ -2427,15 +2427,11 @@ export const approveFollowUpSuggestion = async (
     console.error('Error setting online/offline label inside approveFollowUpSuggestion', err);
   }
 
-  const systemEntry: FollowUpUpdate = {
-    id: Math.random().toString(36).substring(2, 11),
-    text: `⚠️ اعتمد ${performedBy.name} اقتراح النظام وحوّله لمتابعة فعلية (السبب: ${reason === 'absence' ? 'نسبة الحضور' : 'نسبة تسليم التاسكات'}).`,
-    createdByUid: performedBy.uid,
-    createdByName: performedBy.name,
-    createdAt: nowStr,
-    eventType: 'system'
-  };
-
+  // Approving a suggestion is written as a genuine supervisor order (not a
+  // system-generated timeline comment) — it reads and behaves exactly like a
+  // follow-up the supervisor personally initiated. The 'system_sug' label is
+  // a discreet internal marker of where it came from; it's filtered out of
+  // every label-pill display so it doesn't show up as a loud recurring badge.
   const payload: any = {
     id: docId,
     groupId,
@@ -2445,7 +2441,13 @@ export const approveFollowUpSuggestion = async (
     status: 'active',
     colorStatus: 'red',
     labels: finalLabels,
-    updates: arrayUnion(systemEntry),
+    supervisorOrder: {
+      orderDate: serverTimestamp(),
+      requestedByUid: performedBy.uid,
+      requestedByName: performedBy.name,
+      note,
+      fromSuggestion: true
+    },
     mentionedUserId: mentionUserId || null,
     mentionedUserName: mentionUserName || null,
     lastUpdatedAt: serverTimestamp()
@@ -2486,7 +2488,7 @@ export const approveFollowUpSuggestion = async (
       mentionedUserName: mentionUserName,
       mentionedByUid: performedBy.uid,
       mentionedByName: performedBy.name,
-      note: `متابعة جديدة (${reason === 'absence' ? 'الحضور' : 'التاسكات'})`
+      note
     });
   }
 };

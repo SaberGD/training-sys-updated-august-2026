@@ -702,10 +702,11 @@ export interface StudentFollowUp {
   scheduledAt?: any; // The date when it should become active again (YYYY-MM-DD)
   supervisorOrder?: {
     orderDate: any;
-    deadline: string; // YYYY-MM-DD
+    deadline?: string; // YYYY-MM-DD, optional — not every order carries a hard deadline
     requestedByUid: string;
     requestedByName: string;
     note: string;
+    fromSuggestion?: boolean; // true when this order came from approving a system suggestion (discreet — not shown as a loud badge)
   };
   updates: FollowUpUpdate[];
   comments: FollowUpComment[];

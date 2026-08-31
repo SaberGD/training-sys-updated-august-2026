@@ -5689,6 +5689,7 @@ const GroupDetails: React.FC<{ user: User }> = ({ user }) => {
                             const activeFU = studentFollowUps.find(f => f.studentId === s.id && f.status === 'active');
                             if (!activeFU || !activeFU.labels) return null;
                             return activeFU.labels.map(l => {
+                              if (l === 'system_sug') return null;
                               const lDef = labelDefinitions.find(def => def.name === l || def.id === l);
                               if (lDef && lDef.visibleOnScreen === false) return null;
 
@@ -6436,11 +6437,29 @@ const GroupDetails: React.FC<{ user: User }> = ({ user }) => {
             </div>
             <div className="p-8 space-y-6 max-h-[60vh] overflow-y-auto no-scrollbar">
               <div className="grid grid-cols-1 gap-3">
-                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-2">Automated Labels</p>
-                {['absence', 'tasks', 'distinguished', 'best_achiever'].map(label => {
+                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-2">Follow-up Status (read-only)</p>
+                {['absence', 'tasks'].map(label => {
+                  const isAssigned = studentFollowUps.find(f => f.studentId === selectedStudentForLabel.id && f.groupId === group?.id)?.labels.includes(label);
+                  if (!isAssigned) return null;
+                  return (
+                    <div
+                      key={label}
+                      className="w-full flex items-center justify-between p-4 rounded-2xl border bg-primary-950/50 border-primary-900 text-primary-400/70"
+                    >
+                      <span className="text-[10px] font-black uppercase tracking-widest">{label.replace('_', ' ')}</span>
+                      <span className="text-sm">✓</span>
+                    </div>
+                  );
+                })}
+                <p className="text-[9px] font-bold text-slate-600 ml-2 -mt-1 leading-relaxed">
+                  متابعة الغياب والتاسكات بتتحدد بس من خلال اعتماد اقتراح في تاب المتابعة — مش من هنا.
+                </p>
+
+                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-2 mt-2">Recognition Labels</p>
+                {['distinguished', 'best_achiever'].map(label => {
                   const isAssigned = studentFollowUps.find(f => f.studentId === selectedStudentForLabel.id && f.groupId === group?.id)?.labels.includes(label);
                   return (
-                    <button 
+                    <button
                       key={label}
                       onClick={() => toggleStudentLabel(selectedStudentForLabel.id, selectedStudentForLabel.name, label)}
                       className={`w-full flex items-center justify-between p-4 rounded-2xl border transition-all ${isAssigned ? 'bg-primary-950 border-primary-800 text-primary-400' : 'bg-slate-800/40 border-slate-800 text-slate-500 hover:border-slate-700'}`}
