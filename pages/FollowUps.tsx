@@ -115,6 +115,8 @@ const FollowUps: React.FC<{ user: User }> = ({ user }) => {
   >({});
 
   const [searchQuery, setSearchQuery] = useState("");
+  const [suggestionSearchQuery, setSuggestionSearchQuery] = useState("");
+  const [personalSearchQuery, setPersonalSearchQuery] = useState("");
   const [trainerFilter, setTrainerFilter] = useState("");
   const [mentionFilter, setMentionFilter] = useState("");
   const [groupFilter, setGroupFilter] = useState("");
@@ -273,12 +275,22 @@ const FollowUps: React.FC<{ user: User }> = ({ user }) => {
     [suggestionEscalations],
   );
 
+  const matchesStudentSearch = (studentId: string, studentName: string, q: string) => {
+    if (!q.trim()) return true;
+    const query = q.trim().toLowerCase();
+    if (studentName.toLowerCase().includes(query)) return true;
+    const phone = students.find((s) => s.id === studentId)?.phone || "";
+    return phone.includes(q.trim());
+  };
+
   const suggestionsByGroup = useMemo(() => {
     const map: Record<string, FollowUpSuggestion[]> = {};
-    suggestions.forEach((s) => {
-      if (!map[s.groupId]) map[s.groupId] = [];
-      map[s.groupId].push(s);
-    });
+    suggestions
+      .filter((s) => matchesStudentSearch(s.studentId, s.studentName, suggestionSearchQuery))
+      .forEach((s) => {
+        if (!map[s.groupId]) map[s.groupId] = [];
+        map[s.groupId].push(s);
+      });
     return map;
   }, [suggestions]);
 
@@ -293,15 +305,17 @@ const FollowUps: React.FC<{ user: User }> = ({ user }) => {
   );
 
   const myFollowUpsGrouped = useMemo(() => {
-    return myFollowUps.reduce(
-      (acc, f) => {
-        if (!acc[f.groupId]) acc[f.groupId] = [];
-        acc[f.groupId].push(f);
-        return acc;
-      },
-      {} as Record<string, StudentFollowUp[]>,
-    );
-  }, [myFollowUps]);
+    return myFollowUps
+      .filter((f) => matchesStudentSearch(f.studentId, f.studentName, personalSearchQuery))
+      .reduce(
+        (acc, f) => {
+          if (!acc[f.groupId]) acc[f.groupId] = [];
+          acc[f.groupId].push(f);
+          return acc;
+        },
+        {} as Record<string, StudentFollowUp[]>,
+      );
+  }, [myFollowUps, personalSearchQuery, students]);
 
   const todayStr = new Date().toISOString().split("T")[0];
 
@@ -311,19 +325,29 @@ const FollowUps: React.FC<{ user: User }> = ({ user }) => {
         (m) =>
           m.mentionedUserId === user.uid &&
           m.status === "pending" &&
-          (!m.snoozedUntil || m.snoozedUntil <= todayStr),
+          (!m.snoozedUntil || m.snoozedUntil <= todayStr) &&
+          matchesStudentSearch(m.studentId, m.studentName, personalSearchQuery),
       ),
-    [mentions, user.uid, todayStr],
+    [mentions, user.uid, todayStr, personalSearchQuery, students],
   );
 
   const myDoneTasks = useMemo(
-    () => mentions.filter((m) => m.mentionedUserId === user.uid && m.status === "done"),
-    [mentions, user.uid],
+    () =>
+      mentions.filter(
+        (m) =>
+          m.mentionedUserId === user.uid &&
+          m.status === "done" &&
+          matchesStudentSearch(m.studentId, m.studentName, personalSearchQuery),
+      ),
+    [mentions, user.uid, personalSearchQuery, students],
   );
 
   const allResolvedFollowUps = useMemo(
-    () => followUps.filter((f) => f.status === "resolved"),
-    [followUps],
+    () =>
+      followUps.filter(
+        (f) => f.status === "resolved" && matchesStudentSearch(f.studentId, f.studentName, personalSearchQuery),
+      ),
+    [followUps, personalSearchQuery, students],
   );
 
   const [suggestionMentionPick, setSuggestionMentionPick] = useState<Record<string, string>>({});
@@ -1032,17 +1056,31 @@ const FollowUps: React.FC<{ user: User }> = ({ user }) => {
             </p>
           </div>
 
-          {suggestions.length === 0 ? (
+          <div className="relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+            <input
+              type="text"
+              value={suggestionSearchQuery}
+              onChange={(e) => setSuggestionSearchQuery(e.target.value)}
+              placeholder={lang === "ar" ? "بحث بالاسم أو رقم الموبايل..." : "Search by name or phone..."}
+              className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl py-3 pl-12 pr-4 text-xs font-bold shadow-sm"
+            />
+          </div>
+
+          {Object.keys(suggestionsByGroup).length === 0 ? (
             <div className="bg-white dark:bg-slate-900 p-16 rounded-3xl border border-dashed border-slate-200 dark:border-slate-800 text-center">
               <div className="text-5xl mb-4">✅</div>
               <p className="text-slate-500 dark:text-slate-400 font-bold">
-                {lang === "ar" ? "لا توجد اقتراحات متابعة حالياً" : "No follow-up suggestions right now"}
+                {suggestionSearchQuery.trim()
+                  ? (lang === "ar" ? "لا يوجد طالب مطابق للبحث" : "No student matches this search")
+                  : (lang === "ar" ? "لا توجد اقتراحات متابعة حالياً" : "No follow-up suggestions right now")}
               </p>
             </div>
           ) : (
             Object.entries(suggestionsByGroup).map(([groupId, items]: [string, FollowUpSuggestion[]]) => {
               const g = groups.find((grp) => grp.id === groupId);
-              const isGroupExpanded = expandedSuggestionGroupId === groupId;
+              const isGroupExpanded =
+                expandedSuggestionGroupId === groupId || suggestionSearchQuery.trim() !== "";
               const scheduleText = g
                 ? `${(g.daysOfWeek || []).join(", ")} — ${formatTime12h(g.sessionTime)}`
                 : "";
@@ -1452,6 +1490,17 @@ const FollowUps: React.FC<{ user: User }> = ({ user }) => {
                 {label} <span className="opacity-70">({count})</span>
               </button>
             ))}
+          </div>
+
+          <div className="relative max-w-md">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+            <input
+              type="text"
+              value={personalSearchQuery}
+              onChange={(e) => setPersonalSearchQuery(e.target.value)}
+              placeholder={lang === "ar" ? "بحث بالاسم أو رقم الموبايل..." : "Search by name or phone..."}
+              className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl py-3 pl-12 pr-4 text-xs font-bold shadow-sm"
+            />
           </div>
 
           {/* personalTab === "mine" renders below via the shared "all"-style

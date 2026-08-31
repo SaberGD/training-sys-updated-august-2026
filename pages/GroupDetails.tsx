@@ -45,7 +45,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
   PieChart, Pie, Cell, LineChart, Line, Legend
 } from 'recharts';
-import { Edit2, Calendar, X, Save, Clock, UserPlus, Trash2, MessageSquare, Send, ExternalLink, Video, RefreshCw, Loader2, CheckCircle2, CheckCircle, XCircle, Mail, AlertTriangle, Globe, FlaskConical, Copy, Check, Key, Info, Sparkles } from 'lucide-react';
+import { Edit2, Calendar, X, Save, Clock, UserPlus, Trash2, MessageSquare, Send, ExternalLink, Video, RefreshCw, Loader2, CheckCircle2, CheckCircle, XCircle, Mail, AlertTriangle, Globe, FlaskConical, Copy, Check, Key, Info, Sparkles, Search } from 'lucide-react';
 
 const { where, serverTimestamp } = firestore as any;
 
@@ -62,6 +62,8 @@ const GroupDetails: React.FC<{ user: User }> = ({ user }) => {
   const [evaluations, setEvaluations] = useState<LectureEvaluation[]>([]);
   const [studentFollowUps, setStudentFollowUps] = useState<StudentFollowUp[]>([]);
   const [rankings, setRankings] = useState<GroupRanking[]>([]);
+  const [rankingSearchQuery, setRankingSearchQuery] = useState('');
+  const [penaltySearchQuery, setPenaltySearchQuery] = useState('');
   const [penalties, setPenalties] = useState<Penalty[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
   const [trainers, setTrainers] = useState<User[]>([]);
@@ -2219,264 +2221,19 @@ const GroupDetails: React.FC<{ user: User }> = ({ user }) => {
           <div className="animate-fade-in">
             {evaluationMode === 'lecture' && selectedSession && currentMeta && (
               <div className="flex flex-col gap-6 text-right font-arabic">
-                {/* Left Side: Lecturing Workspace Dashboard - Ordered to be underneath */}
-                <div className="order-2 w-full">
+                {/* Reordered per request: Smart Assistant + Attendance portal first,
+                   then the Evaluation Grid, then lecture data + course checklist,
+                   then the completed-operations checklist last. */}
+                <div className="w-full space-y-6">
                   {(() => {
                     const activeSess = sessions.find(s => s.id === selectedSession.id) || selectedSession;
                     const maxAllowed = courses.find(c => c.id === group?.courseId)?.maxApprovedHours || 3;
                     const isHoursOver = (activeSess.approvedHours || 0) > maxAllowed || (activeSess.actualHours || 0) > maxAllowed;
 
                     return (
-                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-                        {/* 1. LECTURE DETAILS BENTO CARD */}
-                        <div className="bg-slate-900 p-6 rounded-3xl border border-slate-800 space-y-4">
-                          <div className="flex justify-between items-center border-b border-slate-800 pb-3">
-                            <span className="text-[10px] font-black bg-slate-800 text-slate-400 px-2.5 py-1 rounded-lg border border-slate-700">
-                              📅 المحاضرة {activeSess.sessionNumber}
-                            </span>
-                            <h4 className="font-extrabold text-slate-200 text-xs">تسجيل بيانات المحاضرة الفنية</h4>
-                          </div>
-
-                          {/* What was explained textbox */}
-                          <div className="space-y-1">
-                            <label className="text-[10px] text-slate-500 font-extrabold block">ما تم شرحه بالفعل بالتفصيل (محتوى المحاضرة):</label>
-                            <textarea
-                              value={currentMeta.lectureNotes || ''}
-                              onChange={(e) => handleSaveMeta({ ...currentMeta, lectureNotes: e.target.value })}
-                              className="w-full px-4 py-3 rounded-xl border border-slate-800 bg-slate-950 text-xs h-32 outline-none focus:border-blue-500 text-right"
-                              placeholder="اكتب تفاصيل المحتوى والتقنيات البرمجية التي تم شرحها والبرمجيات التي تم بناؤها اليوم..."
-                            />
-                            {isHoursOver && (
-                              <p className="text-[9px] text-amber-500 font-black mt-1 bg-amber-950/20 p-2 rounded border border-amber-900/35 leading-normal">
-                                ⚠️ ملاحظة: تجاوز الوقت الحد الأقصى المعتمد للمقرر ({maxAllowed} ساعات). يمكنك تدوين سبب الإطالة هنا في محتوى المحاضرة.
-                              </p>
-                            )}
-                          </div>
-
-                          {/* Required Tasks */}
-                          <div className="space-y-1">
-                            <label className="text-[10px] text-slate-500 font-extrabold block text-blue-400">التكليفات والمهام المطلوبة من المتدربين (التاسكات):</label>
-                            <textarea
-                              value={currentMeta.taskInstructions || ''}
-                              onChange={(e) => handleSaveMeta({ ...currentMeta, taskInstructions: e.target.value })}
-                              className="w-full px-4 py-3 rounded-xl border border-slate-800 bg-slate-950 text-xs h-28 outline-none focus:border-blue-500 border-blue-900/30 text-right"
-                              placeholder="أدخل المهام والمشروعات التطبيقية المطلوبة من الطلاب العمل عليها حتى الحصة القادمة..."
-                            />
-                          </div>
-
-                          {/* Lecture Evaluation Alert & Copy Button */}
-                          {(() => {
-                            const feedbackSessions = group?.feedbackSessions || [1, 4, 7, 10, 13, 16, 19, 22, 25, 28, 31, 34];
-                            const needsEvaluation = feedbackSessions.includes(activeSess.sessionNumber);
-                            const evaluationUrl = `${window.location.origin}/#/student/portal?groupId=${group?.id}&sessionNumber=${activeSess.sessionNumber}&feedback=true`;
-                            
-                            if (!needsEvaluation) return null;
-                            
-                            return (
-                              <div className="p-4 rounded-2xl border-2 border-purple-500/30 bg-purple-950/20 text-purple-300 font-bold text-xs space-y-2 text-right">
-                                <div className="flex items-center justify-end gap-2">
-                                  <span>📝</span>
-                                  <p className="font-black text-purple-400">هذه المحاضرة تحتاج إرسال لينك تقييم للمتدربين.</p>
-                                </div>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    navigator.clipboard.writeText(evaluationUrl);
-                                    alert("تم نسخ لينك التقييم بنجاح!");
-                                  }}
-                                  className="w-full bg-purple-600 font-black text-white hover:bg-purple-500 py-2.5 rounded-xl text-center flex items-center justify-center gap-1.5 transition-all text-[11px]"
-                                >
-                                  📋 نسخ لينك التقييم للمحاضرة #{activeSess.sessionNumber}
-                                </button>
-                              </div>
-                            );
-                          })()}
-                        </div>
-
-                        {/* 2. COURSE EXECUTION CHECKLIST COMPONENT */}
-                        <div className="bg-slate-900 p-6 rounded-3xl border border-slate-800 space-y-4">
-                          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-800 pb-3 w-full" dir="rtl">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <h4 className="font-extrabold text-slate-200 text-xs">مخرجات وبنود الكورس (Course Checklist)</h4>
-                              <button
-                                type="button"
-                                onClick={() => setShowAddExtraForm(!showAddExtraForm)}
-                                className={`text-[10px] px-2.5 py-1 rounded-lg font-black transition-all flex items-center gap-1 ${
-                                  showAddExtraForm 
-                                    ? 'bg-rose-950/45 text-rose-400 border border-rose-900/50 hover:bg-rose-950/80' 
-                                    : 'bg-indigo-950/45 text-indigo-400 border border-indigo-900/50 hover:bg-indigo-950/80'
-                                }`}
-                              >
-                                {showAddExtraForm ? '❌ إلغاء الإضافة' : '➕ إضافة جزء إضافي أثناء المحاضرة'}
-                              </button>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => handleToggleAllPlannedForSession(activeSess.sessionNumber, true)}
-                              className="text-[9px] bg-emerald-950/40 text-emerald-400 border border-emerald-900/50 px-2.5 py-1 rounded-lg font-black transition-all hover:bg-emerald-950/80"
-                            >
-                              ✔️ تحديد كل بنود المحاضرة كمكتمل
-                            </button>
-                          </div>
-
-                          {showAddExtraForm && (
-                            <form onSubmit={handleAddExtraChecklistItem} className="p-4 rounded-2xl bg-slate-950 border border-indigo-950/50 space-y-3 font-sans" dir="rtl">
-                              <div className="text-right">
-                                <h5 className="text-[11px] font-black text-indigo-400">إضافة بند/جزء جديد تم شرحه أثناء المحاضرة</h5>
-                                <p className="text-[9px] text-slate-500">قم بإضافة جزء إضافي لتسجيله، وتحديد ما إذا كان استثناءً لهذه المحاضرة فقط أم جزءاً من الخطة الدائمة للمدرب.</p>
-                              </div>
-
-                              <div className="space-y-1">
-                                <label className="text-[10px] font-bold text-slate-400 block">عنوان الجزء الإضافي *</label>
-                                <input
-                                  type="text"
-                                  required
-                                  value={extraTitle}
-                                  onChange={e => setExtraTitle(e.target.value)}
-                                  placeholder="مثال: شرح مكتبة Axios واستدعاء الـ API..."
-                                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-800 bg-slate-900 text-slate-100 outline-none focus:border-indigo-500 transition-all text-right"
-                                />
-                              </div>
-
-                              <div className="space-y-1">
-                                <label className="text-[10px] font-bold text-slate-400 block">تفاصيل أو وصف إضافي (اختياري)</label>
-                                <textarea
-                                  value={extraDesc}
-                                  onChange={e => setExtraDesc(e.target.value)}
-                                  placeholder="تفاصيل إضافية حول البند أو التطبيق العملي..."
-                                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-800 bg-slate-900 text-slate-100 outline-none focus:border-indigo-500 transition-all h-16 resize-none text-right"
-                                />
-                              </div>
-
-                              <div className="space-y-1.5">
-                                <label className="text-[10px] font-bold text-slate-400 block">نطاق البند وطريقة تأثيره</label>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-right">
-                                  <label className="flex items-center gap-2 p-2.5 rounded-xl border border-slate-800 bg-slate-900/50 cursor-pointer hover:bg-slate-900 transition-all">
-                                    <input
-                                      type="radio"
-                                      name="extraScope"
-                                      checked={extraScope === 'session_only'}
-                                      onChange={() => setExtraScope('session_only')}
-                                      className="h-3.5 w-3.5 text-indigo-600 focus:ring-indigo-500 accent-indigo-500 bg-slate-950"
-                                    />
-                                    <div className="flex-1 pr-1">
-                                      <span className="text-[10px] font-black text-slate-200 block">⚠️ استثناء خاص بالمجموعة الحالية</span>
-                                      <span className="text-[8px] text-slate-500 block">لا يؤثر على خطة الكورس الأساسية أو المجموعات الأخرى</span>
-                                    </div>
-                                  </label>
-
-                                  <label className="flex items-center gap-2 p-2.5 rounded-xl border border-slate-800 bg-slate-900/50 cursor-pointer hover:bg-slate-900 transition-all">
-                                    <input
-                                      type="radio"
-                                      name="extraScope"
-                                      checked={extraScope === 'trainer_master'}
-                                      onChange={() => setExtraScope('trainer_master')}
-                                      className="h-3.5 w-3.5 text-indigo-600 focus:ring-indigo-500 accent-indigo-500 bg-slate-950"
-                                    />
-                                    <div className="flex-1 pr-1">
-                                      <span className="text-[10px] font-black text-slate-200 block">🔁 إضافة للخطة الأساسية للمدرب</span>
-                                      <span className="text-[8px] text-slate-500 block">يصبح جزءاً دائمًا ويظهر في كل مجموعات هذا الكورس التي يدرسها هذا المدرب</span>
-                                    </div>
-                                  </label>
-                                </div>
-                              </div>
-
-                              <button
-                                type="submit"
-                                disabled={isSavingExtra || !extraTitle.trim()}
-                                className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-800 text-white py-2 rounded-xl text-xs font-black tracking-wide transition-all shadow-md active:scale-95"
-                              >
-                                {isSavingExtra ? 'جاري الإضافة والحفظ...' : '💾 حفظ وإدراج الجزء الإضافي'}
-                              </button>
-                            </form>
-                          )}
-
-                          <div className="space-y-3 max-h-[350px] overflow-y-auto pr-1">
-                            {combinedItems && combinedItems.length > 0 ? (
-                              combinedItems.map((item: any) => {
-                                const isCurrentPlanned = (item.suggestedSession || item.seq || 1) === activeSess.sessionNumber;
-                                const isDelayed = !item.isCompleted && (item.suggestedSession || item.seq || 1) < activeSess.sessionNumber;
-                                const isCompleted = !!item.isCompleted;
-                                const isExtra = !!item.isExtra;
-
-                                let bgBorderClass = '';
-                                if (isExtra) {
-                                  if (isCompleted) {
-                                    bgBorderClass = 'bg-teal-950/20 border-teal-600/45 border-dashed';
-                                  } else {
-                                    bgBorderClass = item.scope === 'trainer_master'
-                                      ? 'bg-purple-950/15 border-purple-800/40 border-dashed'
-                                      : 'bg-amber-950/15 border-amber-800/40 border-dashed';
-                                  }
-                                } else {
-                                  bgBorderClass = isCompleted 
-                                    ? 'bg-emerald-950/15 border-emerald-900/35' 
-                                    : isCurrentPlanned 
-                                      ? 'bg-blue-950/10 border-blue-900/35' 
-                                      : 'bg-slate-950 border-slate-850';
-                                }
-
-                                return (
-                                  <div
-                                    key={item.id}
-                                    className={`p-3 rounded-xl border transition-all text-right flex flex-col justify-between gap-2 ${bgBorderClass}`}
-                                  >
-                                    <div className="flex justify-between items-start gap-4">
-                                      <input
-                                        type="checkbox"
-                                        checked={isCompleted}
-                                        onChange={(e) => handleToggleChecklistItem(item.id, e.target.checked)}
-                                        className="h-4.5 w-4.5 rounded text-emerald-600 focus:ring-emerald-500 border-slate-800 bg-slate-950 cursor-pointer accent-emerald-500 mt-0.5"
-                                      />
-                                      <div className="flex-1 space-y-1 pr-1">
-                                        <p className="text-xs font-black text-slate-200 leading-snug">
-                                          {item.title}
-                                          {isExtra && (
-                                            <span className="mr-1.5 px-1.5 py-0.5 rounded text-[8px] bg-slate-800 text-slate-300 border border-slate-700 font-extrabold inline-block">
-                                              {item.scope === 'session_only' ? '✨ استثناء' : '🔁 خطة المدرب'}
-                                            </span>
-                                          )}
-                                        </p>
-                                        {item.description && (
-                                          <p className="text-[10px] text-slate-400 font-medium leading-relaxed">{item.description}</p>
-                                        )}
-                                      </div>
-                                    </div>
-
-                                    {/* Item status badges */}
-                                    <div className="flex flex-wrap items-center gap-1.5 mt-1 border-t border-slate-850 pt-2 text-[9px] text-slate-500">
-                                      <span className="font-extrabold bg-slate-800 px-2 py-0.5 rounded text-slate-400">
-                                        مستهدف: محاضرة {item.suggestedSession || item.seq || 1}
-                                      </span>
-                                      
-                                      {isDelayed && (
-                                        <span className="text-[9px] font-black bg-red-950/40 text-red-400 border border-red-900/40 px-2 py-0.5 rounded-md">
-                                          ⚠️ متأخر عن الخطة النموذجية!
-                                        </span>
-                                      )}
-
-                                      {isCompleted && (
-                                        <span className="text-emerald-400 font-bold bg-emerald-950/30 px-2 py-0.5 rounded flex items-center gap-1">
-                                          ✔ أُنجز في محاضرة {item.completedInSessionNum} بواسطة {item.completedByTrainerName || 'المدرب'}
-                                        </span>
-                                      )}
-
-                                      {isExtra && (
-                                        <span className="text-slate-400 font-medium bg-slate-800 px-2 py-0.5 rounded">
-                                          📅 أُضيف بتاريخ {item.addedAtDate || 'اليوم'} (محاضرة {item.addedInSessionNumber}) {item.addedByTrainerName ? `بواسطة ${item.addedByTrainerName}` : ''}
-                                        </span>
-                                      )}
-                                    </div>
-                                  </div>
-                                );
-                              })
-                            ) : (
-                              <p className="text-[10px] text-slate-500 font-semibold text-center py-4">لا توجد بنود وجدول مخرجات لهذا المقرر.</p>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* 3. SMART SESSION EVENT & TIME ASSISTANT */}
+                      <>
+                        {/* Row 1: Smart Assistant + Student Attendance Portal */}
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
                         <div className="bg-gradient-to-br from-slate-900 to-slate-950 p-6 rounded-3xl border border-slate-800 space-y-4 text-right font-arabic">
                           <div className="flex justify-between items-center border-b border-slate-850 pb-3">
                             <span className="text-[9px] font-black bg-blue-950 text-blue-400 px-2.5 py-1 rounded-lg border border-blue-900/30 font-sans">
@@ -3429,8 +3186,6 @@ const GroupDetails: React.FC<{ user: User }> = ({ user }) => {
                             </div>
                           )}
                         </div>
-
-                        {/* 4. STUDENT ATTENDANCE QR CODE & DOMAIN CONTROLLER */}
                         <div className="bg-gradient-to-br from-indigo-950/20 to-slate-900 p-6 rounded-3xl border border-indigo-900/30 space-y-4">
                           <div className="flex justify-between items-center border-b border-indigo-950 pb-3">
                             <span className="text-[10px] font-black bg-emerald-950 text-emerald-400 px-2.5 py-1 rounded-full border border-emerald-900/50">
@@ -3598,63 +3353,9 @@ const GroupDetails: React.FC<{ user: User }> = ({ user }) => {
                             })()}
                           </div>
                         </div>
-
-                        {/* 5. RESTORED OPERATIONS OPS CHECKLIST */}
-                        <div className="bg-slate-900 p-6 rounded-3xl border border-slate-800 space-y-4">
-                          <h4 className="font-extrabold text-slate-200 text-xs text-right animate-pulse">قائمة العمليات المنجزة (Ops Checklist)</h4>
-                          <div className="space-y-2">
-                            {[
-                              { key: 'recordingUploaded', label: 'تم رفع تسجيل المحاضرة' },
-                              { key: 'tasksEvaluated', label: 'تم تقييم التاسكات' },
-                              { key: 'taskSent', label: 'تم ارسال التاسكات الجديدة' },
-                              { key: 'whatsappConfirmationSent', label: 'اتبعت رسالة واتس اب للجروب' }
-                            ].map(item => {
-                              const isChecked = !!(currentMeta.opsChecklist as any)?.[item.key];
-                              const checkedDetails = currentMeta.opsChecklistCheckedBy?.[item.key];
-                              return (
-                                <button
-                                  key={item.key}
-                                  onClick={() => {
-                                    const wasChecked = !isChecked;
-                                    const updatedOps = { 
-                                      ...(currentMeta.opsChecklist || {}), 
-                                      [item.key]: wasChecked 
-                                    };
-                                    const updatedCheckedBy = { ...(currentMeta.opsChecklistCheckedBy || {}) };
-                                    if (wasChecked) {
-                                      updatedCheckedBy[item.key] = {
-                                        byName: user.name,
-                                        atTime: getCairoDateTimeStr()
-                                      };
-                                    } else {
-                                      delete updatedCheckedBy[item.key];
-                                    }
-                                    handleSaveMeta({ ...currentMeta, opsChecklist: updatedOps, opsChecklistCheckedBy: updatedCheckedBy });
-                                  }}
-                                  className={`w-full flex items-center justify-between p-3.5 rounded-2xl border transition-all text-right ${isChecked ? 'bg-emerald-950/30 border-emerald-800/60 text-emerald-400' : 'bg-slate-950 border-slate-800/80 text-slate-400 hover:border-slate-700 hover:bg-slate-900/30'}`}
-                                >
-                                  <div className="flex flex-col text-right">
-                                    <span className="text-xs font-bold leading-relaxed">{item.label}</span>
-                                    {isChecked && checkedDetails && (
-                                      <span className="text-[10px] text-emerald-400/80 mt-1 font-arabic">
-                                        ✓ تمت بواسطة: <span className="font-extrabold text-emerald-300">{checkedDetails.byName}</span> - {checkedDetails.atTime}
-                                      </span>
-                                    )}
-                                  </div>
-                                  <span className="text-lg flex items-center justify-center p-1 rounded-lg">
-                                    {isChecked ? '💚' : '⚪'}
-                                  </span>
-                                </button>
-                              );
-                            })}
-                          </div>
                         </div>
-                      </div>
-                    );
-                  })()}
-                </div>
 
-                <div className="order-1 w-full">
+                        {/* Evaluation Grid */}
                   <div className="bg-slate-900 rounded-3xl border border-slate-800 overflow-hidden shadow-sm">
                     <div className="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-900/50">
                       <h3 className="font-black text-slate-300 text-sm uppercase">Evaluation Grid</h3>
@@ -3956,6 +3657,308 @@ const GroupDetails: React.FC<{ user: User }> = ({ user }) => {
                       </div>
                     </div>
                   </div>
+
+                        {/* Row 2: Lecture Data + Course Checklist */}
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+                        <div className="bg-slate-900 p-6 rounded-3xl border border-slate-800 space-y-4">
+                          <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+                            <span className="text-[10px] font-black bg-slate-800 text-slate-400 px-2.5 py-1 rounded-lg border border-slate-700">
+                              📅 المحاضرة {activeSess.sessionNumber}
+                            </span>
+                            <h4 className="font-extrabold text-slate-200 text-xs">تسجيل بيانات المحاضرة الفنية</h4>
+                          </div>
+
+                          {/* What was explained textbox */}
+                          <div className="space-y-1">
+                            <label className="text-[10px] text-slate-500 font-extrabold block">ما تم شرحه بالفعل بالتفصيل (محتوى المحاضرة):</label>
+                            <textarea
+                              value={currentMeta.lectureNotes || ''}
+                              onChange={(e) => handleSaveMeta({ ...currentMeta, lectureNotes: e.target.value })}
+                              className="w-full px-4 py-3 rounded-xl border border-slate-800 bg-slate-950 text-xs h-32 outline-none focus:border-blue-500 text-right"
+                              placeholder="اكتب تفاصيل المحتوى والتقنيات البرمجية التي تم شرحها والبرمجيات التي تم بناؤها اليوم..."
+                            />
+                            {isHoursOver && (
+                              <p className="text-[9px] text-amber-500 font-black mt-1 bg-amber-950/20 p-2 rounded border border-amber-900/35 leading-normal">
+                                ⚠️ ملاحظة: تجاوز الوقت الحد الأقصى المعتمد للمقرر ({maxAllowed} ساعات). يمكنك تدوين سبب الإطالة هنا في محتوى المحاضرة.
+                              </p>
+                            )}
+                          </div>
+
+                          {/* Required Tasks */}
+                          <div className="space-y-1">
+                            <label className="text-[10px] text-slate-500 font-extrabold block text-blue-400">التكليفات والمهام المطلوبة من المتدربين (التاسكات):</label>
+                            <textarea
+                              value={currentMeta.taskInstructions || ''}
+                              onChange={(e) => handleSaveMeta({ ...currentMeta, taskInstructions: e.target.value })}
+                              className="w-full px-4 py-3 rounded-xl border border-slate-800 bg-slate-950 text-xs h-28 outline-none focus:border-blue-500 border-blue-900/30 text-right"
+                              placeholder="أدخل المهام والمشروعات التطبيقية المطلوبة من الطلاب العمل عليها حتى الحصة القادمة..."
+                            />
+                          </div>
+
+                          {/* Lecture Evaluation Alert & Copy Button */}
+                          {(() => {
+                            const feedbackSessions = group?.feedbackSessions || [1, 4, 7, 10, 13, 16, 19, 22, 25, 28, 31, 34];
+                            const needsEvaluation = feedbackSessions.includes(activeSess.sessionNumber);
+                            const evaluationUrl = `${window.location.origin}/#/student/portal?groupId=${group?.id}&sessionNumber=${activeSess.sessionNumber}&feedback=true`;
+                            
+                            if (!needsEvaluation) return null;
+                            
+                            return (
+                              <div className="p-4 rounded-2xl border-2 border-purple-500/30 bg-purple-950/20 text-purple-300 font-bold text-xs space-y-2 text-right">
+                                <div className="flex items-center justify-end gap-2">
+                                  <span>📝</span>
+                                  <p className="font-black text-purple-400">هذه المحاضرة تحتاج إرسال لينك تقييم للمتدربين.</p>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    navigator.clipboard.writeText(evaluationUrl);
+                                    alert("تم نسخ لينك التقييم بنجاح!");
+                                  }}
+                                  className="w-full bg-purple-600 font-black text-white hover:bg-purple-500 py-2.5 rounded-xl text-center flex items-center justify-center gap-1.5 transition-all text-[11px]"
+                                >
+                                  📋 نسخ لينك التقييم للمحاضرة #{activeSess.sessionNumber}
+                                </button>
+                              </div>
+                            );
+                          })()}
+                        </div>
+                        <div className="bg-slate-900 p-6 rounded-3xl border border-slate-800 space-y-4">
+                          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-800 pb-3 w-full" dir="rtl">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <h4 className="font-extrabold text-slate-200 text-xs">مخرجات وبنود الكورس (Course Checklist)</h4>
+                              <button
+                                type="button"
+                                onClick={() => setShowAddExtraForm(!showAddExtraForm)}
+                                className={`text-[10px] px-2.5 py-1 rounded-lg font-black transition-all flex items-center gap-1 ${
+                                  showAddExtraForm 
+                                    ? 'bg-rose-950/45 text-rose-400 border border-rose-900/50 hover:bg-rose-950/80' 
+                                    : 'bg-indigo-950/45 text-indigo-400 border border-indigo-900/50 hover:bg-indigo-950/80'
+                                }`}
+                              >
+                                {showAddExtraForm ? '❌ إلغاء الإضافة' : '➕ إضافة جزء إضافي أثناء المحاضرة'}
+                              </button>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleToggleAllPlannedForSession(activeSess.sessionNumber, true)}
+                              className="text-[9px] bg-emerald-950/40 text-emerald-400 border border-emerald-900/50 px-2.5 py-1 rounded-lg font-black transition-all hover:bg-emerald-950/80"
+                            >
+                              ✔️ تحديد كل بنود المحاضرة كمكتمل
+                            </button>
+                          </div>
+
+                          {showAddExtraForm && (
+                            <form onSubmit={handleAddExtraChecklistItem} className="p-4 rounded-2xl bg-slate-950 border border-indigo-950/50 space-y-3 font-sans" dir="rtl">
+                              <div className="text-right">
+                                <h5 className="text-[11px] font-black text-indigo-400">إضافة بند/جزء جديد تم شرحه أثناء المحاضرة</h5>
+                                <p className="text-[9px] text-slate-500">قم بإضافة جزء إضافي لتسجيله، وتحديد ما إذا كان استثناءً لهذه المحاضرة فقط أم جزءاً من الخطة الدائمة للمدرب.</p>
+                              </div>
+
+                              <div className="space-y-1">
+                                <label className="text-[10px] font-bold text-slate-400 block">عنوان الجزء الإضافي *</label>
+                                <input
+                                  type="text"
+                                  required
+                                  value={extraTitle}
+                                  onChange={e => setExtraTitle(e.target.value)}
+                                  placeholder="مثال: شرح مكتبة Axios واستدعاء الـ API..."
+                                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-800 bg-slate-900 text-slate-100 outline-none focus:border-indigo-500 transition-all text-right"
+                                />
+                              </div>
+
+                              <div className="space-y-1">
+                                <label className="text-[10px] font-bold text-slate-400 block">تفاصيل أو وصف إضافي (اختياري)</label>
+                                <textarea
+                                  value={extraDesc}
+                                  onChange={e => setExtraDesc(e.target.value)}
+                                  placeholder="تفاصيل إضافية حول البند أو التطبيق العملي..."
+                                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-800 bg-slate-900 text-slate-100 outline-none focus:border-indigo-500 transition-all h-16 resize-none text-right"
+                                />
+                              </div>
+
+                              <div className="space-y-1.5">
+                                <label className="text-[10px] font-bold text-slate-400 block">نطاق البند وطريقة تأثيره</label>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-right">
+                                  <label className="flex items-center gap-2 p-2.5 rounded-xl border border-slate-800 bg-slate-900/50 cursor-pointer hover:bg-slate-900 transition-all">
+                                    <input
+                                      type="radio"
+                                      name="extraScope"
+                                      checked={extraScope === 'session_only'}
+                                      onChange={() => setExtraScope('session_only')}
+                                      className="h-3.5 w-3.5 text-indigo-600 focus:ring-indigo-500 accent-indigo-500 bg-slate-950"
+                                    />
+                                    <div className="flex-1 pr-1">
+                                      <span className="text-[10px] font-black text-slate-200 block">⚠️ استثناء خاص بالمجموعة الحالية</span>
+                                      <span className="text-[8px] text-slate-500 block">لا يؤثر على خطة الكورس الأساسية أو المجموعات الأخرى</span>
+                                    </div>
+                                  </label>
+
+                                  <label className="flex items-center gap-2 p-2.5 rounded-xl border border-slate-800 bg-slate-900/50 cursor-pointer hover:bg-slate-900 transition-all">
+                                    <input
+                                      type="radio"
+                                      name="extraScope"
+                                      checked={extraScope === 'trainer_master'}
+                                      onChange={() => setExtraScope('trainer_master')}
+                                      className="h-3.5 w-3.5 text-indigo-600 focus:ring-indigo-500 accent-indigo-500 bg-slate-950"
+                                    />
+                                    <div className="flex-1 pr-1">
+                                      <span className="text-[10px] font-black text-slate-200 block">🔁 إضافة للخطة الأساسية للمدرب</span>
+                                      <span className="text-[8px] text-slate-500 block">يصبح جزءاً دائمًا ويظهر في كل مجموعات هذا الكورس التي يدرسها هذا المدرب</span>
+                                    </div>
+                                  </label>
+                                </div>
+                              </div>
+
+                              <button
+                                type="submit"
+                                disabled={isSavingExtra || !extraTitle.trim()}
+                                className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-800 text-white py-2 rounded-xl text-xs font-black tracking-wide transition-all shadow-md active:scale-95"
+                              >
+                                {isSavingExtra ? 'جاري الإضافة والحفظ...' : '💾 حفظ وإدراج الجزء الإضافي'}
+                              </button>
+                            </form>
+                          )}
+
+                          <div className="space-y-3 max-h-[350px] overflow-y-auto pr-1">
+                            {combinedItems && combinedItems.length > 0 ? (
+                              combinedItems.map((item: any) => {
+                                const isCurrentPlanned = (item.suggestedSession || item.seq || 1) === activeSess.sessionNumber;
+                                const isDelayed = !item.isCompleted && (item.suggestedSession || item.seq || 1) < activeSess.sessionNumber;
+                                const isCompleted = !!item.isCompleted;
+                                const isExtra = !!item.isExtra;
+
+                                let bgBorderClass = '';
+                                if (isExtra) {
+                                  if (isCompleted) {
+                                    bgBorderClass = 'bg-teal-950/20 border-teal-600/45 border-dashed';
+                                  } else {
+                                    bgBorderClass = item.scope === 'trainer_master'
+                                      ? 'bg-purple-950/15 border-purple-800/40 border-dashed'
+                                      : 'bg-amber-950/15 border-amber-800/40 border-dashed';
+                                  }
+                                } else {
+                                  bgBorderClass = isCompleted 
+                                    ? 'bg-emerald-950/15 border-emerald-900/35' 
+                                    : isCurrentPlanned 
+                                      ? 'bg-blue-950/10 border-blue-900/35' 
+                                      : 'bg-slate-950 border-slate-850';
+                                }
+
+                                return (
+                                  <div
+                                    key={item.id}
+                                    className={`p-3 rounded-xl border transition-all text-right flex flex-col justify-between gap-2 ${bgBorderClass}`}
+                                  >
+                                    <div className="flex justify-between items-start gap-4">
+                                      <input
+                                        type="checkbox"
+                                        checked={isCompleted}
+                                        onChange={(e) => handleToggleChecklistItem(item.id, e.target.checked)}
+                                        className="h-4.5 w-4.5 rounded text-emerald-600 focus:ring-emerald-500 border-slate-800 bg-slate-950 cursor-pointer accent-emerald-500 mt-0.5"
+                                      />
+                                      <div className="flex-1 space-y-1 pr-1">
+                                        <p className="text-xs font-black text-slate-200 leading-snug">
+                                          {item.title}
+                                          {isExtra && (
+                                            <span className="mr-1.5 px-1.5 py-0.5 rounded text-[8px] bg-slate-800 text-slate-300 border border-slate-700 font-extrabold inline-block">
+                                              {item.scope === 'session_only' ? '✨ استثناء' : '🔁 خطة المدرب'}
+                                            </span>
+                                          )}
+                                        </p>
+                                        {item.description && (
+                                          <p className="text-[10px] text-slate-400 font-medium leading-relaxed">{item.description}</p>
+                                        )}
+                                      </div>
+                                    </div>
+
+                                    {/* Item status badges */}
+                                    <div className="flex flex-wrap items-center gap-1.5 mt-1 border-t border-slate-850 pt-2 text-[9px] text-slate-500">
+                                      <span className="font-extrabold bg-slate-800 px-2 py-0.5 rounded text-slate-400">
+                                        مستهدف: محاضرة {item.suggestedSession || item.seq || 1}
+                                      </span>
+                                      
+                                      {isDelayed && (
+                                        <span className="text-[9px] font-black bg-red-950/40 text-red-400 border border-red-900/40 px-2 py-0.5 rounded-md">
+                                          ⚠️ متأخر عن الخطة النموذجية!
+                                        </span>
+                                      )}
+
+                                      {isCompleted && (
+                                        <span className="text-emerald-400 font-bold bg-emerald-950/30 px-2 py-0.5 rounded flex items-center gap-1">
+                                          ✔ أُنجز في محاضرة {item.completedInSessionNum} بواسطة {item.completedByTrainerName || 'المدرب'}
+                                        </span>
+                                      )}
+
+                                      {isExtra && (
+                                        <span className="text-slate-400 font-medium bg-slate-800 px-2 py-0.5 rounded">
+                                          📅 أُضيف بتاريخ {item.addedAtDate || 'اليوم'} (محاضرة {item.addedInSessionNumber}) {item.addedByTrainerName ? `بواسطة ${item.addedByTrainerName}` : ''}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              })
+                            ) : (
+                              <p className="text-[10px] text-slate-500 font-semibold text-center py-4">لا توجد بنود وجدول مخرجات لهذا المقرر.</p>
+                            )}
+                          </div>
+                        </div>
+                        </div>
+
+                        {/* Completed Operations Checklist */}
+                        <div className="bg-slate-900 p-6 rounded-3xl border border-slate-800 space-y-4">
+                          <h4 className="font-extrabold text-slate-200 text-xs text-right animate-pulse">قائمة العمليات المنجزة (Ops Checklist)</h4>
+                          <div className="space-y-2">
+                            {[
+                              { key: 'recordingUploaded', label: 'تم رفع تسجيل المحاضرة' },
+                              { key: 'tasksEvaluated', label: 'تم تقييم التاسكات' },
+                              { key: 'taskSent', label: 'تم ارسال التاسكات الجديدة' },
+                              { key: 'whatsappConfirmationSent', label: 'اتبعت رسالة واتس اب للجروب' }
+                            ].map(item => {
+                              const isChecked = !!(currentMeta.opsChecklist as any)?.[item.key];
+                              const checkedDetails = currentMeta.opsChecklistCheckedBy?.[item.key];
+                              return (
+                                <button
+                                  key={item.key}
+                                  onClick={() => {
+                                    const wasChecked = !isChecked;
+                                    const updatedOps = { 
+                                      ...(currentMeta.opsChecklist || {}), 
+                                      [item.key]: wasChecked 
+                                    };
+                                    const updatedCheckedBy = { ...(currentMeta.opsChecklistCheckedBy || {}) };
+                                    if (wasChecked) {
+                                      updatedCheckedBy[item.key] = {
+                                        byName: user.name,
+                                        atTime: getCairoDateTimeStr()
+                                      };
+                                    } else {
+                                      delete updatedCheckedBy[item.key];
+                                    }
+                                    handleSaveMeta({ ...currentMeta, opsChecklist: updatedOps, opsChecklistCheckedBy: updatedCheckedBy });
+                                  }}
+                                  className={`w-full flex items-center justify-between p-3.5 rounded-2xl border transition-all text-right ${isChecked ? 'bg-emerald-950/30 border-emerald-800/60 text-emerald-400' : 'bg-slate-950 border-slate-800/80 text-slate-400 hover:border-slate-700 hover:bg-slate-900/30'}`}
+                                >
+                                  <div className="flex flex-col text-right">
+                                    <span className="text-xs font-bold leading-relaxed">{item.label}</span>
+                                    {isChecked && checkedDetails && (
+                                      <span className="text-[10px] text-emerald-400/80 mt-1 font-arabic">
+                                        ✓ تمت بواسطة: <span className="font-extrabold text-emerald-300">{checkedDetails.byName}</span> - {checkedDetails.atTime}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <span className="text-lg flex items-center justify-center p-1 rounded-lg">
+                                    {isChecked ? '💚' : '⚪'}
+                                  </span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </>
+                    );
+                  })()}
                 </div>
               </div>
             )}
@@ -5079,8 +5082,18 @@ const GroupDetails: React.FC<{ user: User }> = ({ user }) => {
             </form>
           </div>
           <div className="lg:col-span-2 bg-slate-900 rounded-3xl border border-slate-800 overflow-hidden">
-            <div className="p-6 border-b border-slate-800 bg-slate-900/50 flex justify-between items-center">
+            <div className="p-6 border-b border-slate-800 bg-slate-900/50 flex flex-wrap justify-between items-center gap-3">
               <h3 className="font-black text-slate-300 text-sm uppercase tracking-widest">Active Penalties</h3>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={14} />
+                <input
+                  type="text"
+                  value={penaltySearchQuery}
+                  onChange={(e) => setPenaltySearchQuery(e.target.value)}
+                  placeholder="Search by name or phone..."
+                  className="bg-slate-950 border border-slate-800 rounded-xl py-2 pl-9 pr-3 text-xs font-bold text-slate-200 outline-none"
+                />
+              </div>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">
@@ -5093,7 +5106,14 @@ const GroupDetails: React.FC<{ user: User }> = ({ user }) => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800">
-                  {penalties.map(p => {
+                  {penalties
+                    .filter(p => {
+                      if (!penaltySearchQuery.trim()) return true;
+                      const q = penaltySearchQuery.trim().toLowerCase();
+                      const student = students.find(s => s.id === p.studentId);
+                      return (student?.name || '').toLowerCase().includes(q) || (student?.phone || '').includes(penaltySearchQuery.trim());
+                    })
+                    .map(p => {
                     const student = students.find(s => s.id === p.studentId);
                     return (
                       <tr key={p.id} className="hover:bg-slate-800/40">
@@ -5791,9 +5811,21 @@ const GroupDetails: React.FC<{ user: User }> = ({ user }) => {
 
       {activeTab === 'ranking' && (
         <div className="bg-slate-900 rounded-3xl border border-slate-800 overflow-hidden shadow-sm">
-          <div className="p-8 border-b border-slate-800 flex justify-between items-center bg-slate-900/50">
+          <div className="p-8 border-b border-slate-800 flex flex-wrap justify-between items-center gap-4 bg-slate-900/50">
             <h3 className="text-xl font-black text-white tracking-tight">🏆 Leaderboard</h3>
-            <button onClick={handleRecalculateAll} disabled={isRecalculating} className="bg-white text-slate-950 px-6 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl">Force Sync</button>
+            <div className="flex items-center gap-3">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={14} />
+                <input
+                  type="text"
+                  value={rankingSearchQuery}
+                  onChange={(e) => setRankingSearchQuery(e.target.value)}
+                  placeholder="Search by name..."
+                  className="bg-slate-950 border border-slate-800 rounded-xl py-2 pl-9 pr-3 text-xs font-bold text-slate-200 outline-none"
+                />
+              </div>
+              <button onClick={handleRecalculateAll} disabled={isRecalculating} className="bg-white text-slate-950 px-6 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl">Force Sync</button>
+            </div>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
@@ -5808,19 +5840,25 @@ const GroupDetails: React.FC<{ user: User }> = ({ user }) => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800">
-                {rankings.map((r, idx) => {
-                  const s = students.find(st => st.id === r.studentId);
-                  return (
-                    <tr key={r.studentId} className="hover:bg-slate-800/50 transition-colors">
-                      <td className="px-8 py-6 font-black text-xl">{idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : idx + 1}</td>
-                      <td className="px-8 py-6 font-bold text-slate-200">{s?.name || 'Unknown'}</td>
-                      <td className="text-center text-blue-400 font-black">{r.lectureTotal}</td>
-                      <td className="text-center text-indigo-400 font-black">{r.projectScore}</td>
-                      <td className="text-center text-red-500 font-black">-{r.penaltiesTotal}</td>
-                      <td className="px-8 py-6 text-right font-black text-xl text-white">{r.finalScore}</td>
-                    </tr>
-                  );
-                })}
+                {rankings
+                  .map((r, idx) => ({ r, trueRank: idx, s: students.find(st => st.id === r.studentId) }))
+                  .filter(({ s }) => {
+                    if (!rankingSearchQuery.trim()) return true;
+                    const q = rankingSearchQuery.trim().toLowerCase();
+                    return (s?.name || '').toLowerCase().includes(q) || (s?.phone || '').includes(rankingSearchQuery.trim());
+                  })
+                  .map(({ r, trueRank, s }) => {
+                    return (
+                      <tr key={r.studentId} className="hover:bg-slate-800/50 transition-colors">
+                        <td className="px-8 py-6 font-black text-xl">{trueRank === 0 ? '🥇' : trueRank === 1 ? '🥈' : trueRank === 2 ? '🥉' : trueRank + 1}</td>
+                        <td className="px-8 py-6 font-bold text-slate-200">{s?.name || 'Unknown'}</td>
+                        <td className="text-center text-blue-400 font-black">{r.lectureTotal}</td>
+                        <td className="text-center text-indigo-400 font-black">{r.projectScore}</td>
+                        <td className="text-center text-red-500 font-black">-{r.penaltiesTotal}</td>
+                        <td className="px-8 py-6 text-right font-black text-xl text-white">{r.finalScore}</td>
+                      </tr>
+                    );
+                  })}
               </tbody>
             </table>
           </div>
