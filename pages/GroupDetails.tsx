@@ -1606,7 +1606,7 @@ const GroupDetails: React.FC<{ user: User }> = ({ user }) => {
     });
 
     return data;
-  }, [students, evaluations, sessions, taskFilterMissingOnly, taskFilterCompletionThreshold, taskFilterSessionNum, taskSortBy, studentFollowUps, groupId]);
+  }, [students, evaluations, sessions, taskSearchQuery, taskFilterMissingOnly, taskFilterCompletionThreshold, taskFilterSessionNum, taskSortBy, studentFollowUps, groupId]);
 
   useEffect(() => {
     if (!highlightedStudentId || activeTab !== 'taskProgress') return;
