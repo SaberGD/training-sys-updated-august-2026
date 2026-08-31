@@ -108,6 +108,7 @@ const FollowUps: React.FC<{ user: User }> = ({ user }) => {
   const [suggestionEscalateAction, setSuggestionEscalateAction] = useState("");
   const [expandedSuggestionGroupId, setExpandedSuggestionGroupId] = useState<string | null>(null);
   const [showSuggestionDecisions, setShowSuggestionDecisions] = useState(true);
+  const [studentHistoryFor, setStudentHistoryFor] = useState<{ studentId: string; studentName: string } | null>(null);
   const [replyingToUpdate, setReplyingToUpdate] = useState<
     Record<string, { id: string; authorName: string } | null>
   >({});
@@ -285,6 +286,54 @@ const FollowUps: React.FC<{ user: User }> = ({ user }) => {
     () => suggestionEscalations.filter((e) => e.status === "done"),
     [suggestionEscalations],
   );
+
+  // How many times has this student's follow-up been closed and reopened
+  // before, per student — so "this is follow-up #N" is visible up front
+  // (protocol: recurring cases should be escalated, not treated as routine).
+  // Counted from the updates[] timeline (mark_done events), zero extra reads.
+  const followUpOrdinalByStudent = useMemo(() => {
+    const map: Record<string, number> = {};
+    followUps.forEach((f) => {
+      const closures = (f.updates || []).filter((u) => u.eventType === "mark_done").length;
+      map[f.studentId] = (map[f.studentId] || 0) + closures;
+    });
+    return map;
+  }, [followUps]);
+
+  const getFollowUpOrdinal = (studentId: string) => (followUpOrdinalByStudent[studentId] || 0) + 1;
+
+  // Everything already loaded in memory — computed on demand, zero extra
+  // Firestore reads, matching the protocol's "check their history first" step.
+  const studentHistory = useMemo(() => {
+    if (!studentHistoryFor) return null;
+    const sid = studentHistoryFor.studentId;
+
+    const followUpsForStudent = followUps
+      .filter((f) => f.studentId === sid)
+      .sort((a, b) => {
+        const ta = a.lastUpdatedAt?.toDate ? a.lastUpdatedAt.toDate().getTime() : 0;
+        const tb = b.lastUpdatedAt?.toDate ? b.lastUpdatedAt.toDate().getTime() : 0;
+        return tb - ta;
+      });
+
+    const rejectionsForStudent = rejections.filter((r) => r.studentId === sid);
+    const exemptionsForStudent = exemptions.filter((e) => e.studentId === sid);
+    const escalationsForStudent = suggestionEscalations.filter((e) => e.studentId === sid);
+
+    const closuresByDocId: Record<string, number> = {};
+    followUpsForStudent.forEach((f) => {
+      closuresByDocId[f.id] = (f.updates || []).filter((u) => u.eventType === "mark_done").length;
+    });
+
+    return {
+      followUpsForStudent,
+      rejectionsForStudent,
+      exemptionsForStudent,
+      escalationsForStudent,
+      closuresByDocId,
+      ordinal: getFollowUpOrdinal(sid),
+    };
+  }, [studentHistoryFor, followUps, rejections, exemptions, suggestionEscalations]);
 
   const matchesStudentSearch = (studentId: string, studentName: string, q: string) => {
     if (!q.trim()) return true;
@@ -1156,15 +1205,30 @@ const FollowUps: React.FC<{ user: User }> = ({ user }) => {
                         return (
                           <div key={key} className="p-5 flex flex-wrap items-center justify-between gap-4">
                             <div>
-                              <a
-                                href={`/#/groups/${s.groupId}?tab=taskProgress&studentId=${s.studentId}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                onClick={(e) => e.stopPropagation()}
-                                className="font-black text-sm text-primary-600 hover:text-primary-700 hover:underline"
-                              >
-                                {s.studentName}
-                              </a>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <a
+                                  href={`/#/groups/${s.groupId}?tab=taskProgress&studentId=${s.studentId}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="font-black text-sm text-primary-600 hover:text-primary-700 hover:underline"
+                                >
+                                  {s.studentName}
+                                </a>
+                                {getFollowUpOrdinal(s.studentId) > 1 && (
+                                  <span
+                                    className={`text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest ${getFollowUpOrdinal(s.studentId) >= 3 ? "bg-rose-600/10 text-rose-600" : "bg-amber-500/10 text-amber-600"}`}
+                                  >
+                                    #{getFollowUpOrdinal(s.studentId)}
+                                  </span>
+                                )}
+                                <button
+                                  onClick={() => setStudentHistoryFor({ studentId: s.studentId, studentName: s.studentName })}
+                                  className="text-[9px] font-black text-slate-400 hover:text-slate-600 uppercase tracking-widest flex items-center gap-1"
+                                >
+                                  📜 {lang === "ar" ? "السجل" : "History"}
+                                </button>
+                              </div>
                               <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold mt-1">
                                 {s.reason === "absence"
                                   ? (lang === "ar" ? `⚠️ نسبة الحضور ${s.rate}%` : `⚠️ Attendance ${s.rate}%`)
@@ -1489,6 +1553,145 @@ const FollowUps: React.FC<{ user: User }> = ({ user }) => {
                 {lang === "ar" ? "تصعيد" : "Escalate"}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {studentHistoryFor && studentHistory && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 w-full max-w-2xl max-h-[85vh] overflow-y-auto space-y-5">
+            <div className="flex items-center justify-between">
+              <h3 className="font-black text-lg text-slate-800 dark:text-white flex items-center gap-2">
+                📜 {lang === "ar" ? "تاريخ المتابعة" : "Follow-up History"} — {studentHistoryFor.studentName}
+              </h3>
+              <button
+                onClick={() => setStudentHistoryFor(null)}
+                className="text-slate-400 hover:text-slate-600 font-black text-lg"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="bg-slate-900 dark:bg-slate-950 rounded-2xl p-5 text-center">
+              <p className="text-4xl font-black text-white">#{studentHistory.ordinal}</p>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">
+                {lang === "ar"
+                  ? `المتابعة رقم ${studentHistory.ordinal} لهذا الطالب${studentHistory.ordinal > 1 ? ` (اتقفلت قبل كده ${studentHistory.ordinal - 1} مرة)` : " (أول مرة)"}`
+                  : `Follow-up #${studentHistory.ordinal} for this student${studentHistory.ordinal > 1 ? ` (closed ${studentHistory.ordinal - 1} time(s) before)` : " (first time)"}`}
+              </p>
+            </div>
+
+            {studentHistory.ordinal >= 3 && (
+              <div className="bg-rose-600/10 border border-rose-600/30 rounded-2xl p-4 text-xs font-bold text-rose-600">
+                ⚠️ {lang === "ar"
+                  ? "المشكلة تكررت أكتر من مرة — طبقاً للبروتوكول، فكر في التصعيد المباشر للأدمن بدل متابعة عادية."
+                  : "This has recurred more than once — per protocol, consider escalating directly to admin instead of a normal follow-up."}
+              </div>
+            )}
+
+            <div>
+              <h4 className="text-xs font-black text-slate-500 uppercase tracking-widest mb-2">
+                {lang === "ar" ? "سجل المتابعات" : "Follow-up records"} ({studentHistory.followUpsForStudent.length})
+              </h4>
+              {studentHistory.followUpsForStudent.length === 0 ? (
+                <p className="text-xs text-slate-400 font-bold">{lang === "ar" ? "لا يوجد سجل سابق." : "No prior record."}</p>
+              ) : (
+                <div className="space-y-3">
+                  {studentHistory.followUpsForStudent.map((f) => (
+                    <div key={f.id} className="bg-slate-50 dark:bg-slate-950/40 border border-slate-200 dark:border-slate-800 rounded-2xl p-4">
+                      <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                        <span className="text-xs font-black text-slate-700 dark:text-slate-300">
+                          {f.groupName}
+                          {studentHistory.closuresByDocId[f.id] > 0 && (
+                            <span className="ml-2 text-[9px] font-bold text-slate-400 normal-case">
+                              {lang === "ar"
+                                ? `— اتقفلت ${studentHistory.closuresByDocId[f.id]} مرة قبل كده`
+                                : `— closed ${studentHistory.closuresByDocId[f.id]} time(s) before`}
+                            </span>
+                          )}
+                        </span>
+                        <span
+                          className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest ${
+                            f.status === "active"
+                              ? "bg-red-500/10 text-red-600"
+                              : f.status === "scheduled"
+                                ? "bg-amber-500/10 text-amber-600"
+                                : "bg-emerald-500/10 text-emerald-600"
+                          }`}
+                        >
+                          {f.status}
+                        </span>
+                      </div>
+                      {f.labels && f.labels.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mb-2">
+                          {f.labels.map((l) => (
+                            <span key={l} className="text-[9px] font-bold bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-2 py-0.5 rounded">
+                              {l}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                      <div className="space-y-1.5 max-h-40 overflow-y-auto no-scrollbar">
+                        {(f.updates || [])
+                          .slice()
+                          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                          .map((u) => (
+                            <div key={u.id} className="text-[11px] text-slate-600 dark:text-slate-400 flex gap-2">
+                              <span className="text-slate-400 shrink-0">{new Date(u.createdAt).toLocaleDateString()}</span>
+                              <span>{u.text}</span>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {studentHistory.rejectionsForStudent.length > 0 && (
+              <div>
+                <h4 className="text-xs font-black text-slate-500 uppercase tracking-widest mb-2">
+                  {lang === "ar" ? "اقتراحات مرفوضة سابقاً" : "Previously rejected suggestions"}
+                </h4>
+                <div className="space-y-2">
+                  {studentHistory.rejectionsForStudent.map((r) => (
+                    <div key={r.id} className="text-xs bg-slate-50 dark:bg-slate-950/40 border border-slate-200 dark:border-slate-800 rounded-xl p-3">
+                      <span className="font-black">{r.reason}</span> — {r.rejectionReason}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {studentHistory.exemptionsForStudent.length > 0 && (
+              <div>
+                <h4 className="text-xs font-black text-slate-500 uppercase tracking-widest mb-2">
+                  🛡️ {lang === "ar" ? "استثناءات دائمة سارية" : "Active permanent exemptions"}
+                </h4>
+                <div className="space-y-2">
+                  {studentHistory.exemptionsForStudent.map((e) => (
+                    <div key={e.id} className="text-xs bg-indigo-50 dark:bg-indigo-950/20 border border-indigo-200 dark:border-indigo-900/40 rounded-xl p-3">
+                      <span className="font-black">{e.reason}</span> — {e.exemptionReason}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {studentHistory.escalationsForStudent.length > 0 && (
+              <div>
+                <h4 className="text-xs font-black text-slate-500 uppercase tracking-widest mb-2">
+                  🏛️ {lang === "ar" ? "تصعيدات إدارية سابقة" : "Prior admin escalations"}
+                </h4>
+                <div className="space-y-2">
+                  {studentHistory.escalationsForStudent.map((e) => (
+                    <div key={e.id} className="text-xs bg-slate-50 dark:bg-slate-950/40 border border-slate-200 dark:border-slate-800 rounded-xl p-3">
+                      <span className="font-black uppercase">{e.status}</span> — {e.proposedAction}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -2100,6 +2303,22 @@ const FollowUps: React.FC<{ user: User }> = ({ user }) => {
                                         />
                                       </a>
                                     )}
+                                    {getFollowUpOrdinal(f.studentId) > 1 && (
+                                      <span
+                                        className={`text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest ${getFollowUpOrdinal(f.studentId) >= 3 ? "bg-rose-600/10 text-rose-600" : "bg-amber-500/10 text-amber-600"}`}
+                                      >
+                                        #{getFollowUpOrdinal(f.studentId)}
+                                      </span>
+                                    )}
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setStudentHistoryFor({ studentId: f.studentId, studentName: f.studentName });
+                                      }}
+                                      className="text-[9px] font-black text-slate-400 hover:text-slate-600 uppercase tracking-widest flex items-center gap-1"
+                                    >
+                                      📜 {lang === "ar" ? "السجل" : "History"}
+                                    </button>
                                   </div>
                                   <div className="flex flex-wrap gap-2">
                                     {f.labels?.map((label) => {
