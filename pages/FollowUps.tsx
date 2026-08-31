@@ -11,6 +11,7 @@ import {
   FollowUpSuggestionRejection,
   FollowUpSuggestionExemption,
   SuggestionEscalation,
+  ContactChannel,
 } from "../types";
 import Layout from "../components/Layout";
 import { useLanguage } from "../contexts/LanguageContext";
@@ -63,6 +64,8 @@ import {
   Reply,
   ListTodo,
   ExternalLink,
+  Award,
+  ClipboardCheck,
 } from "lucide-react";
 import * as firestore from "firebase/firestore";
 
@@ -143,6 +146,7 @@ const FollowUps: React.FC<{ user: User }> = ({ user }) => {
   const [mentionUserIdForFollowUp, setMentionUserIdForFollowUp] = useState<
     Record<string, string>
   >({});
+  const [updateChannel, setUpdateChannel] = useState<Record<string, ContactChannel | "">>({});
 
   // For Requesting Follow-up
   const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
@@ -343,6 +347,59 @@ const FollowUps: React.FC<{ user: User }> = ({ user }) => {
     return phone.includes(q.trim());
   };
 
+  // ── Message-reply protocol ───────────────────────────────────────────────
+  // "لا لتفويض المهمة، لا للردود المختصرة زي 'تواصلت معاه'/'كلمته' — الرد لازم
+  // يكون واضح ومفسر، حتى لو محصلش رد لازم يتكتب ايه اللي اتعمل بالظبط."
+  const VAGUE_REPLY_PHRASES = [
+    "تواصلت معاه", "تواصلت معاها", "تواصلت معاهم", "كلمته", "كلمتها", "كلمتهم",
+    "اتكلمت معاه", "اتكلمت معاها", "تم التواصل", "تم الاتصال", "تمام", "ماشي", "اوك",
+    "contacted him", "contacted her", "called him", "called her", "ok", "done", "contacted", "called",
+  ];
+  const isReplyTooVague = (rawText: string) => {
+    const trimmed = rawText.trim().replace(/[.!؟?]+$/, "");
+    if (trimmed.length < 15) return true;
+    return VAGUE_REPLY_PHRASES.some((p) => trimmed.toLowerCase() === p.toLowerCase());
+  };
+  const vagueReplyMessage =
+    lang === "ar"
+      ? 'الرد ده مختصر أوي — البروتوكول بيمنع الردود زي "تواصلت معاه" أو "كلمته". اكتب بوضوح مين تواصل، إزاي، وحصل إيه بالظبط. مثال: "تم التواصل مع الطالب عن طريق توبيك تيليجرام ولم يتم الرد حتى الآن".'
+      : 'This reply is too brief — the protocol disallows vague replies like "contacted him" or "called him". Write clearly who reached out, how, and exactly what happened. Example: "Contacted the student via the Telegram topic — no response yet".';
+
+  const REPLY_QUICK_TEMPLATES: { label: string; text: string; channel: ContactChannel }[] = [
+    {
+      label: lang === "ar" ? "📵 تيليجرام - مفيش رد" : "📵 Telegram - no response",
+      text:
+        lang === "ar"
+          ? "تم التواصل مع الطالب عن طريق توبيك تيليجرام الخاص به ولم يتم الرد حتى الآن."
+          : "Contacted the student via their Telegram topic — no response yet.",
+      channel: "telegram",
+    },
+    {
+      label: lang === "ar" ? "📞 مكالمة - مفيش رد" : "📞 Call - no answer",
+      text:
+        lang === "ar"
+          ? "تم الاتصال هاتفياً بالطالب ولم يتم الرد، وتم إرسال رسالة واتساب لطلب التواصل مرة أخرى."
+          : "Called the student, no answer — sent a WhatsApp message asking them to get back in touch.",
+      channel: "phone",
+    },
+    {
+      label: lang === "ar" ? "✅ مكالمة - تم الاتفاق" : "✅ Call - agreed on a solution",
+      text:
+        lang === "ar"
+          ? "تم التواصل هاتفياً مع الطالب وتم الاتفاق على حل المشكلة، وتم إرسال رسالة تأكيد عبر واتساب بما تم الاتفاق عليه."
+          : "Called the student and agreed on how to resolve the issue — sent a WhatsApp confirmation of what was agreed.",
+      channel: "phone",
+    },
+    {
+      label: lang === "ar" ? "🔁 تصعيد لخدمة العملاء" : "🔁 Escalated to customer service",
+      text:
+        lang === "ar"
+          ? "لم يتم الرد من الطالب رغم التواصل المتكرر، فتم توكيل خدمة عملاء المتدربين الحاليين للمتابعة معه."
+          : "No response from the student despite repeated contact — escalated to current-student customer service to follow up.",
+      channel: "other",
+    },
+  ];
+
   const suggestionsByGroup = useMemo(() => {
     const map: Record<string, FollowUpSuggestion[]> = {};
     suggestions
@@ -474,6 +531,10 @@ const FollowUps: React.FC<{ user: User }> = ({ user }) => {
   const handleReplyToMention = async (m: FollowUpMention) => {
     const text = replyDraft[m.id]?.trim();
     if (!text) return;
+    if (isReplyTooVague(text)) {
+      alert(vagueReplyMessage);
+      return;
+    }
     try {
       setIsSubmitting(true);
       // submitTrainerFollowUpUpdate automatically closes every pending mention
@@ -735,6 +796,10 @@ const FollowUps: React.FC<{ user: User }> = ({ user }) => {
 
   const handleTrainerUpdate = async (f: StudentFollowUp) => {
     if (!trainerNote.trim()) return;
+    if (isReplyTooVague(trainerNote)) {
+      alert(vagueReplyMessage);
+      return;
+    }
     try {
       setIsSubmitting(true);
       const mentionId = mentionUserIdForFollowUp[f.id];
@@ -766,6 +831,7 @@ const FollowUps: React.FC<{ user: User }> = ({ user }) => {
         nextDate,
         resetSessionNum,
         replyingToUpdate[f.id]?.id,
+        updateChannel[f.id] || undefined,
       );
       setTrainerNote("");
       setInteractionTab((prev) => ({ ...prev, [f.id]: "updates" }));
@@ -773,6 +839,7 @@ const FollowUps: React.FC<{ user: User }> = ({ user }) => {
       setNextFollowUpDates((prev) => ({ ...prev, [f.id]: "" }));
       setCancelAbsenceWarnings((prev) => ({ ...prev, [f.id]: false }));
       setReplyingToUpdate((prev) => ({ ...prev, [f.id]: null }));
+      setUpdateChannel((prev) => ({ ...prev, [f.id]: "" }));
     } catch (err: any) {
       alert(err.message);
     } finally {
@@ -2061,6 +2128,39 @@ const FollowUps: React.FC<{ user: User }> = ({ user }) => {
                 تلقائياً.
               </p>
             </div>
+
+            {/* Exemptions protocol card */}
+            <div className="p-4 bg-slate-950/20 border border-slate-800/60 rounded-2xl space-y-2">
+              <span className="inline-block p-2 bg-indigo-500/10 text-indigo-400 rounded-xl">
+                <Award size={16} />
+              </span>
+              <h4 className="text-xs font-black text-indigo-400 uppercase tracking-wider">
+                🛡️ بروتوكول الاستثناءات الدائمة
+              </h4>
+              <p className="text-[10px] text-slate-355 leading-relaxed font-semibold">
+                الاستثناء الدائم بيتعمل بس وقت الرفض (Reject)، وبيوقف سبب واحد
+                محدد بس (غياب أو تاسكات) — مش الاثنين. استخدمه بس لو في سبب
+                حقيقي وموثق (زي إذن رسمي بالغياب) واكتب السبب بوضوح. أي حد يقدر
+                يشوف كل الاستثناءات السارية ويلغيها لو الظروف اتغيرت.
+              </p>
+            </div>
+
+            {/* Reply rules card */}
+            <div className="p-4 bg-slate-950/20 border border-slate-800/60 rounded-2xl space-y-2">
+              <span className="inline-block p-2 bg-emerald-500/10 text-emerald-400 rounded-xl">
+                <ClipboardCheck size={16} />
+              </span>
+              <h4 className="text-xs font-black text-emerald-400 uppercase tracking-wider">
+                ✍️ قواعد الرد على المتابعات
+              </h4>
+              <p className="text-[10px] text-slate-355 leading-relaxed font-semibold">
+                ممنوع تفويض مهمة موجهة ليك، وممنوع الردود المختصرة زي "تواصلت
+                معاه". حتى لو محصلش رد، اكتب اللي حصل بالظبط ("تم التواصل عبر
+                تيليجرام ولم يتم الرد"). أي تواصل يبقى موثق بقناة رسمية، ولو
+                مكالمة تليفون لازم تتبعها رسالة تأكيد مكتوبة. استخدم القوالب
+                الجاهزة تحت خانة الرد لتسريع الالتزام بالمعايير دي.
+              </p>
+            </div>
           </div>
         )}
       </div>
@@ -2739,6 +2839,21 @@ const FollowUps: React.FC<{ user: User }> = ({ user }) => {
                                         </button>
                                       </div>
                                     )}
+                                    <div className="flex flex-wrap gap-1.5">
+                                      {REPLY_QUICK_TEMPLATES.map((tpl) => (
+                                        <button
+                                          key={tpl.label}
+                                          type="button"
+                                          onClick={() => {
+                                            setTrainerNote(tpl.text);
+                                            setUpdateChannel((prev) => ({ ...prev, [f.id]: tpl.channel }));
+                                          }}
+                                          className="text-[9px] font-bold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 px-2.5 py-1.5 rounded-lg"
+                                        >
+                                          {tpl.label}
+                                        </button>
+                                      ))}
+                                    </div>
                                     <textarea
                                       value={trainerNote}
                                       onChange={(e) =>
@@ -2747,10 +2862,42 @@ const FollowUps: React.FC<{ user: User }> = ({ user }) => {
                                       className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-[2rem] p-6 text-sm resize-none focus:ring-4 focus:ring-primary-500/10 outline-none transition-all h-32"
                                       placeholder={
                                         lang === "ar"
-                                          ? "أضف ملاحظة أو تحديث للمتدرب..."
-                                          : "Add progress note describing what happened with the student..."
+                                          ? "أضف ملاحظة أو تحديث للمتدرب... (الرد لازم يكون واضح ومفسر، ممنوع الردود المختصرة)"
+                                          : "Add progress note describing what happened with the student... (must be clear and explanatory — no vague replies)"
                                       }
                                     />
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                                        {lang === "ar" ? "قناة التواصل:" : "Channel:"}
+                                      </span>
+                                      {(
+                                        [
+                                          ["telegram", lang === "ar" ? "تيليجرام" : "Telegram"],
+                                          ["whatsapp", lang === "ar" ? "واتساب" : "WhatsApp"],
+                                          ["phone", lang === "ar" ? "مكالمة" : "Phone"],
+                                          ["messenger", "Messenger"],
+                                          ["other", lang === "ar" ? "غير ذلك" : "Other"],
+                                        ] as const
+                                      ).map(([value, label]) => (
+                                        <button
+                                          key={value}
+                                          type="button"
+                                          onClick={() =>
+                                            setUpdateChannel((prev) => ({
+                                              ...prev,
+                                              [f.id]: prev[f.id] === value ? "" : value,
+                                            }))
+                                          }
+                                          className={`text-[9px] font-bold px-2.5 py-1 rounded-full border transition-all ${
+                                            updateChannel[f.id] === value
+                                              ? "bg-primary-600 border-primary-600 text-white"
+                                              : "bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-500"
+                                          }`}
+                                        >
+                                          {label}
+                                        </button>
+                                      ))}
+                                    </div>
 
                                     <div className="flex items-center gap-3 bg-slate-50 dark:bg-slate-900 p-3 rounded-2xl border border-slate-150 dark:border-slate-800">
                                       <span className="text-[10px] font-black text-slate-500 uppercase">
@@ -2998,8 +3145,15 @@ const FollowUps: React.FC<{ user: User }> = ({ user }) => {
                                                 <div className="absolute -left-[25px] top-0 w-3 h-3 bg-emerald-500 rounded-full shadow-lg shadow-emerald-500/40 ring-4 ring-emerald-500/10" />
                                                 <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-5 rounded-[1.5rem] shadow-sm ml-2">
                                                   <div className="flex justify-between items-center mb-3">
-                                                    <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest bg-emerald-50 dark:bg-emerald-950/30 px-3 py-1 rounded-full">
-                                                      {u.createdByName}
+                                                    <span className="flex items-center gap-1.5">
+                                                      <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest bg-emerald-50 dark:bg-emerald-950/30 px-3 py-1 rounded-full">
+                                                        {u.createdByName}
+                                                      </span>
+                                                      {u.channel && (
+                                                        <span className="text-[9px] font-bold text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-full uppercase">
+                                                          {u.channel}
+                                                        </span>
+                                                      )}
                                                     </span>
                                                     <span className="text-[10px] text-slate-400 font-mono">
                                                       {new Date(
