@@ -1,4 +1,4 @@
-import { Group, Student, Session, LectureEvaluation, StudentFollowUp, FollowUpSuggestionRejection } from '../types';
+import { Group, Student, Session, LectureEvaluation, StudentFollowUp, FollowUpSuggestionRejection, FollowUpSuggestionExemption } from '../types';
 
 export interface FollowUpSuggestion {
   groupId: string;
@@ -24,7 +24,8 @@ export const computeFollowUpSuggestions = (
   sessions: Session[],
   evaluations: LectureEvaluation[],
   existingFollowUps: StudentFollowUp[],
-  rejections: FollowUpSuggestionRejection[] = []
+  rejections: FollowUpSuggestionRejection[] = [],
+  exemptions: FollowUpSuggestionExemption[] = []
 ): FollowUpSuggestion[] => {
   const suggestions: FollowUpSuggestion[] = [];
   const todayStr = new Date().toISOString().slice(0, 10);
@@ -32,6 +33,8 @@ export const computeFollowUpSuggestions = (
     const rejection = rejections.find(r => r.groupId === groupId && r.studentId === studentId && r.reason === reason);
     return !!rejection && rejection.reappearAt > todayStr;
   };
+  const isExempt = (groupId: string, studentId: string, reason: 'absence' | 'tasks') =>
+    exemptions.some(e => e.groupId === groupId && e.studentId === studentId && e.reason === reason);
 
   for (const group of groups) {
     if (group.archived) continue;
@@ -53,7 +56,7 @@ export const computeFollowUpSuggestions = (
       const totalCompleted = studentEvals.reduce((sum, e) => sum + (e.taskDelivered || 0), 0);
       const completionRate = totalRequired > 0 ? Math.round((totalCompleted / totalRequired) * 100) : 100;
 
-      if (totalSessionsDoneOverall >= 3 && completionRate < 70 && !existingLabels.includes('tasks') && !isCoolingDown(group.id, student.id, 'tasks')) {
+      if (totalSessionsDoneOverall >= 3 && completionRate < 70 && !existingLabels.includes('tasks') && !isCoolingDown(group.id, student.id, 'tasks') && !isExempt(group.id, student.id, 'tasks')) {
         suggestions.push({
           groupId: group.id,
           groupName: group.name,
@@ -79,7 +82,7 @@ export const computeFollowUpSuggestions = (
         sessionsDoneCountAfterReset >= 2 ||
         (resetSessionNum === 0 && totalSessionsDoneOverall >= 3);
 
-      if (attendanceEligible && attendanceRate < 70 && !existingLabels.includes('absence') && !isCoolingDown(group.id, student.id, 'absence')) {
+      if (attendanceEligible && attendanceRate < 70 && !existingLabels.includes('absence') && !isCoolingDown(group.id, student.id, 'absence') && !isExempt(group.id, student.id, 'absence')) {
         suggestions.push({
           groupId: group.id,
           groupName: group.name,

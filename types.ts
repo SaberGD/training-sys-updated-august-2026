@@ -642,6 +642,25 @@ export interface FollowUpSuggestionRejection {
   reappearAt: string; // YYYY-MM-DD — suggestion is suppressed until this date
 }
 
+// A standing, permanent exemption from automatic follow-up for one specific
+// reason — e.g. a student with an approved excused-absence arrangement who
+// still does their tasks fine. Unlike FollowUpSuggestionRejection (a 7-day
+// cooldown), this never expires on its own: it stays in effect until someone
+// explicitly removes it. Always scoped to a single reason — an absence
+// exemption never silently covers tasks shortfalls too.
+export interface FollowUpSuggestionExemption {
+  id: string; // `${groupId}_${studentId}_${reason}`
+  groupId: string;
+  groupName: string;
+  studentId: string;
+  studentName: string;
+  reason: 'absence' | 'tasks';
+  exemptionReason: string;
+  exemptedByUid: string;
+  exemptedByName: string;
+  exemptedAt: any;
+}
+
 // A suggestion that needs an administrative decision beyond simple
 // approve/reject — e.g. the student turns out to have already dropped out,
 // so the real decision is whether to remove them from the system entirely.

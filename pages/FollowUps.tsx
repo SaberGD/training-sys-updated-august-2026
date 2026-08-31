@@ -9,6 +9,7 @@ import {
   Session,
   FollowUpMention,
   FollowUpSuggestionRejection,
+  FollowUpSuggestionExemption,
   SuggestionEscalation,
 } from "../types";
 import Layout from "../components/Layout";
@@ -29,6 +30,8 @@ import {
   rejectNextFollowUpDate,
   approveFollowUpSuggestion,
   rejectFollowUpSuggestion,
+  exemptStudentFromSuggestions,
+  removeSuggestionExemption,
   resetAllFollowUps,
   escalateFollowUp,
   respondToEscalation,
@@ -77,6 +80,7 @@ const FollowUps: React.FC<{ user: User }> = ({ user }) => {
   const [trainers, setTrainers] = useState<User[]>([]);
   const [mentions, setMentions] = useState<FollowUpMention[]>([]);
   const [rejections, setRejections] = useState<FollowUpSuggestionRejection[]>([]);
+  const [exemptions, setExemptions] = useState<FollowUpSuggestionExemption[]>([]);
   const [suggestionEscalations, setSuggestionEscalations] = useState<SuggestionEscalation[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -97,7 +101,9 @@ const FollowUps: React.FC<{ user: User }> = ({ user }) => {
   const [snoozeDraft, setSnoozeDraft] = useState<Record<string, string>>({});
   const [rejectModalFor, setRejectModalFor] = useState<FollowUpSuggestion | null>(null);
   const [rejectReasonText, setRejectReasonText] = useState("");
+  const [rejectAlsoExempt, setRejectAlsoExempt] = useState(false);
   const [showRejectedSuggestions, setShowRejectedSuggestions] = useState(false);
+  const [showExemptions, setShowExemptions] = useState(false);
   const [suggestionEscalateModalFor, setSuggestionEscalateModalFor] = useState<FollowUpSuggestion | null>(null);
   const [suggestionEscalateAction, setSuggestionEscalateAction] = useState("");
   const [expandedSuggestionGroupId, setExpandedSuggestionGroupId] = useState<string | null>(null);
@@ -227,6 +233,10 @@ const FollowUps: React.FC<{ user: User }> = ({ user }) => {
       "suggestionEscalations",
       setSuggestionEscalations,
     );
+    const unsubExemptions = subscribeToCollection<FollowUpSuggestionExemption>(
+      "followUpSuggestionExemptions",
+      setExemptions,
+    );
 
     setLoading(false);
     return () => {
@@ -239,12 +249,13 @@ const FollowUps: React.FC<{ user: User }> = ({ user }) => {
       unsubMentions();
       unsubRejections();
       unsubSuggestionEscalations();
+      unsubExemptions();
     };
   }, []);
 
   const suggestions = useMemo(
-    () => computeFollowUpSuggestions(groups, students, sessions, evaluations, followUps, rejections),
-    [groups, students, sessions, evaluations, followUps, rejections],
+    () => computeFollowUpSuggestions(groups, students, sessions, evaluations, followUps, rejections, exemptions),
+    [groups, students, sessions, evaluations, followUps, rejections, exemptions],
   );
 
   const activeRejections = useMemo(() => {
@@ -459,12 +470,40 @@ const FollowUps: React.FC<{ user: User }> = ({ user }) => {
         rejectReasonText.trim(),
         user,
       );
+      if (rejectAlsoExempt) {
+        await exemptStudentFromSuggestions(
+          rejectModalFor.groupId,
+          rejectModalFor.groupName,
+          rejectModalFor.studentId,
+          rejectModalFor.studentName,
+          rejectModalFor.reason,
+          rejectReasonText.trim(),
+          user,
+        );
+      }
       setRejectModalFor(null);
       setRejectReasonText("");
+      setRejectAlsoExempt(false);
     } catch (err: any) {
       alert(err.message);
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleRemoveExemption = async (e: FollowUpSuggestionExemption) => {
+    if (
+      !confirm(
+        lang === "ar"
+          ? `إلغاء استثناء ${e.studentName} من متابعة ${e.reason === "absence" ? "الحضور" : "التاسكات"}؟ هيرجع يظهر كاقتراح عادي لو استوفى الشرط.`
+          : `Remove ${e.studentName}'s exemption from ${e.reason} follow-up? They'll go back to showing up as a normal suggestion if the threshold is met.`,
+      )
+    )
+      return;
+    try {
+      await removeSuggestionExemption(e.id, user);
+    } catch (err: any) {
+      alert(err.message);
     }
   };
 
@@ -1326,6 +1365,46 @@ const FollowUps: React.FC<{ user: User }> = ({ user }) => {
               )}
             </div>
           )}
+
+          {exemptions.length > 0 && (
+            <div className="pt-2">
+              <button
+                onClick={() => setShowExemptions((v) => !v)}
+                className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-slate-500 hover:text-slate-700"
+              >
+                {showExemptions ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                🛡️ {lang === "ar" ? `استثناءات دائمة (${exemptions.length})` : `Permanent exemptions (${exemptions.length})`}
+              </button>
+              {showExemptions && (
+                <div className="mt-3 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 divide-y divide-slate-100 dark:divide-slate-800">
+                  {exemptions.map((e) => (
+                    <div key={e.id} className="p-5 flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <p className="font-black text-sm text-slate-800 dark:text-white">
+                          {e.studentName} — {e.groupName}
+                        </p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold mt-1">
+                          {lang === "ar" ? "مستثنى من" : "Exempt from"}{" "}
+                          {e.reason === "absence" ? (lang === "ar" ? "الحضور" : "attendance") : (lang === "ar" ? "التاسكات" : "tasks")}
+                          {" — "}{e.exemptionReason}
+                        </p>
+                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-1">
+                          {lang === "ar" ? "بواسطة" : "By"} {e.exemptedByName}
+                          {e.exemptedAt?.toDate ? ` — ${e.exemptedAt.toDate().toLocaleDateString()}` : ""}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => handleRemoveExemption(e)}
+                        className="text-[10px] font-black text-rose-500 hover:text-rose-600 uppercase tracking-widest shrink-0"
+                      >
+                        {lang === "ar" ? "إلغاء الاستثناء" : "Remove"}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
 
@@ -1346,9 +1425,22 @@ const FollowUps: React.FC<{ user: User }> = ({ user }) => {
               placeholder={lang === "ar" ? "سبب الرفض..." : "Rejection reason..."}
               className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 text-xs font-bold min-h-[100px]"
             />
+            <label className="flex items-start gap-2.5 bg-indigo-50 dark:bg-indigo-950/20 border border-indigo-200 dark:border-indigo-900/40 rounded-2xl p-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={rejectAlsoExempt}
+                onChange={(e) => setRejectAlsoExempt(e.target.checked)}
+                className="mt-0.5 accent-indigo-600"
+              />
+              <span className="text-xs font-bold text-indigo-700 dark:text-indigo-400">
+                {lang === "ar"
+                  ? `🛡️ استثناء دائم — أوقف المتابعة التلقائية لهذا الطالب بخصوص ${rejectModalFor.reason === "absence" ? "الحضور" : "التاسكات"} نهائياً (لن يظهر كاقتراح مرة أخرى حتى لو استمرت الحالة، حتى تُلغي الاستثناء يدوياً)`
+                  : `🛡️ Permanent exemption — stop automatic follow-up for this student on ${rejectModalFor.reason} entirely (won't reappear as a suggestion until you manually remove this exemption)`}
+              </span>
+            </label>
             <div className="flex gap-3">
               <button
-                onClick={() => { setRejectModalFor(null); setRejectReasonText(""); }}
+                onClick={() => { setRejectModalFor(null); setRejectReasonText(""); setRejectAlsoExempt(false); }}
                 className="flex-1 py-3 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-2xl font-black text-[10px] uppercase tracking-widest"
               >
                 {lang === "ar" ? "إلغاء" : "Cancel"}
