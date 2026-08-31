@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import * as firestore from 'firebase/firestore';
 import { db } from '../firebase';
@@ -939,23 +939,22 @@ const GroupDetails: React.FC<{ user: User }> = ({ user }) => {
     return group?.trainerIds?.includes(user.uid);
   }, [isAdmin, group, user.uid, user.role]);
 
-  const filteredStudentsForEval = useMemo(() => {
+  // The evaluation grid's row ORDER is frozen for the duration of a lecture —
+  // giving a student a bonus point mid-lecture changes their rank score, but
+  // that must not reshuffle rows while the trainer is actively scoring
+  // (otherwise the student they just clicked jumps somewhere else). The order
+  // only gets recomputed when a different session is opened, or when this
+  // session's status flips to 'done' (the lecture actually ends).
+  const [frozenEvalOrderKey, setFrozenEvalOrderKey] = useState<string | null>(null);
+  const [frozenEvalOrder, setFrozenEvalOrder] = useState<string[]>([]);
+
+  const computeRankSortedStudentIds = () => {
     const totalSessionsDone = sessions.filter(s => s.status === 'done').length;
-
-    let list = students;
-    if (evalSearchQuery.trim()) {
-      const q = evalSearchQuery.toLowerCase().trim();
-      list = list.filter(s => s.name.toLowerCase().includes(q));
-    }
-
-    return [...list].sort((a, b) => {
+    return [...students].sort((a, b) => {
       // 1. Sort by Rank Score (highest first)
       const rankA = rankings.find(r => r.studentId === a.id)?.finalScore || 0;
       const rankB = rankings.find(r => r.studentId === b.id)?.finalScore || 0;
-
-      if (rankB !== rankA) {
-        return rankB - rankA;
-      }
+      if (rankB !== rankA) return rankB - rankA;
 
       // 2. If Rank Score is equal, sort by Attendance % (highest first)
       const evalsA = evaluations.filter(e => e.studentId === a.id && e.attendance === 1 && e.sessionNumber !== undefined);
@@ -965,15 +964,43 @@ const GroupDetails: React.FC<{ user: User }> = ({ user }) => {
       const evalsB = evaluations.filter(e => e.studentId === b.id && e.attendance === 1 && e.sessionNumber !== undefined);
       const attendedB = new Set(evalsB.map(e => e.sessionNumber)).size;
       const attRateB = totalSessionsDone > 0 ? Math.min(100, Math.round((attendedB / totalSessionsDone) * 100)) : 100;
-
-      if (attRateB !== attRateA) {
-        return attRateB - attRateA;
-      }
+      if (attRateB !== attRateA) return attRateB - attRateA;
 
       // 3. Alphabetical order by name
       return a.name.localeCompare(b.name, 'ar');
-    });
-  }, [students, evalSearchQuery, rankings, evaluations, sessions]);
+    }).map(s => s.id);
+  };
+
+  useLayoutEffect(() => {
+    if (!selectedSession) return;
+    const key = `${selectedSession.id}_${selectedSession.status}`;
+    // Already frozen for this exact session+status — leave it alone even if
+    // rankings/evaluations keep changing live, unless we never actually got
+    // real data yet (e.g. this ran before the students subscription delivered).
+    if (key === frozenEvalOrderKey && frozenEvalOrder.length > 0) return;
+    if (students.length === 0) return; // wait for student data to actually load
+    setFrozenEvalOrder(computeRankSortedStudentIds());
+    setFrozenEvalOrderKey(key);
+    // students.length/rankings.length (not the arrays themselves) only change
+    // on add/remove, never on a live score update — safe to depend on.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedSession?.id, selectedSession?.status, students.length, rankings.length]);
+
+  const filteredStudentsForEval = useMemo(() => {
+    const byId = new Map(students.map(s => [s.id, s]));
+    const ordered = frozenEvalOrder.map(id => byId.get(id)).filter((s): s is Student => !!s);
+    const orderedIds = new Set(frozenEvalOrder);
+    // Any student not yet in the frozen order (e.g. added mid-lecture) is appended at the end
+    const unordered = students.filter(s => !orderedIds.has(s.id));
+    let list = [...ordered, ...unordered];
+
+    if (evalSearchQuery.trim()) {
+      const q = evalSearchQuery.toLowerCase().trim();
+      list = list.filter(s => s.name.toLowerCase().includes(q));
+    }
+
+    return list;
+  }, [students, evalSearchQuery, frozenEvalOrder]);
 
   const studentLoginStats = useMemo(() => {
     const total = students.length;
