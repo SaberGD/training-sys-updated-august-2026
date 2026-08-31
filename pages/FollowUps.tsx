@@ -292,7 +292,7 @@ const FollowUps: React.FC<{ user: User }> = ({ user }) => {
         map[s.groupId].push(s);
       });
     return map;
-  }, [suggestions]);
+  }, [suggestions, suggestionSearchQuery, students]);
 
   const escalatedFollowUps = useMemo(
     () => followUps.filter((f) => !!f.escalation),
