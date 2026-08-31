@@ -12,7 +12,7 @@ import {
   RolePermissions, PerformanceDailyReport, PerformanceWeeklyReport,
   AppNotification, TaskStatus, TaskPriority, SubTask, TaskFile, TaskComment,
   StudentFollowUp, FollowUpComment, FollowUpUpdate, FollowUpMention, FollowUpEscalation, FollowUpEventType,
-  FollowUpSuggestionRejection, FollowUpSuggestionExemption, SuggestionEscalation,
+  FollowUpSuggestionRejection, FollowUpSuggestionExemption, SuggestionEscalation, ContactChannel,
   Complaint, ComplaintStatus, LabelDefinition,
   CourseChecklistItemTemplate, TrainerPlan, GroupChecklistItem, GroupExecutionPlan,
   LectureFeedback, GraduationProject, GraduationProjectSubmission, GraduationProjectEvaluation, GraduationProjectComment,
@@ -1941,7 +1941,8 @@ export const submitTrainerFollowUpUpdate = async (
   mentionUserName?: string,
   nextFollowUpDate?: string,
   resetAttendanceOnSession?: number | null,
-  replyToUpdateId?: string
+  replyToUpdateId?: string,
+  channel?: ContactChannel
 ) => {
   await assertStudentActiveForFollowUp(studentId);
 
@@ -1960,7 +1961,8 @@ export const submitTrainerFollowUpUpdate = async (
     eventType: replyToUpdateId ? 'reply' : (nextFollowUpDate ? 'schedule_next' : 'note'),
     // Firestore rejects `undefined` field values inside arrayUnion() entries —
     // only include this key at all when there's an actual value.
-    ...(replyToUpdateId ? { replyToUpdateId } : {})
+    ...(replyToUpdateId ? { replyToUpdateId } : {}),
+    ...(channel ? { channel } : {})
   };
 
   const updatesPayload: any = {

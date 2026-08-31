@@ -586,6 +586,8 @@ export interface LabelDefinition {
 
 export type FollowUpEventType = 'note' | 'mark_done' | 'schedule_next' | 'mention' | 'reply' | 'escalate' | 'system';
 
+export type ContactChannel = 'telegram' | 'whatsapp' | 'phone' | 'messenger' | 'other';
+
 export interface FollowUpUpdate {
   id: string;
   text: string;
@@ -594,6 +596,7 @@ export interface FollowUpUpdate {
   createdAt: any;
   eventType?: FollowUpEventType;
   replyToUpdateId?: string;
+  channel?: ContactChannel; // which official channel this contact/update happened through
 }
 
 export interface FollowUpEscalation {
