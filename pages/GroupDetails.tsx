@@ -45,7 +45,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
   PieChart, Pie, Cell, LineChart, Line, Legend
 } from 'recharts';
-import { Edit2, Calendar, X, Save, Clock, UserPlus, Trash2, MessageSquare, Send, ExternalLink, Video, RefreshCw, Loader2, CheckCircle2, CheckCircle, XCircle, Mail, AlertTriangle, Globe, FlaskConical, Copy, Check, Key, Info, Sparkles, Search } from 'lucide-react';
+import { Edit2, Calendar, X, Save, Clock, UserPlus, Trash2, MessageSquare, Send, ExternalLink, Video, RefreshCw, Loader2, CheckCircle2, CheckCircle, XCircle, Mail, AlertTriangle, Globe, FlaskConical, Copy, Check, Key, Info, Sparkles, Search, BookOpen, ClipboardCheck, ListTodo, Trophy, Star, GraduationCap, Award, Users } from 'lucide-react';
 
 const { where, serverTimestamp } = firestore as any;
 
@@ -1857,19 +1857,28 @@ const GroupDetails: React.FC<{ user: User }> = ({ user }) => {
       </div>
 
       <div className="mb-8 overflow-hidden">
+        <span className="block text-[10px] font-black text-slate-500 uppercase tracking-[2px] mb-2 px-1">
+          أقسام الجروب
+        </span>
         <nav className="flex gap-1.5 bg-slate-900 p-1.5 rounded-2xl w-full md:w-fit overflow-x-auto no-scrollbar scroll-smooth shadow-inner border border-slate-800">
-          {['lectures', 'evaluation', 'taskProgress', 'penalties', 'ranking', 'students', 'feedback', 'graduationProjects', 'certificates'].map((tab) => (
-            <button key={tab} onClick={() => handleTabChange(tab)} className={`px-5 py-2.5 rounded-xl text-xs font-black transition-all capitalize whitespace-nowrap tracking-wider flex-1 md:flex-none ${activeTab === tab ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}>
-              {tab === 'graduationProjects' ? 'مشاريع التخرج 🎓'
-                : tab === 'certificates' ? 'الشهادات 📜'
-                : tab === 'taskProgress' ? 'Task Progress'
-                : tab === 'feedback' ? 'تقييمات المحاضرات ⭐'
-                : tab === 'lectures' ? 'المحاضرات 📚'
-                : tab === 'evaluation' ? 'التقييمات 📝'
-                : tab === 'penalties' ? 'الجزاءات ⚠️'
-                : tab === 'ranking' ? 'الترتيب 🏆'
-                : tab === 'students' ? 'الطلاب 👥'
-                : tab}
+          {([
+            ['lectures', 'المحاضرات', BookOpen],
+            ['evaluation', 'التقييمات', ClipboardCheck],
+            ['taskProgress', 'Task Progress', ListTodo],
+            ['penalties', 'الجزاءات', AlertTriangle],
+            ['ranking', 'الترتيب', Trophy],
+            ['students', 'الطلاب', Users],
+            ['feedback', 'تقييمات المحاضرات', Star],
+            ['graduationProjects', 'مشاريع التخرج', GraduationCap],
+            ['certificates', 'الشهادات', Award],
+          ] as const).map(([tab, label, Icon]) => (
+            <button
+              key={tab}
+              onClick={() => handleTabChange(tab)}
+              className={`flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-xl text-xs font-black transition-all whitespace-nowrap tracking-wider flex-1 md:flex-none ${activeTab === tab ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}
+            >
+              <Icon size={14} className="shrink-0" />
+              {label}
             </button>
           ))}
         </nav>
