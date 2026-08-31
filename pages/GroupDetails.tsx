@@ -6,7 +6,7 @@ import { db } from '../firebase';
 import { 
   Group, Student, Session, User, 
   LectureEvaluation, Attendance, GroupRanking, Penalty, Course, SessionMeta,
-  StudentFollowUp, FollowUpComment, LabelDefinition, LectureFeedback,
+  StudentFollowUp, FollowUpComment, FollowUpSuggestionExemption, LabelDefinition, LectureFeedback,
   GraduationProject, GraduationProjectSubmission, StudentCertificateRecord, StudentWeaknessPoint
 } from '../types';
 import { StudentWeaknessModal } from '../components/StudentWeaknessModal';
@@ -61,6 +61,7 @@ const GroupDetails: React.FC<{ user: User }> = ({ user }) => {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [evaluations, setEvaluations] = useState<LectureEvaluation[]>([]);
   const [studentFollowUps, setStudentFollowUps] = useState<StudentFollowUp[]>([]);
+  const [suggestionExemptions, setSuggestionExemptions] = useState<FollowUpSuggestionExemption[]>([]);
   const [rankings, setRankings] = useState<GroupRanking[]>([]);
   const [rankingSearchQuery, setRankingSearchQuery] = useState('');
   const [penaltySearchQuery, setPenaltySearchQuery] = useState('');
@@ -1130,6 +1131,7 @@ const GroupDetails: React.FC<{ user: User }> = ({ user }) => {
       setEvaluations(Array.from(uniqueEvalsMap.values()));
     }, [where('groupId', '==', groupId)]);
     const unsubFollowUps = subscribeToCollection<StudentFollowUp>('studentFollowUps', setStudentFollowUps, [where('groupId', '==', groupId)]);
+    const unsubExemptions = subscribeToCollection<FollowUpSuggestionExemption>('followUpSuggestionExemptions', setSuggestionExemptions, [where('groupId', '==', groupId)]);
     const unsubPenalties = subscribeToCollection<Penalty>('penalties', (data) => {
       const sorted = [...data].sort((a, b) => {
         const dateA = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : 0;
@@ -1172,8 +1174,9 @@ const GroupDetails: React.FC<{ user: User }> = ({ user }) => {
       unsubStudents(); 
       unsubSessions(); 
       unsubEvals(); 
-      unsubFollowUps(); 
-      unsubRankings(); 
+      unsubFollowUps();
+      unsubExemptions();
+      unsubRankings();
       unsubPenalties(); 
       unsubMetas(); 
       unsubFeedback(); 
@@ -1650,16 +1653,20 @@ const GroupDetails: React.FC<{ user: User }> = ({ user }) => {
         const otherLabels = existingLabels.filter(l => !automatedLabels.includes(l));
         
         const newAutoLabels: string[] = [];
-        
-        // Check attendance warning
-        if (sessionsDoneCountAfterReset >= 2) {
-          if (d.attendanceRate < 70) newAutoLabels.push('absence');
-        } else if (resetSessionNum === 0 && totalSessionsDoneOverall >= 3) {
-          if (d.attendanceRate < 70) newAutoLabels.push('absence');
+        const isExempt = (reason: 'absence' | 'tasks') =>
+          suggestionExemptions.some(e => e.studentId === d.student.id && e.groupId === group.id && e.reason === reason);
+
+        // Check attendance warning (skip entirely if the student has a standing exemption for it)
+        if (!isExempt('absence')) {
+          if (sessionsDoneCountAfterReset >= 2) {
+            if (d.attendanceRate < 70) newAutoLabels.push('absence');
+          } else if (resetSessionNum === 0 && totalSessionsDoneOverall >= 3) {
+            if (d.attendanceRate < 70) newAutoLabels.push('absence');
+          }
         }
 
-        // Check tasks warning
-        if (totalSessionsDoneOverall >= 3) {
+        // Check tasks warning (skip entirely if the student has a standing exemption for it)
+        if (!isExempt('tasks') && totalSessionsDoneOverall >= 3) {
           if (d.completionRate < 70) newAutoLabels.push('tasks');
         }
 
@@ -1680,7 +1687,7 @@ const GroupDetails: React.FC<{ user: User }> = ({ user }) => {
 
     const timer = setTimeout(syncFollowUps, 5000); 
     return () => clearTimeout(timer);
-  }, [group?.id, taskProgressData, user, studentFollowUps]);
+  }, [group?.id, taskProgressData, user, studentFollowUps, suggestionExemptions]);
 
   const toggleStudentLabel = async (studentId: string, studentName: string, labelName: string) => {
     const currentFollowUp = studentFollowUps.find(f => f.studentId === studentId && f.groupId === group?.id);

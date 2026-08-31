@@ -12,7 +12,7 @@ import {
   RolePermissions, PerformanceDailyReport, PerformanceWeeklyReport,
   AppNotification, TaskStatus, TaskPriority, SubTask, TaskFile, TaskComment,
   StudentFollowUp, FollowUpComment, FollowUpUpdate, FollowUpMention, FollowUpEscalation, FollowUpEventType,
-  FollowUpSuggestionRejection, SuggestionEscalation,
+  FollowUpSuggestionRejection, FollowUpSuggestionExemption, SuggestionEscalation,
   Complaint, ComplaintStatus, LabelDefinition,
   CourseChecklistItemTemplate, TrainerPlan, GroupChecklistItem, GroupExecutionPlan,
   LectureFeedback, GraduationProject, GraduationProjectSubmission, GraduationProjectEvaluation, GraduationProjectComment,
@@ -2529,6 +2529,59 @@ export const rejectFollowUpSuggestion = async (
     performedByName: performedBy.name,
     performedByRole: performedBy.role,
     details: `Supervisor rejected an automatic follow-up suggestion for ${studentName} (reason: ${reason}). Won't reappear before ${reappearAt}. Note: ${rejectionReason}`
+  });
+};
+
+// ── Permanent, reason-scoped suggestion exemptions ───────────────────────────
+// A standing exception (e.g. an approved excused-absence arrangement) — unlike
+// rejectFollowUpSuggestion's 7-day cooldown, this never expires on its own.
+export const exemptStudentFromSuggestions = async (
+  groupId: string,
+  groupName: string,
+  studentId: string,
+  studentName: string,
+  reason: 'absence' | 'tasks',
+  exemptionReason: string,
+  performedBy: User
+) => {
+  const id = `${groupId}_${studentId}_${reason}`;
+  const payload: Omit<FollowUpSuggestionExemption, 'id'> = {
+    groupId,
+    groupName,
+    studentId,
+    studentName,
+    reason,
+    exemptionReason,
+    exemptedByUid: performedBy.uid,
+    exemptedByName: performedBy.name,
+    exemptedAt: serverTimestamp()
+  };
+
+  await setDoc(doc(db, 'followUpSuggestionExemptions', id), payload);
+
+  await logActivity({
+    action: 'FOLLOWUP_SUGGESTION_EXEMPTION_ADDED',
+    entityType: 'follow_up_suggestion',
+    entityId: id,
+    entityName: studentName,
+    performedByUid: performedBy.uid,
+    performedByName: performedBy.name,
+    performedByRole: performedBy.role,
+    details: `Exempted ${studentName} from automatic follow-up suggestions (reason: ${reason}). Note: ${exemptionReason}`
+  });
+};
+
+export const removeSuggestionExemption = async (id: string, performedBy: User) => {
+  await deleteDoc(doc(db, 'followUpSuggestionExemptions', id));
+
+  await logActivity({
+    action: 'FOLLOWUP_SUGGESTION_EXEMPTION_REMOVED',
+    entityType: 'follow_up_suggestion',
+    entityId: id,
+    performedByUid: performedBy.uid,
+    performedByName: performedBy.name,
+    performedByRole: performedBy.role,
+    details: `Removed a suggestion exemption`
   });
 };
 
