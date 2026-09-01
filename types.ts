@@ -674,7 +674,7 @@ export interface SuggestionEscalation {
   groupName: string;
   studentId: string;
   studentName: string;
-  reason: 'absence' | 'tasks';
+  reason: string; // one reason, or several joined (e.g. 'absence+tasks') — a suggestion now covers all of a student's flagged reasons at once
   proposedAction: string;
   escalatedByUid: string;
   escalatedByName: string;

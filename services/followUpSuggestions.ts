@@ -1,12 +1,20 @@
 import { Group, Student, Session, LectureEvaluation, StudentFollowUp, FollowUpSuggestionRejection, FollowUpSuggestionExemption } from '../types';
 
+export interface FollowUpSuggestionReason {
+  reason: 'absence' | 'tasks';
+  rate: number;
+}
+
+// One suggestion per student — if a student is flagged for both attendance
+// and tasks, both show up in the same `reasons` array so a supervisor
+// resolves everything about that student in a single approve/reject/escalate
+// action instead of juggling two separate suggestion rows.
 export interface FollowUpSuggestion {
   groupId: string;
   groupName: string;
   studentId: string;
   studentName: string;
-  reason: 'absence' | 'tasks';
-  rate: number;
+  reasons: FollowUpSuggestionReason[];
 }
 
 /**
@@ -51,20 +59,15 @@ export const computeFollowUpSuggestions = (
       const resetSessionNum = existingFollowUp?.attendanceResetSessionNumber || 0;
       const existingLabels = (existingFollowUp?.status === 'active' && existingFollowUp.labels) || [];
 
+      const reasons: { reason: 'absence' | 'tasks'; rate: number }[] = [];
+
       // Tasks
       const totalRequired = groupSessionsDone.reduce((sum, s) => sum + (s.requiredTasksCount || 0), 0);
       const totalCompleted = studentEvals.reduce((sum, e) => sum + (e.taskDelivered || 0), 0);
       const completionRate = totalRequired > 0 ? Math.round((totalCompleted / totalRequired) * 100) : 100;
 
       if (totalSessionsDoneOverall >= 3 && completionRate < 70 && !existingLabels.includes('tasks') && !isCoolingDown(group.id, student.id, 'tasks') && !isExempt(group.id, student.id, 'tasks')) {
-        suggestions.push({
-          groupId: group.id,
-          groupName: group.name,
-          studentId: student.id,
-          studentName: student.name,
-          reason: 'tasks',
-          rate: completionRate
-        });
+        reasons.push({ reason: 'tasks', rate: completionRate });
       }
 
       // Attendance
@@ -83,13 +86,16 @@ export const computeFollowUpSuggestions = (
         (resetSessionNum === 0 && totalSessionsDoneOverall >= 3);
 
       if (attendanceEligible && attendanceRate < 70 && !existingLabels.includes('absence') && !isCoolingDown(group.id, student.id, 'absence') && !isExempt(group.id, student.id, 'absence')) {
+        reasons.push({ reason: 'absence', rate: attendanceRate });
+      }
+
+      if (reasons.length > 0) {
         suggestions.push({
           groupId: group.id,
           groupName: group.name,
           studentId: student.id,
           studentName: student.name,
-          reason: 'absence',
-          rate: attendanceRate
+          reasons
         });
       }
     }

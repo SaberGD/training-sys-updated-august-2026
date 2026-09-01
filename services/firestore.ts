@@ -2405,7 +2405,7 @@ export const approveFollowUpSuggestion = async (
   groupName: string,
   studentId: string,
   studentName: string,
-  reason: 'absence' | 'tasks',
+  reasons: ('absence' | 'tasks')[],
   note: string,
   performedBy: User,
   mentionUserId?: string,
@@ -2416,7 +2416,7 @@ export const approveFollowUpSuggestion = async (
   const docId = `${groupId}_${studentId}`;
   const followUpRef = doc(db, 'studentFollowUps', docId);
 
-  let finalLabels: string[] = [reason, 'system_sug'];
+  let finalLabels: string[] = [...reasons, 'system_sug'];
   try {
     const groupDoc = await getDoc(doc(db, 'groups', groupId));
     if (groupDoc.exists()) {
@@ -2475,7 +2475,7 @@ export const approveFollowUpSuggestion = async (
     performedByUid: performedBy.uid,
     performedByName: performedBy.name,
     performedByRole: performedBy.role,
-    details: `Supervisor approved an automatic follow-up suggestion for ${studentName} (reason: ${reason})`
+    details: `Supervisor approved an automatic follow-up suggestion for ${studentName} (reasons: ${reasons.join(', ')})`
   });
 
   if (mentionUserId && mentionUserName) {
@@ -2599,7 +2599,7 @@ export const escalateSuggestionToAdmin = async (
   groupName: string,
   studentId: string,
   studentName: string,
-  reason: 'absence' | 'tasks',
+  reason: string,
   proposedAction: string,
   performedBy: User,
   adminUsers: User[]
