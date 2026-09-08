@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sg-training-cache-v1';
+const CACHE_NAME = 'sg-training-cache-v2';
 
 self.addEventListener('install', () => {
   self.skipWaiting();
