@@ -1160,8 +1160,8 @@ const StudentPortal: React.FC = () => {
     if (!currentStudent || sessions.length === 0) return { attendanceRate: 100, attendanceCount: 0, totalPoints: 0, penaltyPoints: 0, totalSessionsTaken: 0, remainingSessions: 0 };
     
     // Done Sessions
-    const doneSessions = sessions.filter(s => s.status === 'done' && !s.isPostponed);
-    const totalSessions = sessions.filter(s => !s.isPostponed).length;
+    const doneSessions = sessions.filter(s => s.status === 'done');
+    const totalSessions = sessions.length;
     const totalSessionsTaken = doneSessions.length;
     const remainingSessions = Math.max(0, totalSessions - totalSessionsTaken);
 
@@ -3897,10 +3897,10 @@ const StudentPortal: React.FC = () => {
               <h4 className="font-black text-white text-md border-b border-slate-800 pb-3">لينكات المحاضرات المسجلة بالفعل</h4>
               
               <div className="space-y-4 max-h-[500px] overflow-y-auto pr-1">
-                {sessions.filter(s => s.status === 'done' && !s.isPostponed).length === 0 ? (
+                {sessions.filter(s => s.status === 'done').length === 0 ? (
                   <p className="text-slate-500 italic text-xs text-center py-12">لم يتم رفع تسجيلات أي محاضرة حتى الآن.</p>
                 ) : (
-                  sessions.filter(s => s.status === 'done' && !s.isPostponed).map((s) => {
+                  sessions.filter(s => s.status === 'done').map((s) => {
                     const e = evaluations.find(ev => ev.sessionNumber === s.sessionNumber);
                     const isPresent = e?.attendance === 1;
                     
@@ -3908,7 +3908,14 @@ const StudentPortal: React.FC = () => {
                       <div key={s.id} className="bg-[#0a0a0a] p-4 rounded-2.5xl border border-slate-800 hover:border-red-500/25 transition-all flex flex-col justify-between gap-3">
                         <div className="flex justify-between items-start gap-4">
                           <div>
-                            <span className="text-[9px] font-black uppercase text-red-400 bg-red-950 px-2.5 py-1 rounded-full border border-red-900/60">سيشن #{s.sessionNumber}</span>
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              <span className="text-[9px] font-black uppercase text-red-400 bg-red-950 px-2.5 py-1 rounded-full border border-red-900/60">سيشن #{s.sessionNumber}</span>
+                              {s.isPostponed && (
+                                <span className="text-[9px] font-black text-amber-300 bg-amber-950/50 px-2.5 py-1 rounded-full border border-amber-800/60">
+                                  تاريخ معدل
+                                </span>
+                              )}
+                            </div>
                             <h5 className="font-black text-white text-sm mt-2">{s.lectureTitle || `المحاضرة رقم ${s.sessionNumber}`}</h5>
                             {s.date && <p className="text-[10px] text-slate-500 font-bold mt-1">تاريخ السيشن: {s.date}</p>}
                           </div>
@@ -3958,17 +3965,24 @@ const StudentPortal: React.FC = () => {
               <h4 className="font-black text-white text-md border-b border-slate-800 pb-3">مطلوبات الواجبات والتاسكات المستحقة</h4>
               
               <div className="space-y-4 max-h-[500px] overflow-y-auto pr-1">
-                {sessions.filter(s => s.status === 'done' && !s.isPostponed).length === 0 ? (
+                {sessions.filter(s => s.status === 'done').length === 0 ? (
                   <p className="text-slate-500 italic text-xs text-center py-12">لا توجد أي واجبات أو مطلوبات معلنة بعد.</p>
                 ) : (
-                  sessions.filter(s => s.status === 'done' && !s.isPostponed).map((s) => {
+                  sessions.filter(s => s.status === 'done').map((s) => {
                     const meta = sessionMetas.find(m => m.sessionId === s.id);
                     const e = evaluations.find(ev => ev.sessionNumber === s.sessionNumber);
                     
                     return (
                       <div key={s.id} className="bg-[#0a0a0a] p-4 rounded-2.5xl border border-slate-800 hover:border-red-500/25 transition-all space-y-3">
                         <div className="flex justify-between items-center flex-wrap gap-2">
-                          <span className="text-[9px] font-black uppercase text-red-400 bg-red-950 px-2.5 py-1 rounded-full border border-red-900/60">تاسك سيشن #{s.sessionNumber}</span>
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <span className="text-[9px] font-black uppercase text-red-400 bg-red-950 px-2.5 py-1 rounded-full border border-red-900/60">تاسك سيشن #{s.sessionNumber}</span>
+                            {s.isPostponed && (
+                              <span className="text-[9px] font-black text-amber-300 bg-amber-950/50 px-2.5 py-1 rounded-full border border-amber-800/60">
+                                تاريخ معدل
+                              </span>
+                            )}
+                          </div>
                           
                           {e && (
                             <span className={`text-[10px] font-black px-2.5 py-1 rounded-lg border ${e.taskDelivered > 0 ? 'bg-emerald-950/40 text-emerald-400 border-emerald-800/60' : 'bg-amber-950/40 text-amber-400 border-amber-800/60'}`}>
