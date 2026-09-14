@@ -35,22 +35,22 @@ import { Group, Student, LectureEvaluation, Session } from '../types';
 const { where, orderBy } = firestore as any;
 
 const STATUS_LABELS: Record<TaskStatus, { label: string; color: string; bgColor: string }> = {
-  assigned: { label: '📥 تم الإسناد', color: 'text-blue-600', bgColor: 'bg-blue-50' },
-  received: { label: '✅ تم الاستلام', color: 'text-indigo-600', bgColor: 'bg-indigo-50' },
-  in_progress: { label: '🔄 قيد التنفيذ', color: 'text-amber-600', bgColor: 'bg-amber-50' },
-  on_hold: { label: '⏳ قائمة الانتظار', color: 'text-slate-600', bgColor: 'bg-slate-50' },
-  delivered: { label: '📤 تم التسليم', color: 'text-purple-600', bgColor: 'bg-purple-50' },
-  under_review: { label: '🔍 قيد المراجعة', color: 'text-cyan-600', bgColor: 'bg-cyan-50' },
-  approved: { label: '✔️ تم الاعتماد', color: 'text-emerald-600', bgColor: 'bg-emerald-50' },
-  rejected: { label: '❌ مرفوضة', color: 'text-red-600', bgColor: 'bg-red-50' },
-  completed: { label: '🏁 مكتملة', color: 'text-emerald-700', bgColor: 'bg-emerald-100' },
+  assigned: { label: 'تم الإسناد', color: 'text-blue-600', bgColor: 'bg-blue-50' },
+  received: { label: 'تم الاستلام', color: 'text-indigo-600', bgColor: 'bg-indigo-50' },
+  in_progress: { label: 'قيد التنفيذ', color: 'text-amber-600', bgColor: 'bg-amber-50' },
+  on_hold: { label: 'قائمة الانتظار', color: 'text-slate-600', bgColor: 'bg-slate-50' },
+  delivered: { label: 'تم التسليم', color: 'text-purple-600', bgColor: 'bg-purple-50' },
+  under_review: { label: 'قيد المراجعة', color: 'text-cyan-600', bgColor: 'bg-cyan-50' },
+  approved: { label: 'تم الاعتماد', color: 'text-emerald-600', bgColor: 'bg-emerald-50' },
+  rejected: { label: 'مرفوضة', color: 'text-red-600', bgColor: 'bg-red-50' },
+  completed: { label: 'مكتملة', color: 'text-emerald-700', bgColor: 'bg-emerald-100' },
 };
 
 const PRIORITY_LABELS: Record<TaskPriority, { label: string; color: string; icon: any }> = {
-  low: { label: 'منخفضة 🟢', color: 'text-emerald-500', icon: CheckCircle2 },
-  medium: { label: 'متوسطة 🟡', color: 'text-amber-500', icon: AlertCircle },
-  high: { label: 'عالية 🔴', color: 'text-red-500', icon: AlertTriangle },
-  urgent: { label: 'عاجلة 🚨', color: 'text-red-600', icon: AlertCircle },
+  low: { label: 'منخفضة', color: 'text-emerald-500', icon: CheckCircle2 },
+  medium: { label: 'متوسطة', color: 'text-amber-500', icon: AlertCircle },
+  high: { label: 'عالية', color: 'text-red-500', icon: AlertTriangle },
+  urgent: { label: 'عاجلة', color: 'text-red-600', icon: AlertCircle },
 };
 
 interface TasksPageProps {
@@ -462,12 +462,12 @@ const TasksPage: React.FC<TasksPageProps> = ({ user }) => {
                         </span>
                         {isTaskOverdue && (
                           <span className="text-[10px] font-black px-2 py-1 rounded-lg uppercase tracking-wider bg-red-500 text-white animate-pulse">
-                            🚨 متأخرة
+                            متأخرة
                           </span>
                         )}
                         {task.courseType && (
                           <span className="text-[10px] font-black px-2 py-1 rounded-lg uppercase tracking-wider bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600">
-                            {task.courseType === 'online' ? '🌐 أونلاين' : '🏢 مقر'}
+                            {task.courseType === 'online' ? 'أونلاين' : 'مقر'}
                           </span>
                         )}
                       </div>
@@ -734,7 +734,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ user }) => {
                     </span>
                     {selectedTask.courseType && (
                       <span className="text-[10px] font-black px-3 py-1 rounded-xl uppercase tracking-widest bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600">
-                        {selectedTask.courseType === 'online' ? '🌐 أونلاين' : '🏢 مقر'}
+                        {selectedTask.courseType === 'online' ? 'أونلاين' : 'مقر'}
                       </span>
                     )}
                   </div>
@@ -873,7 +873,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ user }) => {
                                 onClick={() => handleStatusChange(selectedTask.id, 'received')}
                                 className="w-full py-4 bg-indigo-600 text-white font-black rounded-2xl shadow-lg shadow-indigo-600/20 uppercase tracking-widest text-xs"
                               >
-                                ✅ استلام المهمة
+                                استلام المهمة
                               </button>
                             )}
                             {['received', 'on_hold', 'rejected'].includes(selectedTask.status) && (
@@ -881,7 +881,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ user }) => {
                                 onClick={() => handleStatusChange(selectedTask.id, 'in_progress')}
                                 className="w-full py-4 bg-amber-600 text-white font-black rounded-2xl shadow-lg shadow-amber-600/20 uppercase tracking-widest text-xs"
                               >
-                                🔄 بدء التنفيذ
+                                بدء التنفيذ
                               </button>
                             )}
                             {selectedTask.status === 'in_progress' && (
@@ -896,7 +896,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ user }) => {
                                   onClick={() => handleStatusChange(selectedTask.id, 'delivered')}
                                   className="w-full py-4 bg-primary-600 text-white font-black rounded-2xl shadow-lg shadow-primary-600/20 uppercase tracking-widest text-xs"
                                 >
-                                  📤 تسليم المهمة
+                                  تسليم المهمة
                                 </button>
                               </>
                             )}
@@ -910,7 +910,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ user }) => {
                               onClick={() => handleStatusChange(selectedTask.id, 'approved')}
                               className="w-full py-4 bg-emerald-600 text-white font-black rounded-2xl shadow-lg shadow-emerald-600/20 uppercase tracking-widest text-xs"
                             >
-                              ✔️ اعتماد المهمة
+                              اعتماد المهمة
                             </button>
                             <button 
                               onClick={() => {
@@ -922,7 +922,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ user }) => {
                               }}
                               className="w-full py-4 bg-red-600 text-white font-black rounded-2xl shadow-lg shadow-red-600/20 uppercase tracking-widest text-xs"
                             >
-                              ❌ رفض المهمة
+                              رفض المهمة
                             </button>
                           </>
                         )}
@@ -933,7 +933,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ user }) => {
                             onClick={() => handleStatusChange(selectedTask.id, 'completed')}
                             className="w-full py-4 bg-slate-900 dark:bg-white dark:text-slate-900 text-white font-black rounded-2xl shadow-lg uppercase tracking-widest text-xs"
                           >
-                            🏁 إنهاء المهمة (مكتملة)
+                            إنهاء المهمة (مكتملة)
                           </button>
                         )}
                       </div>
@@ -1062,8 +1062,8 @@ const TasksPage: React.FC<TasksPageProps> = ({ user }) => {
                     >
                       <option value="low">Low 🟢</option>
                       <option value="medium">Medium 🟡</option>
-                      <option value="high">High 🔴</option>
-                      <option value="urgent">Urgent 🚨</option>
+                      <option value="high">High</option>
+                      <option value="urgent">Urgent</option>
                     </select>
                   </div>
                   <div className="space-y-2">
@@ -1072,8 +1072,8 @@ const TasksPage: React.FC<TasksPageProps> = ({ user }) => {
                       name="courseType"
                       className="w-full p-4 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-primary-500"
                     >
-                      <option value="online">Online 🌐</option>
-                      <option value="offline">Offline 🏢</option>
+                      <option value="online">Online</option>
+                      <option value="offline">Offline</option>
                     </select>
                   </div>
                 </div>

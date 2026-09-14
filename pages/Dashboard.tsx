@@ -399,32 +399,34 @@ const Dashboard: React.FC<{ user: User }> = ({ user }) => {
         {/* Main Stats Counters */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8" dir="rtl">
           {[
-            { icon: '🏢', value: stats.groups, label: 'مجموعات نشطة حالياً', color: 'bg-indigo-50 text-indigo-600 border-indigo-100 dark:bg-indigo-900/15 dark:text-indigo-400 dark:border-indigo-900/30' },
-            { icon: '🎓', value: stats.students, label: 'إجمالي الطلاب المسجلين', color: 'bg-primary-50 text-primary-600 border-primary-100 dark:bg-primary-900/15 dark:text-primary-400 dark:border-primary-900/30' },
-            { icon: '🟢', value: allStudents.filter(s => !s.deactivated && s.is50PercentPaid !== false).length, label: 'الطلاب النشطين', color: 'bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-900/15 dark:text-emerald-400 dark:border-emerald-900/30' },
-            { icon: '🔴', value: deactivatedStudentsList.length, label: 'الطلاب الموقوفين / المجمدين', color: 'bg-rose-50 text-rose-600 border-rose-100 dark:bg-rose-900/15 dark:text-rose-400 dark:border-rose-900/30' }
-          ].map((stat, i) => (
+            { icon: BookOpen, value: stats.groups, label: 'مجموعات نشطة حالياً', color: 'bg-indigo-50 text-indigo-600 border-indigo-100 dark:bg-indigo-900/15 dark:text-indigo-400 dark:border-indigo-900/30' },
+            { icon: Users, value: stats.students, label: 'إجمالي الطلاب المسجلين', color: 'bg-primary-50 text-primary-600 border-primary-100 dark:bg-primary-900/15 dark:text-primary-400 dark:border-primary-900/30' },
+            { icon: UserCheck, value: allStudents.filter(s => !s.deactivated && s.is50PercentPaid !== false).length, label: 'الطلاب النشطين', color: 'bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-900/15 dark:text-emerald-400 dark:border-emerald-900/30' },
+            { icon: UserX, value: deactivatedStudentsList.length, label: 'الطلاب الموقوفين / المجمدين', color: 'bg-rose-50 text-rose-600 border-rose-100 dark:bg-rose-900/15 dark:text-rose-400 dark:border-rose-900/30' }
+          ].map((stat, i) => {
+            const StatIcon = stat.icon;
+            return (
             <div key={i} className="bg-white dark:bg-slate-900 p-6 rounded-[28px] border border-slate-200 dark:border-slate-850 shadow-sm hover:shadow-md transition-all flex flex-col items-center text-center group">
               <div className={`w-12 h-12 ${stat.color} rounded-2xl flex items-center justify-center text-xl mb-3 border transition-transform group-hover:scale-105 duration-300`}>
-                {stat.icon}
+                <StatIcon size={22} />
               </div>
               <p className="text-3xl font-black text-slate-900 dark:text-white mb-1 tracking-tighter font-sans">{stat.value}</p>
               <p className="text-xs text-slate-400 dark:text-slate-500 font-black">{stat.label}</p>
             </div>
-          ))}
+          )})}
         </div>
 
         {/* 1. Summary of currently active groups */}
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-850 p-6 rounded-[2.5rem] shadow-sm font-arabic text-right">
           <h2 className="text-xl font-black text-slate-900 dark:text-white flex items-center justify-start gap-2 mb-6">
             <span className="w-2.5 h-2.5 bg-red-500 rounded-full animate-ping"></span>
-            <span>المحاضرات الجارية والنشطة حالياً ⏱️</span>
+            <span>المحاضرات الجارية والنشطة حالياً</span>
             <span className="text-[10px] bg-red-500/10 text-red-500 border border-red-500/20 px-2.5 py-0.5 rounded-full font-bold">متابعة حية</span>
           </h2>
 
           {activeGroupsNow.length === 0 ? (
             <div className="bg-slate-50/50 dark:bg-slate-950/20 border border-slate-150 dark:border-slate-850 p-6 rounded-[2rem] text-center">
-              <p className="text-xs text-slate-400 font-bold italic">لا توجد أي محاضرات جارية في هذه اللحظة. ☕</p>
+              <p className="text-xs text-slate-400 font-bold italic">لا توجد أي محاضرات جارية في هذه اللحظة.</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -440,7 +442,7 @@ const Dashboard: React.FC<{ user: User }> = ({ user }) => {
                     </span>
                     <span className="text-[10px] text-slate-400 font-bold">محاضرة #{session.sessionNumber}</span>
                   </div>
-                  <h3 className="text-base font-black text-white group-hover:text-red-400 transition-colors">🏫 {group.name}</h3>
+                  <h3 className="text-base font-black text-white group-hover:text-red-400 transition-colors">{group.name}</h3>
                   <p className="text-xs text-slate-400 font-bold mt-1">الكورس: {group.courseName}</p>
                   <div className="mt-4 pt-3 border-t border-slate-900 flex justify-between items-center text-[10px] text-slate-300 font-bold">
                     <span>المدرب: {trainerName}</span>
@@ -457,7 +459,7 @@ const Dashboard: React.FC<{ user: User }> = ({ user }) => {
           <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
             <div>
               <h2 className="text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
-                <span>📅 جدول المحاضرات الأسبوعي</span>
+                <span>جدول المحاضرات الأسبوعي</span>
                 <span className="text-[10px] bg-indigo-500/10 text-indigo-500 dark:text-indigo-400 font-black px-2.5 py-0.5 rounded-full">من الجمعة إلى الجمعة</span>
               </h2>
               <p className="text-xs text-slate-400 font-bold mt-1">{weekRangeText}</p>
@@ -474,7 +476,7 @@ const Dashboard: React.FC<{ user: User }> = ({ user }) => {
                 onClick={handleCurrentWeek}
                 className="bg-indigo-600 text-white hover:bg-indigo-700 px-3 py-2 rounded-xl text-xs font-black transition-all cursor-pointer"
               >
-                الأسبوع الحالي 📅
+                الأسبوع الحالي
               </button>
               <button 
                 onClick={handleNextWeek}
@@ -510,7 +512,7 @@ const Dashboard: React.FC<{ user: User }> = ({ user }) => {
                   <div className="space-y-3 min-h-[120px] max-h-[300px] overflow-y-auto no-scrollbar">
                     {daySessions.length === 0 ? (
                       <div className="flex items-center justify-center h-[120px]">
-                        <span className="text-[11px] text-slate-400 italic font-medium">لا توجد محاضرات ☕</span>
+                        <span className="text-[11px] text-slate-400 italic font-medium">لا توجد محاضرات</span>
                       </div>
                     ) : (
                       daySessions.map(({ session, group, trainer }) => {
@@ -519,12 +521,12 @@ const Dashboard: React.FC<{ user: User }> = ({ user }) => {
 
                         let cardBg = 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800';
                         let badgeStyle = 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300 border-slate-200 dark:border-slate-700';
-                        let badgeText = 'قادمة 📅';
+                        let badgeText = 'قادمة';
 
                         if (isSessionRunning) {
                           cardBg = 'bg-red-500/5 border-red-500/30 shadow-md shadow-red-500/5 hover:border-red-400';
                           badgeStyle = 'bg-red-500 text-white border-red-400 animate-pulse';
-                          badgeText = 'جارية 🔴';
+                          badgeText = 'جارية الآن';
                         } else if (isSessionDone) {
                           cardBg = 'bg-emerald-500/5 border-emerald-500/20 hover:border-emerald-500/40';
                           badgeStyle = 'bg-emerald-500/15 text-emerald-500 dark:text-emerald-400 border-emerald-500/20';
@@ -548,7 +550,7 @@ const Dashboard: React.FC<{ user: User }> = ({ user }) => {
                             </div>
 
                             <h4 className="text-[11.5px] font-black text-slate-800 dark:text-slate-100 leading-tight group-hover:text-indigo-500 dark:group-hover:text-indigo-400 transition-colors mt-1">
-                              🏫 {group.name}
+                              {group.name}
                             </h4>
 
                             <p className="text-[10px] text-slate-400 font-bold truncate">الكورس: {group.courseName}</p>
@@ -574,7 +576,7 @@ const Dashboard: React.FC<{ user: User }> = ({ user }) => {
               <div className="inline-block px-3.5 py-1 rounded-full bg-primary-600/30 border border-primary-500/40 text-[10px] font-black uppercase tracking-widest text-primary-400 mb-4 font-sans">
                 SYSTEM ONLINE • Realtime Connected
               </div>
-              <h2 className="text-3xl font-black tracking-tighter mb-3">مرحباً بك مجدداً، أستاذ {user.name}! 👋</h2>
+              <h2 className="text-3xl font-black tracking-tighter mb-3">مرحباً بك مجدداً، أستاذ {user.name}</h2>
               <p className="text-slate-400 max-w-xl mb-8 text-base leading-relaxed font-bold">
                 أنت مسجل حالياً بصلاحية <span className="text-primary-400 font-black capitalize">[{user.role === 'admin' ? 'مدير عام / أدمن' : user.role === 'coordinator' ? 'منسق عام' : 'مُدرّب مادة'}]</span>. 
                 يرجى مراجعة المجموعات ومتابعة الطلاب المعلقين والرد على الإشارات الموجهة إليك لتسريع مستوى الخدمة الأكاديمية بالأكاديمية.
@@ -593,7 +595,7 @@ const Dashboard: React.FC<{ user: User }> = ({ user }) => {
               <div className="flex items-center justify-between pb-1 text-right">
                 <div>
                   <h2 className="text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
-                    <span>🔔 متابعاتي المعلقة والنشطة</span>
+                    <span>متابعاتي المعلقة والنشطة</span>
                     {myPendingFollowUps.length > 0 && (
                       <span className="bg-red-500 text-white text-xs font-black px-2.5 py-0.5 rounded-full font-sans animate-pulse">
                         {myPendingFollowUps.length}
@@ -609,7 +611,7 @@ const Dashboard: React.FC<{ user: User }> = ({ user }) => {
                   <div className="w-16 h-16 rounded-full bg-emerald-50 dark:bg-emerald-950/30 text-emerald-500 flex items-center justify-center text-3xl font-bold">
                     ✓
                   </div>
-                  <h3 className="text-base font-black text-slate-800 dark:text-slate-200">الطلاب بأمان وبخير بالكامل! 🎉</h3>
+                  <h3 className="text-base font-black text-slate-800 dark:text-slate-200">الطلاب بأمان وبخير بالكامل</h3>
                   <p className="text-xs text-slate-400 dark:text-slate-400 max-w-sm font-bold leading-relaxed">
                     لا توجد أي متابعات أو مشاكل معلقة موجهة إليك بشكل خاص في الوقت الحالي. سيظهر الإشعار والتفاصيل فور حدوث أي غياب أو طلب متابعة مخصص.
                   </p>
