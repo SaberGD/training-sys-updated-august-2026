@@ -10,7 +10,45 @@ import { useSensitiveData } from '../contexts/SensitiveDataContext';
 import { ViewAsContext } from '../App';
 import { subscribeToCollection, markNotificationRead } from '../services/firestore';
 import * as firestore from 'firebase/firestore';
-import { Bell, Check, Eye, EyeOff, Lock, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, PanelLeftClose, PanelLeftOpen, Menu, X } from 'lucide-react';
+import {
+  AlertTriangle,
+  Bell,
+  BookOpen,
+  Building2,
+  CalendarDays,
+  Check,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  ChevronUp,
+  Eye,
+  EyeOff,
+  FileUp,
+  FolderOpen,
+  Globe2,
+  GraduationCap,
+  KeyRound,
+  LayoutDashboard,
+  Link as LinkIcon,
+  ListChecks,
+  Lock,
+  LogOut,
+  Menu,
+  Moon,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Search,
+  ShieldCheck,
+  Sun,
+  Tags,
+  Target,
+  TrendingUp,
+  Trophy,
+  Tv,
+  Users,
+  X,
+  type LucideIcon,
+} from 'lucide-react';
 import { GemyChatWidget } from './GemyChatWidget';
 
 const { where, orderBy, limit } = firestore as any;
@@ -53,29 +91,29 @@ const Layout: React.FC<LayoutProps> = ({ user, children }) => {
 
   const isSystemAdmin = user.role === 'admin';
 
-  const menuItems = [
-    { label: t('dashboard'), path: '/', icon: '📊', show: hasPermission(user, 'viewDashboard') },
-    { label: t('users'), path: '/users', icon: '👥', show: isSystemAdmin },
-    { label: 'Permissions', path: '/permissions', icon: '🔐', show: isSystemAdmin },
-    { label: lang === 'ar' ? 'ربط Google Integrations 🔗' : 'Google Integrations 🔗', path: '/google-integrations', icon: '🔗', show: isSystemAdmin },
-    { label: lang === 'ar' ? 'ربط حساب Google 🔗' : 'Trainer Google Connect 🔗', path: '/trainer/google-connect', icon: '🔑', show: ['trainer', 'team_leader', 'admin'].includes(user.role) },
-    { label: t('courses'), path: '/courses', icon: '📚', show: hasPermission(user, 'viewCourses') },
-    { label: t('groups'), path: '/groups', icon: '🏢', show: hasPermission(user, 'viewGroups') },
-    { label: lang === 'ar' ? 'مشاريع التخرج 🎓' : 'Graduation Projects 🎓', path: '/graduation-projects', icon: '🎓', show: true },
-    { label: t('myGroups'), path: '/my-groups', icon: '🏢', show: false },
-    { label: t('followUps'), path: '/follow-ups', icon: '🎯', show: true },
-    { label: 'Labels', path: '/labels', icon: '🏷️', show: ['admin', 'coordinator'].includes(user.role) },
-    { label: 'Tasks', path: '/tasks', icon: '✅', show: hasPermission(user, 'viewTasks') },
-    { label: 'Complaints', path: '/complaints', icon: '⚠️', show: true },
-    { label: 'Performance Reports', path: '/performance-reports', icon: '📈', show: hasPermission(user, 'viewPerformanceReports') },
-    { label: 'Trainer KPIs', path: '/trainer-kpis', icon: '🏆', show: ['admin', 'coordinator', 'team_leader', 'trainer'].includes(user.role) },
-    { label: t('students'), path: '/students', icon: '🎓', show: hasPermission(user, 'viewStudents') },
-    { label: lang === 'ar' ? 'فهرس وسجلات الطلاب 🔍' : 'Student Directory 🔍', path: '/student-directory', icon: '🔍', show: hasPermission(user, 'viewStudents') },
-    { label: lang === 'ar' ? 'بوابة المتدربين 🌐' : 'Student Portal 🌐', path: '/student/portal', icon: '🎓', show: true, target: '_blank' },
-    { label: 'Marketing Resources', path: '/marketing', icon: '📁', show: hasPermission(user, 'viewMarketing') },
-    { label: t('weeklySchedule'), path: '/weekly-schedule', icon: '📅', show: hasPermission(user, 'viewWeeklySchedule') },
-    { label: t('exports'), path: '/exports', icon: '📤', show: hasPermission(user, 'viewExports') },
-    { label: t('activityLog'), path: '/activity-log', icon: '📜', show: hasPermission(user, 'viewActivityLog') },
+  const menuItems: Array<{ label: string; path: string; icon: LucideIcon; show: boolean; target?: string }> = [
+    { label: t('dashboard'), path: '/', icon: LayoutDashboard, show: hasPermission(user, 'viewDashboard') },
+    { label: t('users'), path: '/users', icon: Users, show: isSystemAdmin },
+    { label: 'Permissions', path: '/permissions', icon: ShieldCheck, show: isSystemAdmin },
+    { label: lang === 'ar' ? 'ربط Google Integrations' : 'Google Integrations', path: '/google-integrations', icon: LinkIcon, show: isSystemAdmin },
+    { label: lang === 'ar' ? 'ربط حساب Google' : 'Trainer Google Connect', path: '/trainer/google-connect', icon: KeyRound, show: ['trainer', 'team_leader', 'admin'].includes(user.role) },
+    { label: t('courses'), path: '/courses', icon: BookOpen, show: hasPermission(user, 'viewCourses') },
+    { label: t('groups'), path: '/groups', icon: Building2, show: hasPermission(user, 'viewGroups') },
+    { label: lang === 'ar' ? 'مشاريع التخرج' : 'Graduation Projects', path: '/graduation-projects', icon: GraduationCap, show: true },
+    { label: t('myGroups'), path: '/my-groups', icon: Building2, show: false },
+    { label: t('followUps'), path: '/follow-ups', icon: Target, show: true },
+    { label: 'Labels', path: '/labels', icon: Tags, show: ['admin', 'coordinator'].includes(user.role) },
+    { label: 'Tasks', path: '/tasks', icon: ListChecks, show: hasPermission(user, 'viewTasks') },
+    { label: 'Complaints', path: '/complaints', icon: AlertTriangle, show: true },
+    { label: 'Performance Reports', path: '/performance-reports', icon: TrendingUp, show: hasPermission(user, 'viewPerformanceReports') },
+    { label: 'Trainer KPIs', path: '/trainer-kpis', icon: Trophy, show: ['admin', 'coordinator', 'team_leader', 'trainer'].includes(user.role) },
+    { label: t('students'), path: '/students', icon: GraduationCap, show: hasPermission(user, 'viewStudents') },
+    { label: lang === 'ar' ? 'فهرس وسجلات الطلاب' : 'Student Directory', path: '/student-directory', icon: Search, show: hasPermission(user, 'viewStudents') },
+    { label: lang === 'ar' ? 'بوابة المتدربين' : 'Student Portal', path: '/student/portal', icon: Globe2, show: true, target: '_blank' },
+    { label: 'Marketing Resources', path: '/marketing', icon: FolderOpen, show: hasPermission(user, 'viewMarketing') },
+    { label: t('weeklySchedule'), path: '/weekly-schedule', icon: CalendarDays, show: hasPermission(user, 'viewWeeklySchedule') },
+    { label: t('exports'), path: '/exports', icon: FileUp, show: hasPermission(user, 'viewExports') },
+    { label: t('activityLog'), path: '/activity-log', icon: BookOpen, show: hasPermission(user, 'viewActivityLog') },
   ].filter(item => {
     if (!item.show) return false;
     // Hide page if disabled by admin, unless current user is admin
@@ -130,6 +168,7 @@ const Layout: React.FC<LayoutProps> = ({ user, children }) => {
         <nav className={`flex-1 overflow-y-auto space-y-2 no-scrollbar ${isSidebarCollapsed ? 'p-2' : 'py-8 px-4'}`}>
           {menuItems.map((item) => {
             const isActive = location.pathname === item.path;
+            const Icon = item.icon;
             return (
               <Link
                 key={item.path}
@@ -143,7 +182,7 @@ const Layout: React.FC<LayoutProps> = ({ user, children }) => {
                 } ${isSidebarCollapsed ? 'md:justify-center md:px-0 md:h-12 md:w-12 md:mx-auto' : ''}`}
                 title={isSidebarCollapsed ? item.label : undefined}
               >
-                <span className="text-xl shrink-0">{item.icon}</span>
+                <Icon size={20} className="shrink-0" />
                 <span className={`text-sm font-semibold tracking-tight transition-all duration-300 ${isSidebarCollapsed ? 'md:hidden' : 'block'}`}>{item.label}</span>
               </Link>
             );
@@ -158,7 +197,7 @@ const Layout: React.FC<LayoutProps> = ({ user, children }) => {
               className={`flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-all text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 group ${isSidebarCollapsed ? 'md:justify-center md:px-0 md:h-12 md:w-12 md:mx-auto' : ''}`}
               title={isSidebarCollapsed ? 'youtube bulk adder' : undefined}
             >
-              <span className="text-xl shrink-0">📺</span>
+              <Tv size={20} className="shrink-0" />
               <span className={`text-sm font-black tracking-tight uppercase ${isSidebarCollapsed ? 'md:hidden' : 'block'}`}>youtube bulk adder</span>
             </a>
           </div>
@@ -170,7 +209,7 @@ const Layout: React.FC<LayoutProps> = ({ user, children }) => {
             className={`w-full flex items-center justify-center gap-2 px-4 py-3 text-xs font-black text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-2xl transition-all uppercase tracking-widest border border-transparent hover:border-red-200 dark:hover:border-red-900/50 ${isSidebarCollapsed ? 'md:p-2' : ''}`}
             title={lang === 'ar' ? 'تسجيل الخروج' : 'Logout'}
           >
-            {isSidebarCollapsed ? '🚪' : t('logout')}
+            {isSidebarCollapsed ? <LogOut size={18} /> : t('logout')}
           </button>
         </div>
       </aside>
@@ -219,14 +258,14 @@ const Layout: React.FC<LayoutProps> = ({ user, children }) => {
               {showSensitiveData ? (
                 <>
                   <Eye size={15} className="text-amber-500 shrink-0" />
-                  <span className="hidden md:inline">البيانات الحساسة: معروضة 🔓</span>
-                  <span className="md:hidden">حساسة 🔓</span>
+                  <span className="hidden md:inline">البيانات الحساسة: معروضة</span>
+                  <span className="md:hidden">معروضة</span>
                 </>
               ) : (
                 <>
                   <EyeOff size={15} className="shrink-0" />
-                  <span className="hidden md:inline">البيانات الحساسة: مخفية 🔒</span>
-                  <span className="md:hidden">مخفية 🔒</span>
+                  <span className="hidden md:inline">البيانات الحساسة: مخفية</span>
+                  <span className="md:hidden">مخفية</span>
                 </>
               )}
             </button>
@@ -310,7 +349,7 @@ const Layout: React.FC<LayoutProps> = ({ user, children }) => {
               className="w-10 h-10 flex items-center justify-center bg-slate-100 dark:bg-slate-800 rounded-xl hover:bg-primary-50 dark:hover:bg-primary-950 transition-colors border border-slate-200 dark:border-slate-700 font-sans"
               title="Toggle Theme"
             >
-              {theme === 'dark' ? '☀️' : '🌙'}
+              {theme === 'dark' ? <Sun size={18} className="text-amber-400" /> : <Moon size={18} className="text-indigo-400" />}
             </button>
 
             {actualRole === 'admin' && (
