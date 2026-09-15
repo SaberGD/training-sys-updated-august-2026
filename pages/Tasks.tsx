@@ -1060,8 +1060,8 @@ const TasksPage: React.FC<TasksPageProps> = ({ user }) => {
                       defaultValue="medium"
                       className="w-full p-4 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-primary-500"
                     >
-                      <option value="low">Low 🟢</option>
-                      <option value="medium">Medium 🟡</option>
+                      <option value="low">Low</option>
+                      <option value="medium">Medium</option>
                       <option value="high">High</option>
                       <option value="urgent">Urgent</option>
                     </select>

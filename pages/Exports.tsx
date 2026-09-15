@@ -8,7 +8,7 @@ import { db } from '../firebase';
 import * as XLSX from 'xlsx';
 import JSZip from 'jszip';
 import AIStudentExportModal from '../components/AIStudentExportModal';
-import { Bot, Download } from 'lucide-react';
+import { Bot, Download, Package, ShieldCheck } from 'lucide-react';
 
 const { collection, getDocs, doc, writeBatch } = firestore as any;
 
@@ -192,8 +192,8 @@ const Exports: React.FC<{ user: User }> = ({ user }) => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         {/* AI Assistant Student Exporter Card */}
         <div className="bg-gradient-to-br from-indigo-900 via-slate-900 to-purple-950 p-10 rounded-4xl border border-indigo-500/30 shadow-xl flex flex-col items-center text-center text-white relative overflow-hidden group transition-all hover:border-indigo-400">
-          <div className="w-20 h-20 bg-indigo-500/20 border border-indigo-400/30 text-indigo-300 rounded-3xl flex items-center justify-center text-4xl mb-6 group-hover:scale-110 transition-transform">
-            🤖
+          <div className="w-20 h-20 bg-indigo-500/20 border border-indigo-400/30 text-indigo-300 rounded-3xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+            <Bot size={34} />
           </div>
           <div className="inline-block px-3 py-1 rounded-full bg-indigo-500/30 border border-indigo-400/30 text-[10px] font-black uppercase tracking-widest text-indigo-300 mb-3">
             SABER GROUP AI
@@ -212,7 +212,9 @@ const Exports: React.FC<{ user: User }> = ({ user }) => {
         </div>
 
         <div className="bg-white dark:bg-slate-900 p-10 rounded-4xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col items-center text-center group transition-all hover:shadow-xl">
-          <div className="w-20 h-20 bg-primary-50 dark:bg-primary-900/20 text-primary-600 rounded-3xl flex items-center justify-center text-4xl mb-8 group-hover:scale-110 transition-transform">📦</div>
+          <div className="w-20 h-20 bg-primary-50 dark:bg-primary-900/20 text-primary-600 rounded-3xl flex items-center justify-center mb-8 group-hover:scale-110 transition-transform">
+            <Package size={34} />
+          </div>
           <h2 className="text-2xl font-black mb-4">{t('fullPackup')}</h2>
           <p className="text-sm text-slate-500 dark:text-slate-400 mb-8 max-w-xs leading-relaxed">{lang === 'ar' ? 'تحميل كافة بيانات النظام في ملف مضغوط واحد.' : 'Download all system data in a single compressed ZIP file.'}</p>
           <button onClick={handleFullPackup} disabled={isProcessing} className={`w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg transition-all active:scale-95 mt-auto ${isProcessing ? 'bg-slate-200 dark:bg-slate-800 text-slate-400' : 'bg-primary-600 text-white hover:bg-primary-700'}`}>
@@ -223,8 +225,8 @@ const Exports: React.FC<{ user: User }> = ({ user }) => {
         {isAdmin && (
           <div className="bg-slate-950 rounded-4xl p-10 text-white relative overflow-hidden border border-white/5 flex flex-col justify-center">
             <div className="relative z-10 flex flex-col h-full items-center text-center justify-between">
-              <div className="w-20 h-20 bg-amber-500/20 border border-amber-500/30 text-amber-400 rounded-3xl flex items-center justify-center text-4xl mb-6">
-                🛡️
+              <div className="w-20 h-20 bg-amber-500/20 border border-amber-500/30 text-amber-400 rounded-3xl flex items-center justify-center mb-6">
+                <ShieldCheck size={34} />
               </div>
               <div>
                 <div className="inline-block px-4 py-1.5 rounded-full bg-amber-600/20 border border-amber-500/30 text-[10px] font-black uppercase tracking-widest text-amber-400 mb-4">Administrative</div>
