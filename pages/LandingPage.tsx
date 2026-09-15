@@ -12,7 +12,6 @@ import {
   Mail, 
   Globe, 
   BarChart3,
-  Sparkles,
   ArrowRight
 } from 'lucide-react';
 
@@ -20,24 +19,24 @@ const LandingPage: React.FC = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-indigo-500 selection:text-white">
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-blue-500 selection:text-white">
       {/* Navigation Header */}
-      <header className="sticky top-0 z-50 bg-slate-950/80 backdrop-blur-md border-b border-slate-800/80">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+      <header className="sticky top-0 z-50 bg-slate-950/92 backdrop-blur border-b border-slate-800">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-blue-500 flex items-center justify-center shadow-lg shadow-indigo-500/20">
-              <GraduationCap className="w-6 h-6 text-white" />
+            <div className="w-10 h-10 rounded-lg bg-slate-900 border border-slate-700 flex items-center justify-center shadow-sm">
+              <GraduationCap className="w-5 h-5 text-sky-300" />
             </div>
             <div>
-              <span className="font-extrabold text-lg text-white tracking-tight block">SABER GROUP</span>
-              <span className="text-[10px] font-semibold text-indigo-400 tracking-wider uppercase block">Training Management System</span>
+              <span className="font-bold text-base text-white tracking-tight block">SABER GROUP</span>
+              <span className="text-[10px] font-semibold text-slate-400 tracking-wider uppercase block">Training Operations</span>
             </div>
           </div>
 
           <div className="flex items-center gap-4">
             <Link
               to="/login"
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm shadow-lg shadow-indigo-600/30 transition-all hover:scale-[1.02] active:scale-[0.98]"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold text-sm shadow-sm transition-colors"
             >
               <LogIn className="w-4 h-4" />
               <span>Login to Dashboard</span>
@@ -47,41 +46,51 @@ const LandingPage: React.FC = () => {
       </header>
 
       {/* Hero Section */}
-      <section className="relative pt-20 pb-24 overflow-hidden border-b border-slate-900">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(99,102,241,0.15),rgba(255,255,255,0))]" />
-        
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-indigo-950/80 border border-indigo-800/60 text-indigo-300 text-xs font-semibold mb-8 animate-fade-in">
-            <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
-            <span>Saber Group Academy - Modern Education Tech</span>
+      <section className="relative pt-16 pb-20 overflow-hidden border-b border-slate-900">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-slate-900 border border-slate-800 text-slate-300 text-xs font-semibold mb-6">
+            <ShieldCheck className="w-3.5 h-3.5 text-sky-300" />
+            <span>Saber Group Academy operations workspace</span>
           </div>
 
-          <h1 className="text-4xl sm:text-6xl font-black text-white tracking-tight leading-[1.15] mb-6">
-            Saber Group <br className="hidden sm:block" />
-            <span className="bg-gradient-to-r from-indigo-400 via-blue-400 to-sky-300 bg-clip-text text-transparent">
-              Training Management System
-            </span>
+          <h1 className="text-4xl sm:text-5xl font-extrabold text-white tracking-tight leading-[1.1] mb-5 max-w-4xl">
+            Training management built for daily academy operations
           </h1>
 
-          <p className="text-lg sm:text-xl text-slate-300 max-w-3xl mx-auto leading-relaxed mb-10 font-medium">
+          <p className="text-base sm:text-lg text-slate-300 max-w-3xl leading-relaxed mb-8 font-medium">
             An integrated platform for managing training courses, groups, sessions, attendance, trainers and students in one place.
           </p>
 
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
             <button
               onClick={() => navigate('/login')}
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-3 px-8 py-4 rounded-xl bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white font-bold text-base shadow-xl shadow-indigo-600/25 transition-all hover:scale-[1.02] active:scale-[0.98]"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-3 px-6 py-3 rounded-lg bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold text-sm shadow-sm transition-colors"
             >
               <span>Login to Dashboard</span>
               <ArrowRight className="w-5 h-5" />
             </button>
             <Link
               to="/student/portal"
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-800 font-bold text-base transition-all"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-700 font-bold text-sm transition-colors"
             >
-              <GraduationCap className="w-5 h-5 text-indigo-400" />
+              <GraduationCap className="w-5 h-5 text-sky-300" />
               <span>Student Portal</span>
             </Link>
+          </div>
+
+          <div className="mt-10 grid grid-cols-1 sm:grid-cols-3 gap-3 max-w-4xl">
+            <div className="border border-slate-800 bg-slate-900/70 rounded-lg px-4 py-3">
+              <span className="block text-[11px] uppercase tracking-wider text-slate-500 font-bold">Workflows</span>
+              <span className="text-sm text-slate-200 font-semibold">Courses, groups, attendance</span>
+            </div>
+            <div className="border border-slate-800 bg-slate-900/70 rounded-lg px-4 py-3">
+              <span className="block text-[11px] uppercase tracking-wider text-slate-500 font-bold">Scheduling</span>
+              <span className="text-sm text-slate-200 font-semibold">Sessions, Calendar, Meet links</span>
+            </div>
+            <div className="border border-slate-800 bg-slate-900/70 rounded-lg px-4 py-3">
+              <span className="block text-[11px] uppercase tracking-wider text-slate-500 font-bold">Portals</span>
+              <span className="text-sm text-slate-200 font-semibold">Admin, trainer, student access</span>
+            </div>
           </div>
         </div>
       </section>
