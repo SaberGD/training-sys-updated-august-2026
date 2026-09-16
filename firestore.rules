@@ -21,6 +21,32 @@ service cloud.firestore {
       return hasRole('admin') || hasRole('coordinator') || hasRole('team_leader') || hasRole('supervisor');
     }
 
+    function isTrainer() {
+      return hasRole('trainer');
+    }
+
+    function isGroupTrainer(groupId) {
+      return isTrainer()
+        && exists(/databases/$(database)/documents/groups/$(groupId))
+        && (
+          get(/databases/$(database)/documents/groups/$(groupId)).data.primaryTrainerId == request.auth.uid
+          || (
+            get(/databases/$(database)/documents/groups/$(groupId)).data.keys().hasAny(['trainerIds'])
+            && request.auth.uid in get(/databases/$(database)/documents/groups/$(groupId)).data.trainerIds
+          )
+        );
+    }
+
+    function canTrainerUpdateSessionLinks() {
+      return isSignedIn()
+        && isGroupTrainer(resource.data.groupId)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'lectureRecordingUrl',
+          'tasksMessageUrl',
+          'requiredTasksCount'
+        ]);
+    }
+
     // Users collection
     match /users/{userId} {
       allow read: if isSignedIn();
@@ -66,7 +92,8 @@ service cloud.firestore {
     // Sessions collection
     match /sessions/{sessionId} {
       allow read: if true;
-      allow write: if isStaff();
+      allow create, delete: if isStaff();
+      allow update: if isStaff() || canTrainerUpdateSessionLinks();
     }
 
     // Weekly Schedules, Weeks & Items
@@ -87,8 +114,8 @@ service cloud.firestore {
 
     // Daily Ops
     match /dailyTrainerOps/{id} {
-      allow read: if isStaff() || (isSignedIn() && id.startsWith(request.auth.uid));
-      allow write: if isSignedIn() && id.startsWith(request.auth.uid);
+      allow read: if isStaff() || (isSignedIn() && id.matches(request.auth.uid + '_.*'));
+      allow write: if isSignedIn() && id.matches(request.auth.uid + '_.*');
     }
 
     // Session Meta
