@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import * as firestore from 'firebase/firestore';
 import { db } from '../firebase';
 import { Group, User, Course, Student } from '../types';
@@ -19,12 +19,14 @@ interface GroupsProps {
 }
 
 const Groups: React.FC<GroupsProps> = ({ user, isTrainerOnly }) => {
+  const location = useLocation();
   const [groups, setGroups] = useState<Group[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
   const [trainers, setTrainers] = useState<User[]>([]);
   const [allStudents, setAllStudents] = useState<Student[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [incomingAccountingData, setIncomingAccountingData] = useState<any>(null);
   const [editingGroup, setEditingGroup] = useState<Group | null>(null);
   
   // Delete Modal States
@@ -32,6 +34,29 @@ const Groups: React.FC<GroupsProps> = ({ user, isTrainerOnly }) => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteProgress, setDeleteProgress] = useState({ current: 0, total: 0 });
   const [showArchived, setShowArchived] = useState(false);
+
+  useEffect(() => {
+    if (!new URLSearchParams(location.search).has('accountingImport') || !window.opener || isTrainerOnly ||
+        !['admin', 'coordinator', 'team_leader', 'trainer'].includes(user.role)) return;
+    const opener = window.opener;
+    let received = false;
+    const onMessage = (event: MessageEvent) => {
+      if (event.source !== opener || event.data?.type !== 'sg-accounting-import') return;
+      const payload = event.data.payload;
+      if (payload?.sourceSystem !== 'accounting-bookings-system' || !payload.group || !Array.isArray(payload.students)) return;
+      received = true;
+      setIncomingAccountingData(payload);
+      setIsImportModalOpen(true);
+      opener.postMessage({ type: 'sg-accounting-import-received' }, event.origin);
+    };
+    window.addEventListener('message', onMessage);
+    const signalReady = () => {
+      if (!received && !opener.closed) opener.postMessage({ type: 'sg-training-import-ready' }, '*');
+    };
+    signalReady();
+    const interval = window.setInterval(signalReady, 1000);
+    return () => { window.clearInterval(interval); window.removeEventListener('message', onMessage); };
+  }, [location.search, isTrainerOnly, user.role]);
 
   useEffect(() => {
     const qParams = isTrainerOnly ? [where('trainerIds', 'array-contains', user.uid)] : [];
@@ -325,7 +350,8 @@ const Groups: React.FC<GroupsProps> = ({ user, isTrainerOnly }) => {
 
       <AccountingImportModal 
         isOpen={isImportModalOpen}
-        onClose={() => setIsImportModalOpen(false)}
+        onClose={() => { setIsImportModalOpen(false); setIncomingAccountingData(null); }}
+        initialImportData={incomingAccountingData}
         user={user}
         courses={courses}
         trainers={trainers}

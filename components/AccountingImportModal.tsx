@@ -177,6 +177,7 @@ interface StudentPreviewItem {
 interface AccountingImportModalProps {
   isOpen: boolean;
   onClose: () => void;
+  initialImportData?: any;
   user: User;
   courses: Course[];
   trainers: User[];
@@ -186,6 +187,7 @@ interface AccountingImportModalProps {
 const AccountingImportModal: React.FC<AccountingImportModalProps> = ({
   isOpen,
   onClose,
+  initialImportData,
   user,
   courses,
   trainers,
@@ -235,6 +237,8 @@ const AccountingImportModal: React.FC<AccountingImportModalProps> = ({
   // Students preview edits
   const [studentsPreview, setStudentsPreview] = useState<StudentPreviewItem[]>([]);
   const [dbStudents, setDbStudents] = useState<Student[]>([]);
+  const [dbStudentsLoaded, setDbStudentsLoaded] = useState(false);
+  const processedImportRef = useRef<any>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [editingStudentId, setEditingStudentId] = useState<string | null>(null);
   const [editingStudentData, setEditingStudentData] = useState<Partial<StudentPreviewItem>>({});
@@ -252,6 +256,9 @@ const AccountingImportModal: React.FC<AccountingImportModalProps> = ({
   // Load active DB students to check background duplicates on mounted
   useEffect(() => {
     if (isOpen) {
+      setDbStudentsLoaded(false);
+      setDbStudents([]);
+      processedImportRef.current = null;
       const fetchStudents = async () => {
         try {
           const qSnap = await getDocs(collection(db, 'students'));
@@ -259,6 +266,8 @@ const AccountingImportModal: React.FC<AccountingImportModalProps> = ({
           setDbStudents(list);
         } catch (err) {
           console.error("Failed to load existing students for duplicate check:", err);
+        } finally {
+          setDbStudentsLoaded(true);
         }
       };
       fetchStudents();
@@ -458,6 +467,12 @@ const AccountingImportModal: React.FC<AccountingImportModalProps> = ({
       setErrorMsg(err.message || "Failed to process accounting export file.");
     }
   };
+
+  useEffect(() => {
+    if (!isOpen || !initialImportData || !dbStudentsLoaded || processedImportRef.current === initialImportData) return;
+    processedImportRef.current = initialImportData;
+    handleJsonUploadData(initialImportData);
+  }, [isOpen, initialImportData, dbStudentsLoaded]);
 
   const handleFileDrop = (e: React.DragEvent) => {
     e.preventDefault();
