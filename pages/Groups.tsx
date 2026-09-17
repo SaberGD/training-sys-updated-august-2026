@@ -39,19 +39,20 @@ const Groups: React.FC<GroupsProps> = ({ user, isTrainerOnly }) => {
     if (!new URLSearchParams(location.search).has('accountingImport') || !window.opener || isTrainerOnly ||
         !['admin', 'coordinator', 'team_leader', 'trainer'].includes(user.role)) return;
     const opener = window.opener;
+    const accountingOrigin = 'https://accounting.sabergroupacademy.com';
     let received = false;
     const onMessage = (event: MessageEvent) => {
-      if (event.source !== opener || event.data?.type !== 'sg-accounting-import') return;
+      if (event.source !== opener || event.origin !== accountingOrigin || event.data?.type !== 'sg-accounting-import') return;
       const payload = event.data.payload;
       if (payload?.sourceSystem !== 'accounting-bookings-system' || !payload.group || !Array.isArray(payload.students)) return;
       received = true;
       setIncomingAccountingData(payload);
       setIsImportModalOpen(true);
-      opener.postMessage({ type: 'sg-accounting-import-received' }, event.origin);
+      opener.postMessage({ type: 'sg-accounting-import-received' }, accountingOrigin);
     };
     window.addEventListener('message', onMessage);
     const signalReady = () => {
-      if (!received && !opener.closed) opener.postMessage({ type: 'sg-training-import-ready' }, '*');
+      if (!received && !opener.closed) opener.postMessage({ type: 'sg-training-import-ready' }, accountingOrigin);
     };
     signalReady();
     const interval = window.setInterval(signalReady, 1000);
