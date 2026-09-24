@@ -27,7 +27,8 @@ import {
   triggerStudentWelcomeEmail,
   getOrCreateGroupTestAccount,
   saveStudentCertificateRecord,
-  toggleGroupCertificatesVisibility
+  toggleGroupCertificatesVisibility,
+  addExtraSessionToGroup
 } from '../services/firestore';
 import { sanitizeCredentials, sanitizeEmail, sanitizePhone } from '../lib/textUtils';
 import Layout from '../components/Layout';
@@ -228,6 +229,9 @@ const GroupDetails: React.FC<{ user: User }> = ({ user }) => {
   const [evalSearchQuery, setEvalSearchQuery] = useState('');
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isExtraSessionModalOpen, setIsExtraSessionModalOpen] = useState(false);
+  const [extraSessionForm, setExtraSessionForm] = useState({ date: '', lectureTitle: '', note: '' });
+  const [isAddingExtraSession, setIsAddingExtraSession] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isRecalculating, setIsRecalculating] = useState(false);
 
@@ -481,6 +485,36 @@ const GroupDetails: React.FC<{ user: User }> = ({ user }) => {
   const [missingEmailsList, setMissingEmailsList] = useState<{ id: string; name: string; phone?: string; studentIdNum?: string }[]>([]);
   const [reconnectModalOpen, setReconnectModalOpen] = useState(false);
   const [reconnectErrorDetails, setReconnectErrorDetails] = useState<{ error: string; trainerId?: string; trainerEmail?: string } | null>(null);
+
+  const openExtraSessionModal = () => {
+    const lastDate = sessions.reduce((m, s) => (s.date && s.date > m ? s.date : m), '');
+    let suggested = new Date().toISOString().split('T')[0];
+    if (lastDate && lastDate >= suggested) {
+      const d = new Date(lastDate);
+      d.setDate(d.getDate() + 1);
+      suggested = d.toISOString().split('T')[0];
+    }
+    setExtraSessionForm({ date: suggested, lectureTitle: '', note: '' });
+    setIsExtraSessionModalOpen(true);
+  };
+
+  const handleAddExtraSession = async () => {
+    if (!group || !extraSessionForm.date) return;
+    setIsAddingExtraSession(true);
+    try {
+      const res = await addExtraSessionToGroup(group, extraSessionForm, user);
+      setGroup(prev => prev ? { ...prev, totalSessions: res.totalSessions } : prev);
+      setIsExtraSessionModalOpen(false);
+      setGoogleSyncMessage({
+        type: 'success',
+        text: `✅ تمت إضافة المحاضرة الإضافية رقم ${res.sessionNumber} للجروب (إجمالي المحاضرات الآن ${res.totalSessions}). اضغط "تشغيل مواعيد Google" لإضافتها للتقويم.`
+      });
+    } catch (err: any) {
+      alert(`تعذر إضافة المحاضرة: ${err?.message || err}`);
+    } finally {
+      setIsAddingExtraSession(false);
+    }
+  };
 
   const handleSyncGoogleCalendar = async (forceRetryOnly = false, forceCentral = false) => {
     if (!groupId) return;
@@ -1992,6 +2026,16 @@ const GroupDetails: React.FC<{ user: User }> = ({ user }) => {
                 </div>
 
                 <div className="flex items-center gap-2 flex-wrap">
+                  {isAdmin && (
+                    <button
+                      onClick={openExtraSessionModal}
+                      className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-600/25 transition-all"
+                    >
+                      <Calendar className="w-4 h-4" />
+                      {isAr ? 'إضافة محاضرة إضافية' : 'Add Extra Lecture'}
+                    </button>
+                  )}
+
                   {/* Google Schedule Launch Buttons */}
                   <button
                     onClick={() => handleSyncGoogleCalendar(false)}
@@ -2085,7 +2129,14 @@ const GroupDetails: React.FC<{ user: User }> = ({ user }) => {
                       const draftStatus = draftSessionStatus[s.id] || s.status;
                       return (
                         <tr key={s.id} className={`hover:bg-slate-800/40 transition-colors ${draftSessionStatus[s.id] ? 'bg-amber-950/20' : ''}`}>
-                          <td className="px-6 py-4 font-black text-slate-200">Lecture {s.sessionNumber}</td>
+                          <td className="px-6 py-4 font-black text-slate-200">
+                            Lecture {s.sessionNumber}
+                            {s.isExtra && (
+                              <span className="block mt-1 w-fit text-[9px] font-black bg-emerald-950/60 text-emerald-400 border border-emerald-800/60 px-2 py-0.5 rounded-full font-arabic" title={s.addedByName ? `أضافها ${s.addedByName}` : undefined}>
+                                محاضرة إضافية
+                              </span>
+                            )}
+                          </td>
                           <td className="px-6 py-4">
                             <input 
                               type="text" 
@@ -6169,6 +6220,43 @@ const GroupDetails: React.FC<{ user: User }> = ({ user }) => {
           sessionNumber={selectedSession?.sessionNumber}
           user={user}
         />
+      )}
+
+      {isExtraSessionModalOpen && group && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-4 font-arabic" dir="rtl" onClick={() => !isAddingExtraSession && setIsExtraSessionModalOpen(false)}>
+          <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl p-6 text-right" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-black text-white">إضافة محاضرة إضافية للجروب</h3>
+              <button onClick={() => setIsExtraSessionModalOpen(false)} disabled={isAddingExtraSession} className="text-slate-400 hover:text-white"><X size={18} /></button>
+            </div>
+            <p className="text-xs text-slate-400 mb-5 leading-relaxed">
+              سيتم إضافة المحاضرة رقم <span className="text-emerald-400 font-black">{sessions.reduce((m, s) => Math.max(m, s.sessionNumber || 0), 0) + 1}</span> لجروب <span className="text-slate-200 font-bold">{group.name}</span> فقط، وسيصبح إجمالي المحاضرات <span className="text-emerald-400 font-black">{Math.max(group.totalSessions || 0, sessions.reduce((m, s) => Math.max(m, s.sessionNumber || 0), 0)) + 1}</span> بدلاً من {group.totalSessions}.
+            </p>
+            <div className="space-y-4">
+              <label className="block">
+                <span className="text-[11px] font-black text-slate-400 block mb-1.5">تاريخ المحاضرة *</span>
+                <input type="date" value={extraSessionForm.date} onChange={e => setExtraSessionForm(f => ({ ...f, date: e.target.value }))} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm font-bold text-slate-200 outline-none focus:ring-1 focus:ring-emerald-500" />
+              </label>
+              <label className="block">
+                <span className="text-[11px] font-black text-slate-400 block mb-1.5">عنوان المحاضرة (اختياري)</span>
+                <input type="text" value={extraSessionForm.lectureTitle} onChange={e => setExtraSessionForm(f => ({ ...f, lectureTitle: e.target.value }))} placeholder="مثال: مراجعة عامة قبل مشروع التخرج" className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm font-bold text-slate-200 outline-none focus:ring-1 focus:ring-emerald-500" />
+              </label>
+              <label className="block">
+                <span className="text-[11px] font-black text-slate-400 block mb-1.5">سبب الإضافة (اختياري)</span>
+                <textarea value={extraSessionForm.note} onChange={e => setExtraSessionForm(f => ({ ...f, note: e.target.value }))} rows={2} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-200 outline-none focus:ring-1 focus:ring-emerald-500 resize-none" />
+              </label>
+            </div>
+            <div className="flex gap-2 mt-6">
+              <button onClick={handleAddExtraSession} disabled={isAddingExtraSession || !extraSessionForm.date} className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-black bg-emerald-600 hover:bg-emerald-700 text-white disabled:opacity-50">
+                {isAddingExtraSession ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                إضافة المحاضرة
+              </button>
+              <button onClick={() => setIsExtraSessionModalOpen(false)} disabled={isAddingExtraSession} className="px-4 py-2.5 rounded-xl text-sm font-bold bg-slate-800 hover:bg-slate-700 text-slate-300">
+                إلغاء
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       <GroupModal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} user={user} editingGroup={group} courses={courses} trainers={trainers} onSuccess={() => {}} />

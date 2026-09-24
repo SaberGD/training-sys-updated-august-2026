@@ -488,6 +488,9 @@ export interface Session {
   lectureRecordingUrl?: string;
   tasksMessageUrl?: string;
   lectureTitle?: string;
+  isExtra?: boolean; // Extra lecture added by the trainer beyond the original plan
+  addedByUid?: string;
+  addedByName?: string;
   isPostponed?: boolean;
   dateChangeReason?: string;
   dateHistory?: DateHistoryEntry[];

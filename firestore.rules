@@ -47,6 +47,23 @@ service cloud.firestore {
         ]);
     }
 
+    // Trainers of a group may add an extra (upcoming) lecture to it
+    function canTrainerAddExtraSession() {
+      return isSignedIn()
+        && isGroupTrainer(request.resource.data.groupId)
+        && request.resource.data.isExtra == true
+        && request.resource.data.status == 'upcoming';
+    }
+
+    // ...and bump the group's lecture count accordingly (increase only)
+    function canTrainerIncreaseTotalSessions(groupId) {
+      return isSignedIn()
+        && isGroupTrainer(groupId)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['totalSessions'])
+        && request.resource.data.totalSessions is int
+        && request.resource.data.totalSessions > resource.data.get('totalSessions', 0);
+    }
+
     // Users collection
     match /users/{userId} {
       allow read: if isSignedIn();
@@ -63,6 +80,7 @@ service cloud.firestore {
     match /groups/{groupId} {
       allow read: if true;
       allow write: if isStaff();
+      allow update: if canTrainerIncreaseTotalSessions(groupId);
     }
 
     // Students collection
@@ -92,7 +110,8 @@ service cloud.firestore {
     // Sessions collection
     match /sessions/{sessionId} {
       allow read: if true;
-      allow create, delete: if isStaff();
+      allow create: if isStaff() || canTrainerAddExtraSession();
+      allow delete: if isStaff();
       allow update: if isStaff() || canTrainerUpdateSessionLinks();
     }
 

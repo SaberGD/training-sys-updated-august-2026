@@ -1136,6 +1136,50 @@ export const regenerateUpcomingSessions = async (groupId: string, updatedGroup: 
   await batch.commit();
 };
 
+export const addExtraSessionToGroup = async (
+  group: Group,
+  data: { date: string; lectureTitle?: string; note?: string },
+  performedBy: User
+) => {
+  if (!data.date) throw new Error('تاريخ المحاضرة مطلوب.');
+  const snap = await getDocs(query(collection(db, 'sessions'), where('groupId', '==', group.id)));
+  const maxNum = snap.docs.reduce((m: number, d: any) => Math.max(m, Number(d.data().sessionNumber) || 0), 0);
+  const sessionNumber = maxNum + 1;
+  const newTotal = Math.max(Number(group.totalSessions) || 0, maxNum) + 1;
+
+  const sessionData: Record<string, any> = {
+    groupId: group.id,
+    sessionNumber,
+    date: data.date,
+    status: 'upcoming',
+    isExtra: true,
+    createdAt: serverTimestamp(),
+    addedByUid: performedBy.uid,
+    addedByName: performedBy.name
+  };
+  if (data.lectureTitle?.trim()) sessionData.lectureTitle = data.lectureTitle.trim();
+  if (data.note?.trim()) sessionData.note = data.note.trim();
+
+  const batch = writeBatch(db);
+  const sessionRef = doc(collection(db, 'sessions'));
+  batch.set(sessionRef, sessionData);
+  batch.update(doc(db, 'groups', group.id), { totalSessions: newTotal });
+  await batch.commit();
+
+  await logActivity({
+    action: 'SESSION_EXTRA_ADD',
+    entityType: 'session',
+    entityId: sessionRef.id,
+    entityName: `${group.name} - Lecture ${sessionNumber}`,
+    performedByUid: performedBy.uid,
+    performedByName: performedBy.name,
+    performedByRole: performedBy.role,
+    details: `Added extra lecture #${sessionNumber} on ${data.date} to group ${group.name}. Total lectures: ${newTotal}${data.note?.trim() ? `. Reason: ${data.note.trim()}` : ''}`
+  });
+
+  return { sessionId: sessionRef.id, sessionNumber, totalSessions: newTotal };
+};
+
 export const deleteGroupCascading = async (groupId: string, performedBy: User, onProgress?: (current: number, total: number) => void) => {
   const group = await getDocument<Group>('groups', groupId);
 
