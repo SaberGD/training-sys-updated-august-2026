@@ -7,8 +7,9 @@
 
 ## 0. Attachments that come with this brief
 1. **This file.**
-2. **5 MARO posters** (the official MARO character renders): countdown/assembly, assembled in lab, F1 close-up, F1 wide, flame-eyes waving.
-3. **`vezeeta_family_campaign_package.zip`**: the Vezeeta family campaign we already built together. Its `docs/VEZEETA_FAMILY_CAMPAIGN_CONTEXT.md` remains the source of truth for the family cast, wardrobe, lighting and the phone-as-healthcare-gateway idea.
+2. **MARO character sheet** (`00-maro-character-sheet.jpg`, the turnaround: front, back, sides, 3/4, top, details). This is the **primary** design reference.
+3. **5 MARO posters** (the official MARO character renders): countdown/assembly, assembled in lab, F1 close-up, F1 wide, flame-eyes waving.
+4. **`vezeeta_family_campaign_package.zip`**: the Vezeeta family campaign we already built together. Its `docs/VEZEETA_FAMILY_CAMPAIGN_CONTEXT.md` remains the source of truth for the family cast, wardrobe, lighting and the phone-as-healthcare-gateway idea.
 
 ---
 
@@ -53,6 +54,11 @@
 
 ### MARO design lock (must match the posters)
 Chibi proportions: an oversized round helmet head and a compact body. **Glossy candy-red shell** with black mechanical joints. **Orange neon light strips** on the helmet rim, ears, chest, hands and feet. Round headphone-style **ear pods with small upward fin/horn antennas**. An orange **"MARO" wordmark on the chest** with a short glowing dash under it. This is the ONLY text allowed anywhere, because it's part of the character. Articulated black robotic fingers.
+
+### ⚠️ Known inconsistency in the character sheet: fix it
+In the sheet, the **fin/horn antenna appears on only ONE ear** (front view: only viewer-left; back view: only one side), and the right-side views show a plain ear socket with no glowing ring. The posters show **both** ears with fins. **Rule: MARO is symmetrical.** BOTH ear pods have the upward fin/horn antenna AND the glowing orange ring (the small "MARO" on the ear ring is optional, but it must be the same on both sides). Follow the posters on this point.
+
+Also note that the sheet shows the happy `^ ^` eyes. That's MARO's default expression **for reference only**. The assets you produce must still have a **blank** visor (see below).
 
 ### 🔴 The critical requirement: a BLANK VISOR
 The face visor must be **completely blank: glossy deep black glass** with only a soft, subtle reflection highlight. **No eyes, no flames, no logo, no timer, no icons.** We animate every facial expression on this screen in code. That's how MARO "acts" in the video.

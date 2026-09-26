@@ -2,7 +2,9 @@
 
 MARO is the official mascot and face of the **SABER GROUP AI Assistant** (`ai.sabergroupacademy.com`).
 This character design is **final**. All future videos and posts must stay consistent with it.
-Reference renders are in `reference/`.
+Reference renders are in `reference/`. The **character sheet** `reference/00-maro-character-sheet.jpg` is the primary turnaround.
+
+> **Symmetry rule:** both ear pods have the upward fin/horn and a glowing orange ring. The character sheet shows the fin on only one ear. Treat that as an error and follow the posters.
 
 ## 1. Character design (keep consistent)
 
