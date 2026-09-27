@@ -18,10 +18,10 @@ mvg downloads/saber-group-showreel-16x9.mp4 /tmp/_dup1.mp4; mvg downloads/saber-
 
 # 02 MARO launch
 mvg downloads/maro-launch-60s-16x9.mp4 "$OUT/02-MARO-Launch/maro-launch-60s-16x9.mp4"
-ffmpeg -y -loglevel error -i $M/maro-launch-60s-vertical.mp4 -c:v libx264 -preset slow -crf 21 -pix_fmt yuv420p -c:a copy -movflags +faststart "$OUT/02-MARO-Launch/maro-launch-60s-9x16-reels.mp4"
+ffmpeg -y -loglevel error -i $M/maro-launch-60s-vertical-native.mp4 -c:v libx264 -preset slow -crf 21 -pix_fmt yuv420p -c:a copy -movflags +faststart "$OUT/02-MARO-Launch/maro-launch-60s-9x16-reels.mp4"
 fastv(){ ffmpeg -y -loglevel error -i "$1" -i "$2" -filter_complex "[0:v]setpts=PTS/1.25,fps=60[v]" -map "[v]" -map 1:a -c:v libx264 -preset slow -crf 21 -pix_fmt yuv420p -c:a aac -b:a 192k -shortest -movflags +faststart "$3"; }
 cp -f $M/maro-launch-fast-16x9.mp4 "$OUT/02-MARO-Launch/maro-launch-fast-48s-16x9.mp4"
-fastv $M/maro-launch-60s-vertical.mp4 $M/launch_audio_fast.wav "$OUT/02-MARO-Launch/maro-launch-fast-48s-9x16-reels.mp4"
+fastv $M/maro-launch-60s-vertical-native.mp4 $M/launch_audio_fast.wav "$OUT/02-MARO-Launch/maro-launch-fast-48s-9x16-reels.mp4"
 mvg downloads/maro-style-test-8s.mp4 "$OUT/02-MARO-Launch/maro-style-test-8s-16x9.mp4"
 cp -f marketing/maro/MARO-visor-expressions.png "$OUT/02-MARO-Launch/maro-visor-expressions.png"
 
