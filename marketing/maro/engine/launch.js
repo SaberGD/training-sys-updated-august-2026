@@ -278,7 +278,7 @@ function scene(t){
   if(nxt&&nxt[3]!=='cut'&&t>t1-outT){const p=eInExpo(P(t,t1-outT,t1));if(nxt[3]==='whipL')ox=-p*W*1.2;else if(nxt[3]==='whipU')oy=-p*H*1.3;else sc=1+p*3;}
   if(SHOTS[i][3]!=='cut'&&t<t0+inT){const p=1-eOutExpo(P(t,t0,t0+inT));if(SHOTS[i][3]==='whipL')ox=p*W*1.2;else if(SHOTS[i][3]==='whipU')oy=p*H*1.3;else sc=1-p*0.6;}
   ctx.save();ctx.translate(W/2+ox,H/2+oy);ctx.scale(sc,sc);ctx.translate(-W/2,-H/2);fn(t);ctx.restore();
-  if(t<0.8)tearOverlay(t);
+  if(t<0.8&&!window.NOTEAR)tearOverlay(t);
   // fade out
   const fo=P(t,59.7,60);if(fo>0){ctx.fillStyle=`rgba(0,0,0,${fo})`;ctx.fillRect(0,0,W,H);}}
 function nSub(t){for(const s of SHOTS){if(s[3]!=='cut'&&Math.abs(t-s[0])<0.3)return 12;}if(t<0.8)return 6;if(t>52.3&&t<53.7)return 8;if(t>2.9&&t<4.0)return 8;return 3;}

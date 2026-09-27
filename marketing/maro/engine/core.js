@@ -1,7 +1,7 @@
 
 // ================= MARO motion engine =================
-const W=1920,H=1080,FPS=60;
-const Q=new URLSearchParams(location.search);const MODE=Q.get('mode')||'test';
+const Q=new URLSearchParams(location.search);const VERT=Q.has('v');
+const W=VERT?1080:1920,H=VERT?1920:1080,FPS=60;const MODE=Q.get('mode')||'test';
 const cv=document.getElementById('c');cv.width=W;cv.height=H;const out=cv.getContext('2d');
 const sub=document.createElement('canvas');sub.width=W;sub.height=H;let ctx=sub.getContext('2d');
 const C={bg:'#120403',bg2:'#2C0203',red:'#C4321F',ember:'#FF7B20',hi:'#FD9905',eye:'#FFB347',white:'#FFF7F2'};
@@ -93,13 +93,13 @@ function drawMaro(pose,x,y,s,o={}){
 }
 
 // ================= design system pieces =================
-function background(t,{glow=1,grid=0}={}){
+function background(t,{glow=1,grid=0}={}){if(window.NOBG)return;
   ctx.fillStyle=C.bg;ctx.fillRect(0,0,W,H);
   glowBlob(W*0.02+Math.sin(t*0.5)*60,H*1.0+Math.cos(t*0.4)*40,1000,'rgba(196,50,31,0.55)',glow);
   glowBlob(W*1.0+Math.cos(t*0.45)*60,-40+Math.sin(t*0.6)*40,900,'rgba(255,123,32,0.28)',glow);
   glowBlob(W*0.5,H*0.5,900,'rgba(60,8,4,0.6)',glow);
 }
-function watermark(x,y,h,alpha){if(alpha<=0)return;ctx.save();ctx.globalAlpha=alpha;const s=h/2048;ctx.drawImage(WATER,x-1024*s,y-1024*s,2048*s,2048*s);ctx.restore();}
+function watermark(x,y,h,alpha){if(alpha<=0||window.NOBG)return;ctx.save();ctx.globalAlpha=alpha;const s=h/2048;ctx.drawImage(WATER,x-1024*s,y-1024*s,2048*s,2048*s);ctx.restore();}
 function text3D(s,x,y,size,o={}){const{rotY=0,depth=16,alpha=1,front=C.white,sA=C.ember,sB='#4a0c05',w=900,sc=1}=o;if(alpha<=0)return;
   ctx.save();ctx.globalAlpha*=alpha;ctx.translate(x,y);ctx.transform(Math.cos(rotY)*sc,Math.sin(rotY)*0.22*sc,0,sc,0,0);
   setFont(ctx,s,size,w,0);ctx.textAlign='center';ctx.textBaseline='middle';const dx=0.35+Math.sin(rotY)*1.4;
