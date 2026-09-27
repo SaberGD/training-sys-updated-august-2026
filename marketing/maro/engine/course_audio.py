@@ -1,7 +1,7 @@
 """Soundtrack for the course sales videos. Reads the beat timeline straight from course.js.
 usage: python3 course_audio.py <vid>  ->  course_<vid>.wav
 """
-import re, sys
+import re, sys, os
 import numpy as np
 import sfxlib as L
 from sfxlib import tt, filt, sweep_lp, kick, hat, clap, saw, boom, impact, whoosh, riser, bell, click, pop, blip, glitch, rng, SR
@@ -9,7 +9,8 @@ from scipy.io import wavfile
 from scipy.signal import fftconvolve
 
 VID = sys.argv[1]
-src = open('course.js').read()
+SRC = os.environ.get('SRC', 'course.js'); SOFT = SRC != 'course.js'
+src = open(SRC).read()
 block = src[src.index(f' {VID}:['):]
 nxt = re.search(r'\n \w+:\[', block[5:])
 block = block[:nxt.start() + 5] if nxt else block[:block.index('};')]
@@ -56,7 +57,10 @@ add(music, filt(chord, 'lowpass', 2000) * np.minimum(1, t/0.05) * np.exp(-t*0.8)
 
 add(sfx, rip(0.7), 0.05); add(sfx, whoosh(0.7, 0.3), 0.1)
 for i, (t0, t1, kind, n) in enumerate(beats):
-    if i: add(sfx, whoosh(0.5, 0.45), t0 - 0.3)
+    if i and not SOFT: add(sfx, whoosh(0.5, 0.45), t0 - 0.3)
+    if i and SOFT:   # gentle swell for soft transitions
+        add(sfx, riser(0.7, 0.14, 300, 1600), t0 - 0.55); add(sfx, whoosh(0.9, 0.18), t0 - 0.5)
+        add(sfx, bell([880 * (1.122 ** (i % 5))], 1.2, 0.05), t0, send=0.8)
     if kind == 'bHook':
         for k in range(2): add(sfx, impact(0.5), t0 + 0.3 + k * 0.8, send=0.35); add(sfx, whoosh(0.4, 0.25, up=False), t0 + 0.15 + k * 0.8)
         if i: add(sfx, maro_chirp(0.35), t0 + 1.3, send=0.4)
@@ -100,6 +104,18 @@ for i, (t0, t1, kind, n) in enumerate(beats):
             ti = t0 + k * dt
             add(sfx, whoosh(0.35, 0.3, up=False), ti); add(sfx, blip(660, 0.05), ti + 0.4)
             add(sfx, whoosh(0.3, 0.35), ti + 0.78); add(sfx, pop(0.35, 1100, 400), ti + 1.0); add(sfx, maro_chirp(0.3), ti + 1.05, send=0.4)
+    elif kind == 'bScatter':
+        for k in range(5): add(sfx, blip(520 + k * 60, 0.03), t0 + 0.15 + k * 0.06, send=0.3)
+        add(sfx, whoosh(0.8, 0.3), t0 + 1.4)
+        for k in range(5): add(sfx, pop(0.3, 700 + k * 120, 280), t0 + 2.4 + k * 0.08)
+        typing(t0 + 2.4, 0.6); add(sfx, bell([1318.5, 1760], 0.9, 0.1), t0 + 3.0, send=0.6)
+    elif kind == 'bGaps':
+        for k in range(5): add(sfx, riser(0.7, 0.12, 300, 1200), t0 + 0.5 + k * 0.18)
+        for k in range(3): add(sfx, blip(440, 0.06), t0 + 2.0 + k * 0.05)
+        add(sfx, maro_chirp(0.35), t0 + 2.1, send=0.4); add(sfx, bell([1046.5, 1568], 0.9, 0.1), t0 + 2.8, send=0.6)
+    elif kind == 'bMarquee':
+        add(sfx, impact(0.45), t0 + 0.25, send=0.4); add(sfx, whoosh(1.2, 0.25), t0 + 0.4)
+        for k in range(6): add(sfx, pop(0.2, 800 + k * 70, 350), t0 + 0.5 + k * 0.12)
     elif kind == 'bCTA':
         add(sfx, maro_chirp(0.45), t0 + 0.2, send=0.5); add(sfx, impact(0.5), t0 + 0.45, send=0.4)
         add(sfx, pop(0.4, 1200, 400), t0 + 1.25); add(sfx, bell([1568, 2093], 0.8, 0.1), t0 + 1.3, send=0.6)
