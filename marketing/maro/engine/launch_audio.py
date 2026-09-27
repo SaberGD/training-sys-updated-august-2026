@@ -1,5 +1,6 @@
 """60s soundtrack for the MARO launch video. Every event is synced to launch.js."""
 import numpy as np
+import os
 import sfxlib as L
 from sfxlib import tt, filt, sweep_lp, kick, hat, clap, saw, boom, impact, whoosh, riser, bell, click, pop, blip, glitch, rng, SR
 from scipy.io import wavfile
@@ -148,6 +149,13 @@ add(sfx, whoosh(0.6, 0.45), 56.9); add(sfx, whoosh(0.7, 0.4, up=False), 57.5)
 add(sfx, bell([440, 554.37, 659.25, 880], 2.2, 0.22), 58.0, send=0.9)
 add(sfx, maro_chirp(0.45), 59.0, send=0.5)
 
+MUSIC = os.environ.get('MUSIC')
+if MUSIC:
+    from music_styles import bed
+    music[int(6.4 * SR):] = 0
+    music += bed(MUSIC, DUR, 6.4, 57.2, breaks=[(47.4, 48.0), (53.1, 53.6)], drop=(52.2, 53.6)) * 0.95
+    t = tt(3.0); chord = sum(saw(f, t, 0.003) for f in (220.0, 277.18, 329.63, 440.0))
+    add(music, filt(chord, 'lowpass', 2000) * np.minimum(1, t/0.05) * np.exp(-t*0.7) * 0.06, 57.4)
 # ---------------- mix ----------------
 ir_len = int(1.9 * SR); ti = np.arange(ir_len) / SR
 ir = np.stack([rng.standard_normal(ir_len), rng.standard_normal(ir_len)], 1) * np.exp(-ti * 3.4)[:, None]
@@ -158,5 +166,5 @@ mix = filt(mix, 'highpass', 25)
 mix = np.tanh(mix * 1.2) / np.tanh(1.2)
 fo = int(0.35 * SR); mix[-fo:] *= np.linspace(1, 0, fo)[:, None]
 mix = mix / np.abs(mix).max() * 0.89
-wavfile.write('launch_audio.wav', SR, (mix * 32767).astype(np.int16))
+wavfile.write('launch_audio' + (f'_{MUSIC}' if MUSIC else '') + '.wav', SR, (mix * 32767).astype(np.int16))
 print('ok, rms dB', 20 * np.log10(np.sqrt((mix ** 2).mean())))

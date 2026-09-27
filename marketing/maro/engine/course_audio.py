@@ -122,6 +122,13 @@ for i, (t0, t1, kind, n) in enumerate(beats):
         add(sfx, whoosh(0.7, 0.45), t1 - 2.7); add(sfx, boom(0.6, 1.6), t1 - 2.1, send=0.5)
         add(sfx, bell([440, 554.37, 659.25, 880], 2.0, 0.2), t1 - 2.05, send=0.9)
 
+MUSIC = os.environ.get('MUSIC')
+if MUSIC:
+    from music_styles import bed
+    music[int(hook_end * SR):] = 0
+    music += bed(MUSIC, DUR, hook_end, end_card) * 0.95
+    t = tt(3.0); chord = sum(saw(f, t, 0.003) for f in (220.0, 277.18, 329.63, 440.0))
+    add(music, filt(chord, 'lowpass', 2000) * np.minimum(1, t/0.05) * np.exp(-t*0.8) * 0.06, end_card)
 ir_len = int(1.9 * SR); ti = np.arange(ir_len) / SR
 ir = np.stack([rng.standard_normal(ir_len), rng.standard_normal(ir_len)], 1) * np.exp(-ti * 3.4)[:, None]
 ir = filt(ir, 'lowpass', 6000); ir /= np.sqrt((ir ** 2).sum(0))
@@ -130,5 +137,5 @@ mix = filt(music * 0.8 + sfx + wet * 0.5, 'highpass', 25)
 mix = np.tanh(mix * 1.2) / np.tanh(1.2)
 fo = int(0.35 * SR); mix[-fo:] *= np.linspace(1, 0, fo)[:, None]
 mix = mix / np.abs(mix).max() * 0.89
-wavfile.write(f'course_{VID}.wav', SR, (mix * 32767).astype(np.int16))
+wavfile.write(f'course_{VID}' + (f'_{MUSIC}' if MUSIC else '') + '.wav', SR, (mix * 32767).astype(np.int16))
 print(VID, 'beats', [(b[0], b[2], b[3]) for b in beats], 'dur', DUR)
