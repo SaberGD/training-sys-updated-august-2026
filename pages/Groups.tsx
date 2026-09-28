@@ -66,7 +66,7 @@ const Groups: React.FC<GroupsProps> = ({ user, isTrainerOnly }) => {
     const unsubStudents = subscribeToCollection<Student>('students', setAllStudents);
     const unsubUsers = subscribeToCollection<User>('users', (data) => {
       const eligibleTrainers = data.filter(u => 
-        ['trainer', 'team_leader', 'coordinator', 'admin'].includes(u.role) && !u.disabled
+        ['trainer', 'team_leader', 'coordinator', 'supervisor', 'admin'].includes(u.role) && !u.disabled
       );
       setTrainers(eligibleTrainers);
     });
@@ -139,7 +139,7 @@ const Groups: React.FC<GroupsProps> = ({ user, isTrainerOnly }) => {
 
   const filteredGroups = groups.filter(g => showArchived ? g.archived === true : !g.archived);
 
-  const isStaff = ['admin', 'coordinator', 'team_leader', 'trainer'].includes(user.role);
+  const isStaff = ['admin', 'coordinator', 'team_leader', 'supervisor', 'trainer'].includes(user.role);
 
   return (
     <Layout user={user}>

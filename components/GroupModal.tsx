@@ -311,7 +311,7 @@ const GroupModal: React.FC<GroupModalProps> = ({
               className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none bg-white"
             >
               <option value="">No Supervisor</option>
-              {trainers.filter(t => ['admin', 'coordinator', 'team_leader'].includes(t.role)).map(t => (
+              {trainers.filter(t => ['admin', 'coordinator', 'team_leader', 'supervisor'].includes(t.role)).map(t => (
                 <option key={t.uid} value={t.uid}>{t.name} ({t.role.replace('_', ' ')})</option>
               ))}
             </select>
