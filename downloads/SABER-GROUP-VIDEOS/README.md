@@ -48,3 +48,5 @@
 | `maro-voiceover-60s-*` | بالمزيكا الأصلية |
 | `maro-voiceover-60s-*-trap` / `-house` | بمزيكا Trap أو House |
 | `voiceover-only.mp3` | الصوت لوحده، من غير مزيكا |
+
+**النسخة النهائية:** `maro-voiceover-FINAL-60s-16x9` و`maro-voiceover-FINAL-60s-9x16-reels`، بالصوت النهائي المعدَّل (`maro-voiceover-FINAL-audio.mp3`).
