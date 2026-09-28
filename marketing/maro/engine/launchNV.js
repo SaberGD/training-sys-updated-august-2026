@@ -85,25 +85,26 @@ function gridTile(img,x,y,s,lit,a){ctx.save();ctx.globalAlpha=a;const sz=150*s;c
 // ================= NATIVE 9:16 SHOTS (1080x1920) — same timing as the 16:9 cut =================
 const SCR={tl:[975,320],tr:[1413,337],br:[1392,623],bl:[966,598],cx:1190,cy:470};
 function shotHook(t){ // 0 - 4.0 : tall crop on the laptop, text in the lower third
-  const push=eInExpo(P(t,2.9,4.0));const k0=H/1080;                       // image fills the full height
+  const push=eInOut(P(t,2.85,3.7));const k0=H/1080;                       // image fills the full height
   const s=k0*lerp(1.0,1.1,P(t,0,2.9))*lerp(1,4.6,push);
   const fx=lerp(SCR.cx-40,SCR.cx,push),fy=lerp(560,SCR.cy,push*0.9+P(t,0,2.9)*0.1);
-  ctx.save();ctx.translate(W/2,H*0.42);ctx.scale(s,s);ctx.translate(-fx,-fy);ctx.drawImage(IM.S1,0,0,1920,1080);
-  const dim=P(t,3.1,3.8);if(dim>0){ctx.fillStyle=`rgba(4,3,3,${dim})`;ctx.beginPath();for(const k of['tl','tr','br','bl'])ctx.lineTo(...SCR[k]);ctx.closePath();ctx.fill();}
+  ctx.save();ctx.translate(W/2,H*0.42);ctx.scale(s,s);ctx.translate(-fx,-fy);ctx.drawImage(IM.S1,0,0,1920,1080);drawScreenUI(t,SCR);
+  
   ctx.restore();
   const a=1-P(t,2.9,3.2);
   const g=ctx.createLinearGradient(0,H*0.55,0,H);g.addColorStop(0,'rgba(10,3,2,0)');g.addColorStop(1,`rgba(10,3,2,${0.92*a})`);ctx.fillStyle=g;ctx.fillRect(0,H*0.55,W,H*0.45);
-  if(t>3.75){ctx.fillStyle=`rgba(3,2,2,${P(t,3.75,4.0)})`;ctx.fillRect(0,0,W,H);}
+  
   ctx.save();ctx.globalAlpha=a*P(t,0.6,0.9);text3D('03:12',230,240,100,{depth:10});T('AM',380,266,28,{w:900,col:C.ember,align:'left'});ctx.restore();
   ctx.save();ctx.globalAlpha=a;
   typeOn('الساعة 3 الفجر..',W-70,1330,78,0.7,t,{col:C.white,dur:0.4});
   typeOn('والتسليم الصبح..',W-70,1440,78,1.35,t,{col:C.white,dur:0.4});
   typeOn('ومفيش ولا فكرة.',W-70,1555,86,2.0,t,{col:C.ember,dur:0.45});
-  ctx.restore();}
+  ctx.restore();
+  fadeToGlow(t);}
 function shotBoot(t){ // 4.0 - 6.4
   background(t,{glow:P(t,4.0,4.8)});const v=VIS[POSE.M5];const s=lerp(0.6,0.66,P(t,4,6.4));const x=W/2-(v.cx-1024)*s,y=H/2-(v.cy-1024)*s;
   let expr='off',et=0;if(t>=4.15&&t<4.4)expr='power';else if(t>=4.4&&t<5.3)expr='boot';else if(t>=5.3&&t<5.46){expr='collapse';et=t-5.3;}else if(t>=5.46){expr=(t>5.95&&t<6.05)?'blink':'happy';et=t-5.46;}
-  drawMaro('M5',x,y,s,{expr,et,t,alpha:P(t,4.0,4.25)});
+  drawMaro('M5',x,y,s,{expr,et,t,alpha:P(t,4.0,4.25)});{const q=P(t,4.0,4.55);if(q<1){ctx.save();ctx.globalCompositeOperation='lighter';glowBlob(W/2,H/2,lerp(900,220,eOut(q)),'rgba(255,160,100,0.5)',1-q);ctx.restore();}}
   if(t>=5.46){const q=P(t,5.46,6.0);ctx.save();ctx.globalCompositeOperation='lighter';glowBlob(W/2,H/2,700*eOut(q)+100,'rgba(255,150,70,0.5)',1-q);ctx.restore();}}
 function shotHello(t){ // 6.4 - 9.4 : title on top, MARO below
   background(t);watermark(W/2+120-(t-6.4)*12,1240,1500,0.45);

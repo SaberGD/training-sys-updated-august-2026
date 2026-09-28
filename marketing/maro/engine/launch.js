@@ -84,13 +84,12 @@ function gridTile(img,x,y,s,lit,a){ctx.save();ctx.globalAlpha=a;const sz=150*s;c
 // ================= SHOTS =================
 const SCR={tl:[975,320],tr:[1413,337],br:[1392,623],bl:[966,598],cx:1190,cy:470};
 function shotHook(t){ // 0 - 4.0
-  const push=eInExpo(P(t,2.9,4.0));const s=lerp(1.0,1.12,P(t,0,2.9))*lerp(1,5.2,push);
+  const push=eInOut(P(t,2.85,3.7));const s=lerp(1.0,1.12,P(t,0,2.9))*lerp(1,5.2,push);
   ctx.save();ctx.translate(W/2,H/2);ctx.scale(s,s);ctx.translate(-lerp(W/2,SCR.cx,push*0.9+P(t,0,2.9)*0.1),-lerp(H/2,SCR.cy,push*0.9+P(t,0,2.9)*0.1));
-  ctx.drawImage(IM.S1,0,0,W,H);
-  // laptop screen dims to black glass as we push in (match-cut into MARO's visor)
-  const dim=P(t,3.1,3.8);if(dim>0){ctx.fillStyle=`rgba(4,3,3,${dim})`;ctx.beginPath();for(const k of['tl','tr','br','bl'])ctx.lineTo(...SCR[k]);ctx.closePath();ctx.fill();}
+  ctx.drawImage(IM.S1,0,0,W,H);drawScreenUI(t,SCR);
+  
   ctx.restore();
-  if(t>3.75){ctx.fillStyle=`rgba(3,2,2,${P(t,3.75,4.0)})`;ctx.fillRect(0,0,W,H);}
+  
   const a=1-P(t,2.9,3.2);
   // clock
   ctx.save();ctx.globalAlpha=a*P(t,0.6,0.9);text3D('03:12',260,150,96,{depth:10});T('AM',400,176,26,{w:900,col:C.ember,align:'left'});ctx.restore();
@@ -98,11 +97,12 @@ function shotHook(t){ // 0 - 4.0
   typeOn('الساعة 3 الفجر..',W-120,770,72,0.7,t,{col:C.white,dur:0.4});
   typeOn('والتسليم الصبح..',W-120,870,72,1.35,t,{col:C.white,dur:0.4});
   typeOn('ومفيش ولا فكرة.',W-120,970,78,2.0,t,{col:C.ember,dur:0.45});
-  ctx.restore();}
+  ctx.restore();
+  fadeToGlow(t);}
 function shotBoot(t){ // 4.0 - 6.4 (MARO powers on out of the black screen)
   background(t,{glow:P(t,4.0,4.8)});const v=VIS[POSE.M5];const s=lerp(0.7,0.76,P(t,4,6.4));const x=W/2-(v.cx-1024)*s,y=H/2-(v.cy-1024)*s;
   let expr='off',et=0;if(t>=4.15&&t<4.4)expr='power';else if(t>=4.4&&t<5.3)expr='boot';else if(t>=5.3&&t<5.46){expr='collapse';et=t-5.3;}else if(t>=5.46){expr=(t>5.95&&t<6.05)?'blink':'happy';et=t-5.46;}
-  drawMaro('M5',x,y,s,{expr,et,t,alpha:P(t,4.0,4.25)});
+  drawMaro('M5',x,y,s,{expr,et,t,alpha:P(t,4.0,4.25)});{const q=P(t,4.0,4.55);if(q<1){ctx.save();ctx.globalCompositeOperation='lighter';glowBlob(W/2,H/2,lerp(900,220,eOut(q)),'rgba(255,160,100,0.5)',1-q);ctx.restore();}}
   if(t>=5.46){const q=P(t,5.46,6.0);ctx.save();ctx.globalCompositeOperation='lighter';glowBlob(W/2,H/2,700*eOut(q)+100,'rgba(255,150,70,0.5)',1-q);ctx.restore();}}
 function shotHello(t){ // 6.4 - 9.4
   background(t);watermark(1450-t*12,560,1500,0.5);
