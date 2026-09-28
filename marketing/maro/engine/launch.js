@@ -287,7 +287,9 @@ function nSub(t){for(const s of SHOTS){if(s[3]!=='cut'&&Math.abs(t-s[0])<0.3)ret
 const grains=[];{const R=rng(7);for(let k=0;k<6;k++){const c=document.createElement('canvas');c.width=c.height=256;const g=c.getContext('2d');const d=g.createImageData(256,256);for(let i=0;i<d.data.length;i+=4){const v=R()*255;d.data[i]=d.data[i+1]=d.data[i+2]=v;d.data[i+3]=255;}g.putImageData(d,0,0);grains.push(c);}}
 function post(f){const v=out.createRadialGradient(W/2,H/2,H*0.3,W/2,H/2,H*1.0);v.addColorStop(0,'rgba(0,0,0,0)');v.addColorStop(1,'rgba(0,0,0,0.55)');out.fillStyle=v;out.fillRect(0,0,W,H);
   out.save();out.globalAlpha=0.06;out.globalCompositeOperation='overlay';out.translate((f*37)%256,(f*91)%256);out.fillStyle=out.createPattern(grains[f%6],'repeat');out.fillRect(-256,-256,W+512,H+512);out.restore();}
-window.renderFrame=function(f){const t0=f/FPS,N=nSub(t0),shutter=0.5/FPS;out.fillStyle='#000';out.fillRect(0,0,W,H);
+// ?tm=L: stretch the 4 s opening to L seconds (everything after shifts by L-4) so a longer first line fits
+const TM=Q.has('tm')?parseFloat(Q.get('tm')||'5.6'):0;const TMAP=x=>!TM?x:(x<TM?x*4/TM:x-(TM-4));
+window.renderFrame=function(f){const t0=TMAP(f/FPS),N=nSub(t0),shutter=(TM&&f/FPS<TM?4/TM:1)*0.5/FPS;out.fillStyle='#000';out.fillRect(0,0,W,H);
   for(let k=0;k<N;k++){const t=Math.max(0,t0+(N>1?(k/(N-1)-0.5)*shutter:0));ctx.setTransform(1,0,0,1,0,0);ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';ctx.filter='none';
     ctx.translate(W/2,H/2);ctx.rotate(Math.sin(t*0.35)*0.005);const z=1.02+Math.sin(t*0.25)*0.01;ctx.scale(z,z);ctx.translate(-W/2+Math.sin(t*0.4)*8,-H/2+Math.cos(t*0.33)*5);
     scene(t);out.globalAlpha=1/(k+1);out.drawImage(sub,0,0);}

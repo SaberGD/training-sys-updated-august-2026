@@ -17,6 +17,11 @@ SCRIPT = [
  (48.1, 53.5, '[excited] صابر جروب هو المَكان الوَحيد اللي بيْقَدِّمْلَك مُساعِد ذَكي شَخْصي، بيْكَمِّل مَعاك المِشْوار.'),
  (53.7, 59.95, '[excited] عايِز تِنْجِز زَي سارة؟ احْجِز تَجْرُبْتَك المجانية مَعَ مارو، واسْتَفيد بِخَصْم إضافي رُبْعُمِيت جِنيه عَلى أي كورس في صابر جروب.. مَعاك عَلى طول!'),
 ]
+# SHIFT: the opening scene is stretched by SHIFT seconds (video re-rendered with ?tm=4+SHIFT); every later slot moves with it
+SHIFT = float(os.environ.get('SHIFT', '0'))
+if SHIFT:
+    SCRIPT = [(a, b + SHIFT, t) if i == 0 else (a + SHIFT, b + SHIFT, t) for i, (a, b, t) in enumerate(SCRIPT)]
+BED = os.environ.get('BED', '../maro2/launch_audio.wav')
 SR = 48000; MAXT = 1.3
 def clip(i): return f'{TAG}/{i:02d}.mp3'
 def load(path, tempo=1.0):
@@ -32,7 +37,8 @@ def smooth(x, att, rel):
     for i in range(0, len(x), 64):
         v = x[i:i + 64].max(); c = a if v > p else r; p = c * p + (1 - c) * v; y[i:i + 64] = p
     return y
-def plan(T, need, GAP=0.2, LEAD=2.6, END=59.8):
+def plan(T, need, GAP=0.2, LEAD=2.6, END=None):
+    END = END if END is not None else 59.8 + SHIFT
     d = [n / T for n in need]; L = [0] * len(d); L[-1] = END - d[-1]
     for i in range(len(d) - 2, -1, -1): L[i] = L[i + 1] - GAP - d[i]      # latest start that keeps the rest fitting
     t = None; starts = []; ok = True
@@ -46,7 +52,7 @@ def fit():
     T = float(os.environ.get('MINT', '1.0'))
     while not plan(T, need)[1] and T < 1.7: T += 0.005
     starts, ok = plan(T, need); print('uniform tempo %.3f fits=%s' % (T, ok))
-    vo = np.zeros(int(61 * SR), np.float32)
+    vo = np.zeros(int((61 + SHIFT) * SR), np.float32)
     for i, (st, (a, b, _)) in enumerate(zip(starts, SCRIPT), 1):
         c = load(clip(i), T) if T > 1.0 else raw[i - 1]
         s = int(st * SR); vo[s:s + len(c)] += c[:len(vo) - s]
@@ -57,7 +63,7 @@ def fit():
     v = rd(f'{TAG}_vo.wav'); mono = np.abs(v).mean(1); sp = mono > 0.01
     v *= 10 ** (-15 / 20) / np.sqrt(np.mean(v[sp] ** 2))
     duck = 1 - 0.72 * smooth((smooth(mono, 0.005, 0.05) > 0.01).astype(np.float32), 0.06, 0.45)
-    b = rd('../maro2/launch_audio.wav'); n = min(len(b), len(v), 60 * SR)
+    b = rd(BED); n = min(len(b), len(v), int((60 + SHIFT) * SR))
     m = b[:n] * duck[:n, None] + v[:n]
     subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-f', 'f32le', '-ar', str(SR), '-ac', '2', '-i', '-', '-af', 'alimiter=limit=0.93:attack=3:release=60', '-c:a', 'pcm_s16le', f'{TAG}_mix.wav'],
                    input=m.astype(np.float32).tobytes(), check=True)
