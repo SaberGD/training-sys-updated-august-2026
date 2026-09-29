@@ -82,11 +82,11 @@ function gridTile(img,x,y,s,lit,a){ctx.save();ctx.globalAlpha=a;const sz=150*s;c
   ctx.fillStyle=`rgba(18,4,3,${0.72-lit*0.6})`;ctx.fillRect(-sz/2,-sz/2,sz,sz);ctx.restore();rr(ctx,-sz/2,-sz/2,sz,sz,20*s);ctx.strokeStyle=`rgba(255,123,32,${0.25+lit*0.75})`;ctx.lineWidth=2+lit*2;if(lit>0.05){ctx.shadowColor=C.ember;ctx.shadowBlur=40*lit;}ctx.stroke();ctx.restore();}
 
 // ================= SHOTS =================
-const SCR={tl:[975,320],tr:[1413,337],br:[1392,623],bl:[966,598],cx:1190,cy:470};
+const SCR={tl:[987,315],tr:[1427,325],br:[1402,625],bl:[960,610],cx:1130,cy:475};
 function shotHook(t){ // 0 - 4.0
   const push=eInOut(P(t,2.85,3.7));const s=lerp(1.0,1.12,P(t,0,2.9))*lerp(1,5.2,push);
   ctx.save();ctx.translate(W/2,H/2);ctx.scale(s,s);ctx.translate(-lerp(W/2,SCR.cx,push*0.9+P(t,0,2.9)*0.1),-lerp(H/2,SCR.cy,push*0.9+P(t,0,2.9)*0.1));
-  ctx.drawImage(IM.S1,0,0,W,H);drawScreenUI(t,SCR);
+  ctx.drawImage(IM.S1,0,0,W,H);
   
   ctx.restore();
   
@@ -164,6 +164,15 @@ function shotGenerate(t){ // 23.4 - 26.8
   if(t>=25.0){const fl=Math.exp(-(t-25.0)*7);if(fl>0.02){ctx.save();ctx.globalCompositeOperation='lighter';glowBlob(cx,cy,900,`rgba(255,220,190,${0.8*fl})`,1);ctx.restore();}}
   if(split>0.5)T('نتيجتين.. من برومبت واحد',W/2,cy+300,40,{w:800,alpha:P(t,25.8,26.1)});
   maroAt('M5',170,880,150,{expr:t<25.0?'scan':'wow',et:t-25.0,t});}
+const FIXED=['العنوان بقى واضح.. أول حاجة العين تشوفها','لون واحد ثابت.. هوية نضيفة ومتسقة','مساحة فاضية.. التصميم بقى بيتنفس'];
+// after MARO's edits: the three notes come back as ticked 'fixed' cards so the right side stays balanced
+function fixedCards(t,x0,y0,dy,cw,ch,fs){FIXED.forEach((s,i)=>{const t0=30.25+i*0.18;const p=eob(P(t,t0,t0+0.4));if(p<=0)return;const q=eOutExpo(P(t,t0,t0+0.5));
+  ctx.save();ctx.globalAlpha*=Math.min(1,p*1.4);ctx.translate(x0+(1-q)*120,y0+i*dy);ctx.scale(lerp(0.9,1,q),lerp(0.9,1,q));
+  card(-cw/2,-ch/2,cw,ch,{r:24,stroke:'rgba(255,150,70,0.85)',glow:24*q});
+  const cx=cw/2-ch/2-4;ctx.fillStyle=C.ember;ctx.shadowColor=C.ember;ctx.shadowBlur=18;ctx.beginPath();ctx.arc(cx,0,ch*0.27,0,6.283);ctx.fill();ctx.shadowBlur=0;
+  const k=ch*0.27,d=eOut(P(t,t0+0.15,t0+0.45));ctx.strokeStyle='#fff';ctx.lineWidth=k*0.28;ctx.lineCap='round';ctx.lineJoin='round';ctx.beginPath();
+  const pts=[[cx-k*0.45,0],[cx-k*0.1,k*0.35],[cx+k*0.5,-k*0.35]];ctx.moveTo(...pts[0]);if(d<0.4)ctx.lineTo(lerp(pts[0][0],pts[1][0],d/0.4),lerp(pts[0][1],pts[1][1],d/0.4));else{ctx.lineTo(...pts[1]);const e=(d-0.4)/0.6;ctx.lineTo(lerp(pts[1][0],pts[2][0],e),lerp(pts[1][1],pts[2][1],e));}ctx.stroke();
+  T(s,cx-ch*0.45,2,fs,{w:700,align:'right'});ctx.restore();});}
 function shotCritique(t){ // 26.8 - 32.8
   background(t);chapter(t,26.85,32.8,'04','قيّملي تصميمي','RATE MY DESIGN');
   const after=P(t,29.6,30.1);const pw=600,ph=750,cx=560,cy=585;const a=eOutExpo(P(t,26.9,27.4));
@@ -176,6 +185,7 @@ function shotCritique(t){ // 26.8 - 32.8
     ctx.strokeStyle=C.ember;ctx.lineWidth=3;ctx.setLineDash([8,8]);ctx.beginPath();ctx.moveTo(px,py);ctx.lineTo(lerp(px,1000,eOut(P(t,t0,t0+0.4))),ny);ctx.stroke();ctx.setLineDash([]);
     ctx.fillStyle=C.ember;ctx.shadowColor=C.ember;ctx.shadowBlur=20;ctx.beginPath();ctx.arc(px,py,26*p,0,6.283);ctx.fill();ctx.shadowBlur=0;T(String(i+1),px,py+2,30*p,{w:900});
     ctx.translate(1000,ny);ctx.scale(p,p);card(0,-52,840,104,{r:24});T(s,810,2,29,{w:700,align:'right'});ctx.restore();});
+  fixedCards(t,1420,280,140,840,104,31);
   const score=t<30.1?6*eOut(P(t,28.9,29.4)):lerp(6,9,eOut(P(t,30.1,30.9)));gauge(1560,760,110,score,10,P(t,28.9,29.2),t<30.1?'#FF5A2A':C.ember);
   if(t>30.2)T('+3 نقط',1560,930,40,{w:900,col:C.ember,alpha:P(t,30.3,30.6)});
   maroAt('M5',1160,780,170,{expr:t<30.2?'scan':'love',et:t-30.2,t,alpha:P(t,28.8,29.1)});}
@@ -299,7 +309,7 @@ window.ready=(async()=>{
   for(const[k,n]of Object.entries(POSE)){IMG[k]=await load(n+'.png');VM[k]=await load(n+'_vmask.png');const v=VIS[n];const c=document.createElement('canvas');c.width=v.x1-v.x0+1;c.height=v.y1-v.y0+1;FACE[k]=c;}
   LOGO=await load('logo_white.png');
   WATER=document.createElement('canvas');WATER.width=WATER.height=2048;const w=WATER.getContext('2d');w.filter='blur(10px)';w.drawImage(IMG.M5,0,0);w.filter='none';w.globalCompositeOperation='source-in';w.fillStyle='#4a0d07';w.fillRect(0,0,2048,2048);
-  const files={S1:'S1_scene_3am_desk.png',V1:'V1_image_to_prompt_source.jpg',V2a:'V2a_prompt_result_16x9.png',V2b:'V2b_prompt_result_4x5.png',V3:'V3_prompt_result_variation.png',V4:'V4_pro_ad_hologram_doctors.png',V5:'V5_series_dental.png',V6:'V6_series_orthopedics.png',V7:'V7_series_cardiology.png',logo:'logo.png'};
+  const files={S1:'S1_new_photoshop.png',V1:'V1_image_to_prompt_source.jpg',V2a:'V2a_prompt_result_16x9.png',V2b:'V2b_prompt_result_4x5.png',V3:'V3_prompt_result_variation.png',V4:'V4_pro_ad_hologram_doctors.png',V5:'V5_series_dental.png',V6:'V6_series_orthopedics.png',V7:'V7_series_cardiology.png',logo:'logo.png'};
   for(const[k,f]of Object.entries(files))IM[k]=await load(f);
   buildPosters();return true;})();
 

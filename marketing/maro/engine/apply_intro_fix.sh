@@ -8,10 +8,11 @@ enc(){ ffmpeg -y -loglevel error "$@"; }
 for f in H V; do
   printf "file 'fix${f}_0.mp4'\nfile 'fix${f}_1.mp4'\n" > fix_list_$f.txt
   enc -f concat -safe 0 -i fix_list_$f.txt -c copy intro_$f.mp4
+  printf "file 'cr${f}_0.mp4'\nfile 'cr${f}_1.mp4'\n" > cr_list_$f.txt; enc -f concat -safe 0 -i cr_list_$f.txt -c copy cr_$f.mp4
 done
 # new masters: new intro (frames 0-419) + old master from frame 420, re-encoded once at master quality
-enc -i intro_H.mp4 -i maro-launch-60s_before_intro_fix.mp4 -i launch_audio.wav -filter_complex "[1:v]fps=60,trim=start_frame=420,setpts=PTS-STARTPTS[b];[0:v]fps=60[a0];[a0][b]concat=n=2:v=1:a=0,fps=60[v]" -map "[v]" -map 2:a -r 60 -c:v libx264 -preset slow -crf 17 -pix_fmt yuv420p -c:a aac -b:a 192k -shortest -movflags +faststart master_H.mp4
-enc -i intro_V.mp4 -i maro-launch-60s-vertical-native_before_intro_fix.mp4 -i launch_audio.wav -filter_complex "[1:v]fps=60,trim=start_frame=420,setpts=PTS-STARTPTS[b];[0:v]fps=60[a0];[a0][b]concat=n=2:v=1:a=0,fps=60[v]" -map "[v]" -map 2:a -r 60 -c:v libx264 -preset slow -crf 17 -pix_fmt yuv420p -c:a aac -b:a 192k -shortest -movflags +faststart master_V.mp4
+enc -i intro_H.mp4 -i maro-launch-60s_before_intro_fix.mp4 -i cr_H.mp4 -i launch_audio.wav -filter_complex "[1:v]fps=60,split[b1][b2];[b1]trim=start_frame=420:end_frame=1560,setpts=PTS-STARTPTS[m1];[b2]trim=start_frame=2010,setpts=PTS-STARTPTS[m2];[0:v]fps=60[a0];[2:v]fps=60[c];[a0][m1][c][m2]concat=n=4:v=1:a=0,fps=60[v]" -map "[v]" -map 3:a -r 60 -c:v libx264 -preset slow -crf 17 -pix_fmt yuv420p -c:a aac -b:a 192k -shortest -movflags +faststart master_H.mp4
+enc -i intro_V.mp4 -i maro-launch-60s-vertical-native_before_intro_fix.mp4 -i cr_V.mp4 -i launch_audio.wav -filter_complex "[1:v]fps=60,split[b1][b2];[b1]trim=start_frame=420:end_frame=1560,setpts=PTS-STARTPTS[m1];[b2]trim=start_frame=2010,setpts=PTS-STARTPTS[m2];[0:v]fps=60[a0];[2:v]fps=60[c];[a0][m1][c][m2]concat=n=4:v=1:a=0,fps=60[v]" -map "[v]" -map 3:a -r 60 -c:v libx264 -preset slow -crf 17 -pix_fmt yuv420p -c:a aac -b:a 192k -shortest -movflags +faststart master_V.mp4
 cp master_H.mp4 maro-launch-60s.mp4; cp master_V.mp4 maro-launch-60s-vertical-native.mp4
 # 02 · 60s + fast 48s
 enc -i master_H.mp4 -c:v libx264 -preset slow -crf 21 -pix_fmt yuv420p -c:a copy -movflags +faststart $D/02-MARO-Launch/maro-launch-60s-16x9.mp4
