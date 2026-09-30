@@ -12,6 +12,7 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { usePermissions } from '../contexts/PermissionsContext';
 import * as firestore from 'firebase/firestore';
 import { Trash2 } from 'lucide-react';
+import { getApiEndpoint } from '../lib/apiConfig';
 
 const { where, orderBy, limit } = firestore as any;
 
@@ -173,22 +174,12 @@ const PerformanceReports: React.FC<PerformanceReportsProps> = ({ user }) => {
       const reports = dailyReports.filter(r => r.trainerId === trainerId && r.date >= weekStart);
       const summaryText = reports.map(r => `Date: ${r.date}, Checklist: ${JSON.stringify(r.checklist)}, Notes: ${r.additionalNotes}`).join('\n');
       
-      const apiKey = process.env.GEMINI_API_KEY;
-      if (!apiKey) {
-        throw new Error("GEMINI_API_KEY is not defined in environment variables");
-      }
-
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`, {
+      const response = await fetch(getApiEndpoint('/api/gemy-chat'), {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          contents: [{
-            parts: [{
-              text: `Summarize the following daily trainer reports for the week starting ${weekStart}. Focus on achievements, issues, and student progress:\n\n${summaryText}`
-            }]
-          }]
+          message: `Summarize the following daily trainer reports for the week starting ${weekStart}. Focus on achievements, issues, and student progress:\n\n${summaryText}`,
+          staffContext: { uid: user.uid, name: user.name, email: user.email, role: user.role },
         })
       });
 
@@ -197,7 +188,7 @@ const PerformanceReports: React.FC<PerformanceReportsProps> = ({ user }) => {
       }
 
       const data = await response.json();
-      const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+      const text = data?.reply;
       return text || "AI summary generation failed.";
     } catch (err: any) {
       console.error(err);

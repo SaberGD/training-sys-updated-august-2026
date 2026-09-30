@@ -5,6 +5,9 @@ on:
     branches:
       - main
   workflow_dispatch:
+  schedule:
+    # تدوير مفتاح Gemini أول كل شهر ثم إعادة نشر Cloud Functions.
+    - cron: '37 2 1 * *'
 
 jobs:
   build-and-deploy:
@@ -25,9 +28,6 @@ jobs:
 
       - name: Build React Frontend
         run: npm run build
-        env:
-          VITE_GEMINI_API_KEY: ${{ secrets.VITE_GEMINI_API_KEY }}
-          GEMINI_API_KEY: ${{ secrets.VITE_GEMINI_API_KEY }}
 
       - name: Install Firebase Functions dependencies
         run: |
@@ -36,6 +36,76 @@ jobs:
 
       - name: Install Firebase CLI
         run: npm install -g firebase-tools
+
+      - name: Configure Firebase Functions secrets
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+          MARO_BRIDGE_KEY: ${{ secrets.MARO_BRIDGE_KEY }}
+          TRAINING_FIREBASE_WEB_API_KEY: ${{ secrets.TRAINING_FIREBASE_WEB_API_KEY }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_API_KEYS_JSON: ${{ secrets.GEMINI_API_KEYS_JSON }}
+          GEMINI_ROTATION_STARTED_AT: ${{ vars.GEMINI_ROTATION_STARTED_AT }}
+          GEMINI_ROTATION_START_SLOT: ${{ vars.GEMINI_ROTATION_START_SLOT }}
+        run: |
+          set -e
+          for name in MARO_BRIDGE_KEY TRAINING_FIREBASE_WEB_API_KEY GOOGLE_CLIENT_ID GOOGLE_CLIENT_SECRET ENCRYPTION_KEY; do
+            test -n "${!name}" || { echo "::error::$name secret is missing"; exit 1; }
+            printf '%s' "${!name}" | firebase functions:secrets:set "$name" --data-file=- --project sg-tms-v2 --force
+          done
+
+          if [ -n "$GEMINI_API_KEYS_JSON" ]; then
+            node - <<'NODE'
+          const value = JSON.parse(process.env.GEMINI_API_KEYS_JSON);
+          const keys = Array.isArray(value) ? value : value.keys;
+          if (!Array.isArray(keys) || keys.length !== 8) {
+            throw new Error('GEMINI_API_KEYS_JSON must contain exactly 8 keys');
+          }
+          if (keys.some((key) => typeof key !== 'string' || key.trim() === '')) {
+            throw new Error('Every Gemini key must be a non-empty string');
+          }
+          if (new Set(keys).size !== keys.length) {
+            throw new Error('Gemini rotation keys must be unique');
+          }
+          NODE
+
+            start="${GEMINI_ROTATION_STARTED_AT:-2026-10}"
+            start_slot="${GEMINI_ROTATION_START_SLOT:-2}"
+            if ! [[ "$start" =~ ^[0-9]{4}-(0[1-9]|1[0-2])$ ]]; then
+              echo "::error::GEMINI_ROTATION_STARTED_AT must use YYYY-MM format"; exit 1
+            fi
+            if ! [[ "$start_slot" =~ ^[1-8]$ ]]; then
+              echo "::error::GEMINI_ROTATION_START_SLOT must be a number from 1 to 8"; exit 1
+            fi
+
+            start_year="${start%-*}"
+            start_month="${start#*-}"
+            current_year="$(date -u +%Y)"
+            current_month="$(date -u +%m)"
+            elapsed=$((10#$current_year * 12 + 10#$current_month - 10#$start_year * 12 - 10#$start_month))
+            if [ "$elapsed" -lt -1 ]; then
+              echo "::error::Gemini rotation start date is more than one month in the future"; exit 1
+            fi
+
+            raw_index=$((10#$start_slot - 1 + elapsed))
+            key_index=$((((raw_index % 8) + 8) % 8 + 1))
+            selected_key="$(GEMINI_KEY_INDEX="$key_index" node -e '
+              const value = JSON.parse(process.env.GEMINI_API_KEYS_JSON);
+              const keys = Array.isArray(value) ? value : value.keys;
+              process.stdout.write(keys[Number(process.env.GEMINI_KEY_INDEX) - 1]);
+            ')"
+            echo "Gemini monthly rotation: using key slot $key_index of 8"
+          elif [ -n "$GEMINI_API_KEY" ]; then
+            selected_key="$GEMINI_API_KEY"
+            echo "::warning::Using legacy GEMINI_API_KEY. Add GEMINI_API_KEYS_JSON to enable monthly rotation."
+          else
+            echo "::error::GEMINI_API_KEYS_JSON secret is missing or empty"; exit 1
+          fi
+
+          echo "::add-mask::$selected_key"
+          printf '%s' "$selected_key" | firebase functions:secrets:set GEMINI_API_KEY --data-file=- --project sg-tms-v2 --force
 
       - name: Deploy Cloud Functions & Firestore Rules to Firebase
         run: firebase deploy --only functions,firestore:rules --force --project sg-tms-v2

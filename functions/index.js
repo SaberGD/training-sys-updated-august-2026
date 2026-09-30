@@ -4,6 +4,10 @@
  */
 
 const { onRequest } = require("firebase-functions/v2/https");
+const { onDocumentWritten } = require("firebase-functions/v2/firestore");
+const { onSchedule } = require("firebase-functions/v2/scheduler");
+const { defineSecret } = require("firebase-functions/params");
+const { setGlobalOptions } = require("firebase-functions/v2/options");
 const admin = require("firebase-admin");
 const { google } = require("googleapis");
 const crypto = require("crypto");
@@ -15,19 +19,32 @@ if (!admin.apps.length) {
 }
 
 const db = admin.firestore();
+const maroBridge = require("./maro-bridge");
+const MARO_BRIDGE_KEY = defineSecret("MARO_BRIDGE_KEY");
+const TRAINING_FIREBASE_WEB_API_KEY = defineSecret("TRAINING_FIREBASE_WEB_API_KEY");
+const GOOGLE_CLIENT_ID = defineSecret("GOOGLE_CLIENT_ID");
+const GOOGLE_CLIENT_SECRET = defineSecret("GOOGLE_CLIENT_SECRET");
+const ENCRYPTION_KEY = defineSecret("ENCRYPTION_KEY");
+const GEMINI_API_KEY = defineSecret("GEMINI_API_KEY");
+
+setGlobalOptions({
+  secrets: [
+    GOOGLE_CLIENT_ID,
+    GOOGLE_CLIENT_SECRET,
+    ENCRYPTION_KEY,
+    GEMINI_API_KEY,
+  ],
+});
 
 const ALGORITHM = "aes-256-cbc";
 const corsHandler = cors({ origin: true, credentials: true });
-
-const DEFAULT_GOOGLE_CLIENT_ID = "713765974154-thn039cs640kj45t661idkgeq0o3m3ik.apps.googleusercontent.com";
-const DEFAULT_GOOGLE_CLIENT_SECRET = "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";
-const DEFAULT_ENCRYPTION_KEY = "522d0c9e1739b49296ec0583249a757b5cb580acfa8115675ce1f2bf5a395eb9";
 
 /**
  * Get SHA-256 derived Encryption Key from secret or environment
  */
 function getEncryptionKey() {
-  const secret = process.env.ENCRYPTION_KEY || DEFAULT_ENCRYPTION_KEY;
+  const secret = process.env.ENCRYPTION_KEY;
+  if (!secret) throw new Error("ENCRYPTION_KEY is not configured");
   return crypto.createHash("sha256").update(secret).digest();
 }
 
@@ -45,7 +62,7 @@ function encryptToken(text) {
     return `${iv.toString("hex")}:${encrypted}`;
   } catch (err) {
     console.error("Token encryption error:", err);
-    return text;
+    return "";
   }
 }
 
@@ -74,8 +91,9 @@ function decryptToken(encryptedText) {
  * Build OAuth2 Client with dynamic or configured Redirect URI
  */
 function getOAuth2Client(req) {
-  const clientId = process.env.GOOGLE_CLIENT_ID || DEFAULT_GOOGLE_CLIENT_ID;
-  const clientSecret = process.env.GOOGLE_CLIENT_SECRET || DEFAULT_GOOGLE_CLIENT_SECRET;
+  const clientId = process.env.GOOGLE_CLIENT_ID;
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+  if (!clientId || !clientSecret) throw new Error("Google OAuth secrets are not configured");
 
   let redirectUri = process.env.GOOGLE_REDIRECT_URI;
   if (!redirectUri && req) {
@@ -674,8 +692,8 @@ async function recordGoogleAuditLog(data) {
 
 async function handleGoogleOAuthStart(req, res) {
   try {
-    const clientId = process.env.GOOGLE_CLIENT_ID || DEFAULT_GOOGLE_CLIENT_ID;
-    const clientSecret = process.env.GOOGLE_CLIENT_SECRET || DEFAULT_GOOGLE_CLIENT_SECRET;
+    const clientId = process.env.GOOGLE_CLIENT_ID;
+    const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
 
     if (!clientId || !clientSecret) {
       return res.status(400).json({
@@ -1418,6 +1436,48 @@ exports.deleteGroupCalendar = onRequest({ cors: true }, (req, res) => {
   return corsHandler(req, res, () => handleDeleteGroupCalendar(req, res));
 });
 
+exports.maroBridgeAuth = onRequest({
+  cors: false,
+  secrets: [MARO_BRIDGE_KEY, TRAINING_FIREBASE_WEB_API_KEY],
+}, (req, res) => maroBridge.authenticate(req, res, {
+  admin,
+  db,
+  bridgeKey: MARO_BRIDGE_KEY.value(),
+  webApiKey: TRAINING_FIREBASE_WEB_API_KEY.value(),
+}));
+
+exports.syncMaroStudent = onDocumentWritten({
+  document: "students/{studentId}",
+  secrets: [MARO_BRIDGE_KEY],
+}, async (event) => {
+  if (!event.data?.after.exists) return;
+  await maroBridge.syncStudentById(db, event.params.studentId, MARO_BRIDGE_KEY.value());
+});
+
+exports.syncMaroStaff = onDocumentWritten({
+  document: "users/{userId}",
+  secrets: [MARO_BRIDGE_KEY],
+}, async (event) => {
+  if (!event.data?.after.exists) return;
+  await maroBridge.syncStaffById(admin, db, event.params.userId, MARO_BRIDGE_KEY.value());
+});
+
+exports.syncMaroGroup = onDocumentWritten({
+  document: "groups/{groupId}",
+  secrets: [MARO_BRIDGE_KEY],
+}, async (event) => {
+  if (!event.data?.after.exists) return;
+  await maroBridge.syncGroupStudents(db, event.params.groupId, MARO_BRIDGE_KEY.value());
+});
+
+exports.reconcileMaroSync = onSchedule({
+  schedule: "every day 03:30",
+  timeZone: "Africa/Cairo",
+  secrets: [MARO_BRIDGE_KEY],
+}, async () => {
+  await maroBridge.reconcile(db, MARO_BRIDGE_KEY.value());
+});
+
 // =========================================================================
 // EXPRESS APP EXPORT FOR /api BASE PATH (EXPRESS PROXY)
 // =========================================================================
@@ -1533,8 +1593,6 @@ exports.api = onRequest({ cors: true }, apiApp);
 // to have the Follow-ups page open" activation of scheduled follow-ups.
 // Runs daily and flips any follow-up whose scheduled re-check date has
 // arrived back to active, regardless of whether anyone is using the app.
-const { onSchedule } = require("firebase-functions/v2/scheduler");
-
 exports.autoActivateScheduledFollowUps = onSchedule("every day 06:00", async () => {
   const today = new Date().toISOString().slice(0, 10);
   const snap = await db.collection("studentFollowUps")

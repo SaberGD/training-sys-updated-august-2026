@@ -23,25 +23,27 @@ const serverApp = serverApps.length > 0 ? serverApps[0] : initializeApp(firebase
 const serverDb = getFirestore(serverApp);
 
 // Encryption Helpers for OAuth Refresh Tokens
-const DEFAULT_GOOGLE_CLIENT_ID = "713765974154-thn039cs640kj45t661idkgeq0o3m3ik.apps.googleusercontent.com";
-const DEFAULT_GOOGLE_CLIENT_SECRET = "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";
-const DEFAULT_ENCRYPTION_KEY = "522d0c9e1739b49296ec0583249a757b5cb580acfa8115675ce1f2bf5a395eb9";
-
-const ENCRYPTION_SECRET = process.env.ENCRYPTION_KEY || process.env.GOOGLE_CLIENT_SECRET || DEFAULT_ENCRYPTION_KEY;
 const ALGORITHM = "aes-256-cbc";
 
 function getEncryptionKey(): Buffer {
-  return crypto.createHash("sha256").update(ENCRYPTION_SECRET).digest();
+  const secret = process.env.ENCRYPTION_KEY;
+  if (!secret) throw new Error("ENCRYPTION_KEY is not configured");
+  return crypto.createHash("sha256").update(secret).digest();
 }
 
 function encryptToken(text: string): string {
   if (!text) return "";
-  const iv = crypto.randomBytes(16);
-  const key = getEncryptionKey();
-  const cipher = crypto.createCipheriv(ALGORITHM, key, iv);
-  let encrypted = cipher.update(text, "utf8", "hex");
-  encrypted += cipher.final("hex");
-  return `${iv.toString("hex")}:${encrypted}`;
+  try {
+    const iv = crypto.randomBytes(16);
+    const key = getEncryptionKey();
+    const cipher = crypto.createCipheriv(ALGORITHM, key, iv);
+    let encrypted = cipher.update(text, "utf8", "hex");
+    encrypted += cipher.final("hex");
+    return `${iv.toString("hex")}:${encrypted}`;
+  } catch (error) {
+    console.error("Token encryption failed:", error);
+    return "";
+  }
 }
 
 function decryptToken(encryptedText: string): string {
@@ -63,6 +65,9 @@ function decryptToken(encryptedText: string): string {
 }
 
 function getOAuth2Client(req: express.Request) {
+  const clientId = process.env.GOOGLE_CLIENT_ID;
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+  if (!clientId || !clientSecret) throw new Error("Google OAuth secrets are not configured");
   const rawProto = (req.headers['x-forwarded-proto'] as string) || req.protocol || 'https';
   const firstProto = rawProto.split(',')[0].trim();
   const host = (req.headers['x-forwarded-host'] as string) || req.get('host') || '';
@@ -75,8 +80,8 @@ function getOAuth2Client(req: express.Request) {
   console.log(`[OAuth Redirect URI]: ${redirectUri}`);
 
   return new google.auth.OAuth2(
-    process.env.GOOGLE_CLIENT_ID || DEFAULT_GOOGLE_CLIENT_ID,
-    process.env.GOOGLE_CLIENT_SECRET || DEFAULT_GOOGLE_CLIENT_SECRET,
+    clientId,
+    clientSecret,
     redirectUri
   );
 }
@@ -367,8 +372,8 @@ ${previousNotes ? `ملاحظات الجلسة السابقة أو توجيها�
   // Google OAuth Authorization URL endpoint
   app.get("/api/google/auth-url", (req, res) => {
     try {
-      const clientId = process.env.GOOGLE_CLIENT_ID || DEFAULT_GOOGLE_CLIENT_ID;
-      const clientSecret = process.env.GOOGLE_CLIENT_SECRET || DEFAULT_GOOGLE_CLIENT_SECRET;
+      const clientId = process.env.GOOGLE_CLIENT_ID;
+      const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
 
       if (!clientId || !clientSecret) {
         return res.status(400).json({
