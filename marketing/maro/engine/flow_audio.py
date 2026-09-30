@@ -47,8 +47,8 @@ add(sfx, bell([587.33, 880, 1174.66], 3.0, 0.22), 51.05, send=0.9); add(sfx, boo
 def keys(t0, t1, n, g=0.13, seed=3):
     R = np.random.default_rng(seed)
     for k in range(n): add(sfx, click(g * (0.7 + 0.5 * R.random())), t0 + (t1 - t0) * k / max(1, n - 1) + R.random() * 0.01, pan=R.random() * 0.4 - 0.2)
-keys(8.7, 10.0, 22); keys(19.1, 20.2, 18, seed=4); keys(24.8, 25.1, 5, seed=5); keys(26.5, 26.8, 4, seed=6); keys(27.5, 28.3, 12, seed=7); keys(43.8, 44.9, 18, seed=8)
-for c in (10.35, 15.3, 20.55, 23.35, 26.2, 27.2, 40.9, 45.2): add(sfx, pop(0.28, 1500, 800), c)
+keys(9.45, 10.6, 22); keys(18.9, 20.0, 18, seed=4); keys(24.8, 25.05, 5, seed=5); keys(26.5, 26.75, 4, seed=6); keys(27.5, 28.3, 12, seed=7); keys(43.8, 44.9, 18, seed=8)
+for c in (9.2, 10.75, 15.3, 20.55, 23.35, 26.2, 27.2, 40.9, 45.2): add(sfx, pop(0.28, 1500, 800), c)
 for c in (4.9, 8.3, 11.0, 16.8, 18.5, 24.5, 28.8, 34.5, 36.3, 38.7, 43.4, 47.7): add(sfx, whoosh(0.9, 0.16, up=True), c - 0.35, send=0.4)
 for i in range(9): add(sfx, blip(1046.5 * 2 ** ([0, 2, 4, 7, 9, 12, 14, 16, 19][i] / 12), 0.05), 29.9 + i * 0.28, send=0.5)
 for k in range(12): add(sfx, click(0.05), 12.2 + k * 0.4)            # answer streaming, very soft
