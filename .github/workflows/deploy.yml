@@ -51,9 +51,19 @@ jobs:
           GEMINI_ROTATION_START_SLOT: ${{ vars.GEMINI_ROTATION_START_SLOT }}
         run: |
           set -e
-          for name in MARO_BRIDGE_KEY TRAINING_FIREBASE_WEB_API_KEY GOOGLE_CLIENT_ID GOOGLE_CLIENT_SECRET ENCRYPTION_KEY; do
+          for name in MARO_BRIDGE_KEY TRAINING_FIREBASE_WEB_API_KEY; do
             test -n "${!name}" || { echo "::error::$name secret is missing"; exit 1; }
             printf '%s' "${!name}" | firebase functions:secrets:set "$name" --data-file=- --project sg-tms-v2 --force
+          done
+
+          for mapping in \
+            GOOGLE_CLIENT_ID:SG_GOOGLE_CLIENT_ID \
+            GOOGLE_CLIENT_SECRET:SG_GOOGLE_CLIENT_SECRET \
+            ENCRYPTION_KEY:SG_ENCRYPTION_KEY; do
+            source_name="${mapping%%:*}"
+            target_name="${mapping#*:}"
+            test -n "${!source_name}" || { echo "::error::$source_name secret is missing"; exit 1; }
+            printf '%s' "${!source_name}" | firebase functions:secrets:set "$target_name" --data-file=- --project sg-tms-v2 --force
           done
 
           if [ -n "$GEMINI_API_KEYS_JSON" ]; then
@@ -105,7 +115,7 @@ jobs:
           fi
 
           echo "::add-mask::$selected_key"
-          printf '%s' "$selected_key" | firebase functions:secrets:set GEMINI_API_KEY --data-file=- --project sg-tms-v2 --force
+          printf '%s' "$selected_key" | firebase functions:secrets:set SG_GEMINI_API_KEY --data-file=- --project sg-tms-v2 --force
 
       - name: Deploy Cloud Functions & Firestore Rules to Firebase
         run: firebase deploy --only functions,firestore:rules --force --project sg-tms-v2

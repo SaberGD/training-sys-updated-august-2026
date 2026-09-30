@@ -22,10 +22,10 @@ const db = admin.firestore();
 const maroBridge = require("./maro-bridge");
 const MARO_BRIDGE_KEY = defineSecret("MARO_BRIDGE_KEY");
 const TRAINING_FIREBASE_WEB_API_KEY = defineSecret("TRAINING_FIREBASE_WEB_API_KEY");
-const GOOGLE_CLIENT_ID = defineSecret("GOOGLE_CLIENT_ID");
-const GOOGLE_CLIENT_SECRET = defineSecret("GOOGLE_CLIENT_SECRET");
-const ENCRYPTION_KEY = defineSecret("ENCRYPTION_KEY");
-const GEMINI_API_KEY = defineSecret("GEMINI_API_KEY");
+const GOOGLE_CLIENT_ID = defineSecret("SG_GOOGLE_CLIENT_ID");
+const GOOGLE_CLIENT_SECRET = defineSecret("SG_GOOGLE_CLIENT_SECRET");
+const ENCRYPTION_KEY = defineSecret("SG_ENCRYPTION_KEY");
+const GEMINI_API_KEY = defineSecret("SG_GEMINI_API_KEY");
 
 setGlobalOptions({
   secrets: [
@@ -43,8 +43,8 @@ const corsHandler = cors({ origin: true, credentials: true });
  * Get SHA-256 derived Encryption Key from secret or environment
  */
 function getEncryptionKey() {
-  const secret = process.env.ENCRYPTION_KEY;
-  if (!secret) throw new Error("ENCRYPTION_KEY is not configured");
+  const secret = process.env.SG_ENCRYPTION_KEY;
+  if (!secret) throw new Error("SG_ENCRYPTION_KEY is not configured");
   return crypto.createHash("sha256").update(secret).digest();
 }
 
@@ -91,8 +91,8 @@ function decryptToken(encryptedText) {
  * Build OAuth2 Client with dynamic or configured Redirect URI
  */
 function getOAuth2Client(req) {
-  const clientId = process.env.GOOGLE_CLIENT_ID;
-  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+  const clientId = process.env.SG_GOOGLE_CLIENT_ID;
+  const clientSecret = process.env.SG_GOOGLE_CLIENT_SECRET;
   if (!clientId || !clientSecret) throw new Error("Google OAuth secrets are not configured");
 
   let redirectUri = process.env.GOOGLE_REDIRECT_URI;
@@ -576,9 +576,9 @@ async function handleGemyChat(req, res) {
       return res.status(400).json({ error: "نص الرسالة (message) مطلوب." });
     }
 
-    const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || "";
+    const apiKey = process.env.SG_GEMINI_API_KEY || "";
     if (!apiKey) {
-      return res.status(500).json({ error: "مفتاح API الخاص بـ Gemini غير معرف في بيئة العمل (GEMINI_API_KEY missing)." });
+      return res.status(500).json({ error: "مفتاح API الخاص بـ Gemini غير معرف في بيئة العمل (SG_GEMINI_API_KEY missing)." });
     }
 
     let systemPrompt = `أنت "GEMY" (جيمي) المساعد الذكي التفاعلي الرسمي لأكاديمية Saber Group للتطوير البرمجي والتقني.
@@ -692,12 +692,12 @@ async function recordGoogleAuditLog(data) {
 
 async function handleGoogleOAuthStart(req, res) {
   try {
-    const clientId = process.env.GOOGLE_CLIENT_ID;
-    const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+    const clientId = process.env.SG_GOOGLE_CLIENT_ID;
+    const clientSecret = process.env.SG_GOOGLE_CLIENT_SECRET;
 
     if (!clientId || !clientSecret) {
       return res.status(400).json({
-        error: "لم يتم تعيين GOOGLE_CLIENT_ID أو GOOGLE_CLIENT_SECRET في بيئة Firebase Functions Secrets."
+        error: "لم يتم تعيين SG_GOOGLE_CLIENT_ID أو SG_GOOGLE_CLIENT_SECRET في بيئة Firebase Functions Secrets."
       });
     }
 
@@ -1269,7 +1269,7 @@ async function handleGemyChat(req, res) {
       return res.status(400).json({ error: "الرسالة مطلوبة (message is required)." });
     }
 
-    const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || process.env.API_KEY || "";
+    const apiKey = process.env.SG_GEMINI_API_KEY || "";
 
     let systemPrompt = `أنت "GEMY" (جيمي)، المساعد الذكي التفاعلي الرسمي لأكاديمية Saber Group (صابر جروب للتدريب والتطوير البرمجي والتقني).
 مهمتك الأساسية هي الإجابة عن استفسارات المستخدمين (طلاب، مدربين، كورديناتورز، وقيادات) بأسلوب عربي وودي، مشجع، محترف، وإيجابي، مع استخدام الإيموجي المناسب بشكل لطيف.
