@@ -20,6 +20,41 @@ import { GemyChatWidget } from '../components/GemyChatWidget';
 
 const { collection, getDocs, getDoc, doc, query, where, addDoc, serverTimestamp, onSnapshot, updateDoc, limit } = firestore as any;
 
+const GRADUATION_EVALUATION_CRITERIA = [
+  { key: 'c1_submission', title: 'تسليم المشروع' },
+  { key: 'c2_noPixelatedNoSizeErr', title: 'جودة الصور والالتزام بالمقاس' },
+  { key: 'c3_typography', title: 'التايبوجرافي' },
+  { key: 'c4_aiUsage', title: 'استخدام الذكاء الاصطناعي بصورة مناسبة' },
+  { key: 'c5_reference', title: 'الاستفادة من الـReference' },
+  { key: 'c6_completeFilesOpenLinks', title: 'اكتمال الملفات وصلاحية الروابط' }
+] as const;
+
+const toPortalDate = (value: any): Date | null => {
+  if (!value) return null;
+
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? null : value;
+  }
+
+  if (typeof value?.toDate === 'function') {
+    const date = value.toDate();
+    return date instanceof Date && !Number.isNaN(date.getTime()) ? date : null;
+  }
+
+  if (typeof value?.seconds === 'number') {
+    const date = new Date(value.seconds * 1000);
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+};
+
+const formatPortalDate = (value: any, fallback = 'حديثًا') =>
+  toPortalDate(value)?.toLocaleDateString('ar-EG') || fallback;
+
+const getPortalDateTime = (value: any) => toPortalDate(value)?.getTime() || 0;
+
 const StudentPortal: React.FC = () => {
   useEffect(() => {
     const manifestLink = document.getElementById('app-manifest') as HTMLLinkElement | null;
@@ -692,7 +727,7 @@ const StudentPortal: React.FC = () => {
     );
     const unsubCom = onSnapshot(qCom, (snapshot: any) => {
       const cList = snapshot.docs.map((d: any) => ({ id: d.id, ...d.data() } as GraduationProjectComment));
-      cList.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+      cList.sort((a, b) => getPortalDateTime(b.createdAt) - getPortalDateTime(a.createdAt));
       setGraduationComments(cList);
     });
 
@@ -3203,7 +3238,7 @@ const StudentPortal: React.FC = () => {
                       </span>
                       <div className="flex items-center gap-3">
                         <span className="text-2xl font-black text-white">
-                          الدرجة الإجمالية: <span className="text-emerald-400">{graduationEvaluation.totalScore}</span> / {graduationProject.criteria?.reduce((s, c) => s + c.maxScore, 0) || 100}
+                          الدرجة الإجمالية: <span className="text-emerald-400" dir="rtl">{graduationEvaluation.totalScore} نقطة</span>
                         </span>
                       </div>
                     </div>
@@ -4656,30 +4691,59 @@ const StudentPortal: React.FC = () => {
               </span>
               <h3 className="text-xl font-black text-white pt-2">نتيجة مشروع التخرج النهائي</h3>
               <p className="text-xs text-slate-400">
-                مقيّمة بواسطة المحاضر بتاريخ: {graduationEvaluation.evaluatedAt ? new Date(graduationEvaluation.evaluatedAt).toLocaleDateString('ar-EG') : 'حديثاً'}
+                مقيّمة بواسطة {graduationEvaluation.evaluatedByName || 'المحاضر'} بتاريخ: {formatPortalDate(graduationEvaluation.evaluatedAt || graduationEvaluation.updatedAt)}
               </p>
             </div>
 
             {/* Total score box */}
             <div className="bg-gradient-to-r from-emerald-950/40 to-[#0a0a0a] p-5 rounded-2xl border border-emerald-500/30 flex justify-between items-center">
               <span className="text-sm font-black text-white">الدرجة الإجمالية لمشروع التخرج:</span>
-              <span className="text-3xl font-black text-emerald-400">
-                {graduationEvaluation.totalScore} / {graduationProject.criteria?.reduce((s, c) => s + c.maxScore, 0) || 100}
+              <span className="text-3xl font-black text-emerald-400 whitespace-nowrap" dir="rtl">
+                {graduationEvaluation.totalScore} نقطة
               </span>
             </div>
 
             {/* Criteria Scores */}
-            {graduationEvaluation.criteriaScores && graduationEvaluation.criteriaScores.length > 0 && (
+            {!graduationEvaluation.isRejected && (
               <div className="space-y-3 text-right">
                 <h4 className="text-xs font-black text-red-400">توزيع الدرجات حسب معايير التقييم:</h4>
                 <div className="space-y-2">
-                  {graduationEvaluation.criteriaScores.map((cs, idx) => (
-                    <div key={idx} className="bg-[#0a0a0a] p-3 rounded-xl border border-slate-800 flex justify-between items-center text-xs">
-                      <span className="font-bold text-slate-300">{cs.title}</span>
-                      <span className="font-black font-mono text-red-400">{cs.score} / {cs.maxScore}</span>
+                  {GRADUATION_EVALUATION_CRITERIA.map((criterion) => (
+                    <div key={criterion.key} className="bg-[#0a0a0a] p-3 rounded-xl border border-slate-800 flex justify-between items-center gap-3 text-xs">
+                      <span className="font-bold text-slate-300">{criterion.title}</span>
+                      <span className="font-black font-mono text-red-400 whitespace-nowrap" dir="ltr">
+                        {Number(graduationEvaluation[criterion.key] || 0)} / 2
+                      </span>
                     </div>
                   ))}
                 </div>
+
+                {(graduationEvaluation.bonusPoints > 0 || graduationEvaluation.deductionPoints > 0) && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {graduationEvaluation.bonusPoints > 0 && (
+                      <div className="bg-emerald-950/30 border border-emerald-500/20 rounded-xl p-3 text-xs text-emerald-300 font-bold">
+                        نقاط إضافية: +{graduationEvaluation.bonusPoints}
+                      </div>
+                    )}
+                    {graduationEvaluation.deductionPoints > 0 && (
+                      <div className="bg-amber-950/30 border border-amber-500/20 rounded-xl p-3 text-xs text-amber-300 font-bold">
+                        خصم: -{graduationEvaluation.deductionPoints}
+                        {graduationEvaluation.deductionReason && (
+                          <span className="block mt-1 text-[10px] text-slate-400">{graduationEvaluation.deductionReason}</span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {graduationEvaluation.isRejected && (
+              <div className="space-y-2 text-right bg-rose-950/30 border border-rose-500/30 rounded-2xl p-4">
+                <h4 className="text-xs font-black text-rose-300">المشروع يحتاج إعادة مراجعة</h4>
+                <p className="text-xs text-slate-200 leading-relaxed">
+                  {graduationEvaluation.rejectionReason || 'يرجى التواصل مع المحاضر لمعرفة المطلوب.'}
+                </p>
               </div>
             )}
 
@@ -4699,12 +4763,26 @@ const StudentPortal: React.FC = () => {
                 <h4 className="text-xs font-black text-amber-400">ملاحظات وتعليقات التفاصيل الفنية والديزاين:</h4>
                 <div className="space-y-2">
                   {graduationComments.map((com) => (
-                    <div key={com.id} className="bg-[#0a0a0a] p-3.5 rounded-2xl border border-slate-800 space-y-1">
+                    <div key={com.id} className="bg-[#0a0a0a] p-4 rounded-2xl border border-slate-800 space-y-2">
                       <div className="flex justify-between items-center text-[10px] text-slate-500">
-                        <span className="font-black text-red-400">{com.authorName} ({com.authorRole})</span>
-                        <span>{new Date(com.createdAt).toLocaleDateString('ar-EG')}</span>
+                        <span className="font-black text-red-400">{com.createdByName || com.authorName || 'المحاضر'}</span>
+                        <span>{formatPortalDate(com.createdAt)}</span>
                       </div>
-                      <p className="text-xs text-slate-200 font-arabic leading-relaxed">{com.text}</p>
+                      <h5 className="text-xs font-black text-white">{com.title || 'ملاحظة على التصميم'}</h5>
+                      <p className="text-xs text-slate-200 font-arabic leading-relaxed whitespace-pre-wrap">
+                        {com.comment || com.text || 'لا توجد تفاصيل إضافية.'}
+                      </p>
+                      {com.designLink && (
+                        <a
+                          href={com.designLink}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1.5 text-[10px] text-red-300 hover:text-red-200 underline underline-offset-4 font-bold"
+                        >
+                          <ExternalLink size={12} />
+                          <span>فتح التصميم المرتبط بالملاحظة</span>
+                        </a>
+                      )}
                     </div>
                   ))}
                 </div>

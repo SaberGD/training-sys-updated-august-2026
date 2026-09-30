@@ -1446,6 +1446,17 @@ exports.maroBridgeAuth = onRequest({
   webApiKey: TRAINING_FIREBASE_WEB_API_KEY.value(),
 }));
 
+exports.maroMigration = onRequest({
+  cors: false,
+  timeoutSeconds: 540,
+  memory: "1GiB",
+  secrets: [MARO_BRIDGE_KEY],
+}, (req, res) => maroBridge.migrationHandler(req, res, {
+  admin,
+  db,
+  bridgeKey: MARO_BRIDGE_KEY.value(),
+}));
+
 exports.syncMaroStudent = onDocumentWritten({
   document: "students/{studentId}",
   secrets: [MARO_BRIDGE_KEY],

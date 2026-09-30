@@ -926,6 +926,9 @@ export interface GraduationProjectEvaluation {
   totalScore: number;
   evaluatedByUid?: string;
   evaluatedByName?: string;
+  evaluatedAt?: any;
+  criteriaScores?: Array<{ title: string; score: number; maxScore: number }>;
+  generalNotes?: string;
   updatedAt: any;
 }
 
@@ -940,6 +943,10 @@ export interface GraduationProjectComment {
   createdAt: any;
   createdByUid?: string;
   createdByName?: string;
+  createdByRole?: string;
+  authorName?: string;
+  authorRole?: string;
+  text?: string;
 }
 
 export interface Penalty {

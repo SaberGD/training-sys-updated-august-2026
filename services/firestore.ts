@@ -3740,6 +3740,7 @@ export const saveGraduationProjectEvaluation = async (evaluation: Partial<Gradua
     ...evaluation,
     id: evalId,
     updatedAt: serverTimestamp(),
+    evaluatedAt: serverTimestamp(),
     evaluatedByUid: performedBy.uid,
     evaluatedByName: performedBy.name
   };
@@ -3778,7 +3779,8 @@ export const saveGraduationProjectComment = async (comment: Partial<GraduationPr
     id: commentId,
     createdAt: comment.createdAt || serverTimestamp(),
     createdByUid: comment.createdByUid || performedBy.uid,
-    createdByName: comment.createdByName || performedBy.name
+    createdByName: comment.createdByName || performedBy.name,
+    createdByRole: comment.createdByRole || performedBy.role
   };
   await setDoc(doc(db, 'graduationComments', commentId), commentData, { merge: true });
   return commentId;
@@ -4048,4 +4050,3 @@ export const deleteStudentWeaknessPoint = async (
     performedByRole: user.role
   });
 };
-

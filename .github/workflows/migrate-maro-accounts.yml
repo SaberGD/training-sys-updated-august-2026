@@ -1,0 +1,33 @@
+name: Audit or Migrate MARO Accounts
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Audit only, or migrate all Training students and staff to MARO
+        required: true
+        type: choice
+        default: audit
+        options:
+          - audit
+          - migrate
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run protected migration endpoint
+        env:
+          MARO_BRIDGE_KEY: ${{ secrets.MARO_BRIDGE_KEY }}
+          MODE: ${{ inputs.mode }}
+        run: |
+          set -euo pipefail
+          test -n "$MARO_BRIDGE_KEY" || { echo "::error::MARO_BRIDGE_KEY is missing"; exit 1; }
+          response="$(curl --fail-with-body --silent --show-error \
+            --retry 2 --max-time 600 \
+            -X POST \
+            -H 'Content-Type: application/json' \
+            -H "X-Maro-Bridge-Key: $MARO_BRIDGE_KEY" \
+            -d "{\"action\":\"$MODE\"}" \
+            'https://us-central1-sg-tms-v2.cloudfunctions.net/maroMigration')"
+          printf '%s\n' "$response" | jq .

@@ -4,6 +4,7 @@ const crypto = require("crypto");
 
 const STAFF_ROLES = new Set(["admin", "supervisor", "coordinator", "team_leader", "trainer"]);
 const DEFAULT_SYNC_URL = "https://ai.sabergroupacademy.com/api/training-sync.php";
+const OWNER_EMAIL = "saber.gd.fl@gmail.com";
 
 function translateDigits(value) {
   const arabic = "٠١٢٣٤٥٦٧٨٩";
@@ -180,6 +181,8 @@ async function buildStudentProfile(db, initialDocs) {
 
 function buildStaffProfile(doc, authUser) {
   const data = doc.data();
+  const email = normalizeIdentifier(data.email || authUser?.email || "");
+  if (email === OWNER_EMAIL) return null;
   const sourceRole = STAFF_ROLES.has(data.role) ? data.role : "trainer";
   const accessTier = ["admin", "supervisor", "coordinator"].includes(sourceRole) ? "team_plus" : "team";
   return {
@@ -189,9 +192,9 @@ function buildStaffProfile(doc, authUser) {
     sourceType: "staff",
     sourceId: doc.id,
     sourceRole,
-    loginId: normalizeIdentifier(data.email || authUser?.email || ""),
+    loginId: email,
     name: String(data.name || authUser?.displayName || "فريق صابر جروب"),
-    email: normalizeIdentifier(data.email || authUser?.email || ""),
+    email,
     phone: normalizePhone(data.phone || authUser?.phoneNumber || ""),
     lifecycleStage: data.disabled || authUser?.disabled ? "suspended" : "staff_active",
     accessTier,
@@ -266,6 +269,7 @@ async function authenticate(req, res, context) {
       const userDoc = await context.db.collection("users").doc(authUser.uid).get();
       if (userDoc.exists && STAFF_ROLES.has(userDoc.data().role)) {
         const profile = buildStaffProfile(userDoc, authUser);
+        if (!profile) return res.status(401).json({ error: "INVALID_CREDENTIALS" });
         if (!profile.active) return res.status(403).json({ error: "ACCOUNT_SUSPENDED" });
         await queueAndDeliverProfile(context.db, profile, context.bridgeKey);
         return res.json({ profile });
@@ -339,7 +343,8 @@ async function syncStaffById(admin, db, userId, bridgeKey) {
   if (!snap.exists || !STAFF_ROLES.has(snap.data().role)) return null;
   let authUser = null;
   try { authUser = await admin.auth().getUser(userId); } catch (_) {}
-  return queueAndDeliverProfile(db, buildStaffProfile(snap, authUser), bridgeKey);
+  const profile = buildStaffProfile(snap, authUser);
+  return profile ? queueAndDeliverProfile(db, profile, bridgeKey) : null;
 }
 
 async function syncGroupStudents(db, groupId, bridgeKey) {
@@ -379,9 +384,153 @@ async function reconcile(db, bridgeKey) {
   return pending.size;
 }
 
+function buildStudentClusters(studentDocs) {
+  const parent = new Map();
+  const owner = new Map();
+  const find = (id) => {
+    const current = parent.get(id);
+    if (current === id) return id;
+    const root = find(current);
+    parent.set(id, root);
+    return root;
+  };
+  const union = (left, right) => {
+    const a = find(left);
+    const b = find(right);
+    if (a !== b) parent.set(b, a);
+  };
+
+  studentDocs.forEach((doc) => parent.set(doc.id, doc.id));
+  studentDocs.forEach((doc) => {
+    const data = doc.data();
+    const tokens = [
+      String(data.studentIdNum || "").trim() ? `id:${normalizeIdentifier(data.studentIdNum)}` : "",
+      normalizeIdentifier(data.email || data.attendanceEmail || "") ? `email:${normalizeIdentifier(data.email || data.attendanceEmail)}` : "",
+      normalizePhone(data.phone || data.whatsapp || "") ? `phone:${normalizePhone(data.phone || data.whatsapp)}` : "",
+    ].filter(Boolean);
+    tokens.forEach((token) => {
+      if (owner.has(token)) union(doc.id, owner.get(token));
+      else owner.set(token, doc.id);
+    });
+  });
+
+  const clusters = new Map();
+  studentDocs.forEach((doc) => {
+    const root = find(doc.id);
+    if (!clusters.has(root)) clusters.set(root, []);
+    clusters.get(root).push(doc);
+  });
+  return Array.from(clusters.values());
+}
+
+async function runMigration(db, admin, bridgeKey, { deliver = false } = {}) {
+  const startedAt = new Date();
+  const runId = `migration_${startedAt.toISOString().replace(/[^0-9]/g, "").slice(0, 14)}`;
+  const [studentSnapshot, staffSnapshot] = await Promise.all([
+    db.collection("students").get(),
+    db.collection("users").get(),
+  ]);
+  const clusters = buildStudentClusters(studentSnapshot.docs);
+  const duplicateStudentClusters = clusters
+    .filter((cluster) => cluster.length > 1)
+    .map((cluster) => cluster.map((doc) => doc.id));
+  const invalidStudents = [];
+  const profiles = [];
+  const seenProfiles = new Set();
+
+  for (let index = 0; index < clusters.length; index += 8) {
+    await Promise.all(clusters.slice(index, index + 8).map(async (cluster) => {
+      const data = cluster[0].data();
+      const hasIdentity = Boolean(
+        String(data.studentIdNum || "").trim() ||
+        normalizeIdentifier(data.email || data.attendanceEmail || "") ||
+        normalizePhone(data.phone || data.whatsapp || ""),
+      );
+      if (!hasIdentity) {
+        invalidStudents.push(cluster.map((doc) => doc.id));
+        return;
+      }
+      const profile = await buildStudentProfile(db, cluster);
+      if (profile && !seenProfiles.has(profile.identityId)) {
+        seenProfiles.add(profile.identityId);
+        profiles.push(profile);
+      }
+    }));
+  }
+
+  const staffProfiles = [];
+  const skippedStaff = [];
+  for (const doc of staffSnapshot.docs) {
+    if (!STAFF_ROLES.has(doc.data().role)) continue;
+    const profile = buildStaffProfile(doc, null);
+    if (!profile) {
+      skippedStaff.push({ id: doc.id, reason: "protected_owner" });
+      continue;
+    }
+    if (!profile.email) {
+      skippedStaff.push({ id: doc.id, reason: "missing_email" });
+      continue;
+    }
+    staffProfiles.push(profile);
+  }
+
+  const allProfiles = [...profiles, ...staffProfiles];
+  const delivery = { requested: deliver, delivered: 0, pending: 0 };
+  if (deliver) {
+    for (let index = 0; index < allProfiles.length; index += 5) {
+      await Promise.all(allProfiles.slice(index, index + 5).map(async (profile) => {
+        await queueAndDeliverProfile(db, profile, bridgeKey);
+        const outbox = await db.collection("maro_sync_outbox").doc(profile.identityId).get();
+        if (outbox.data()?.status === "delivered") delivery.delivered += 1;
+        else delivery.pending += 1;
+      }));
+    }
+  }
+
+  const report = {
+    runId,
+    mode: deliver ? "migrate" : "audit",
+    startedAt: startedAt.toISOString(),
+    finishedAt: new Date().toISOString(),
+    students: {
+      recordsScanned: studentSnapshot.size,
+      accountsPrepared: profiles.length,
+      duplicateRecordClusters: duplicateStudentClusters,
+      invalidIdentityClusters: invalidStudents,
+    },
+    staff: {
+      recordsScanned: staffSnapshot.size,
+      accountsPrepared: staffProfiles.length,
+      skipped: skippedStaff,
+    },
+    delivery,
+  };
+  await db.collection("maro_migration_runs").doc(runId).set(report);
+  return report;
+}
+
+async function migrationHandler(req, res, context) {
+  res.set("Cache-Control", "no-store");
+  res.set("X-Content-Type-Options", "nosniff");
+  if (req.method !== "POST") return res.status(405).json({ error: "METHOD_NOT_ALLOWED" });
+  if (!safeEqual(req.get("x-maro-bridge-key") || "", context.bridgeKey)) {
+    return res.status(401).json({ error: "UNAUTHORIZED" });
+  }
+  const action = req.body?.action === "migrate" ? "migrate" : "audit";
+  try {
+    const report = await runMigration(context.db, context.admin, context.bridgeKey, { deliver: action === "migrate" });
+    return res.json({ ok: true, report });
+  } catch (error) {
+    console.error("Maro migration failed", error);
+    return res.status(500).json({ error: "MIGRATION_FAILED" });
+  }
+}
+
 module.exports = {
   authenticate,
+  migrationHandler,
   reconcile,
+  runMigration,
   syncGroupStudents,
   syncStaffById,
   syncStudentById,
