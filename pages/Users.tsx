@@ -7,7 +7,7 @@ import * as firestore from 'firebase/firestore';
 import { db } from '../firebase';
 // Fix: Using namespace import for firebase/app to avoid 'no exported member' errors
 import * as firebaseApp from 'firebase/app';
-import { getAuth, createUserWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
+import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
 
 // Fix: Destructure functions from firestore namespace
 const { doc, updateDoc, serverTimestamp, setDoc } = firestore as any;
@@ -66,14 +66,34 @@ const Users: React.FC<{ user: User }> = ({ user }) => {
     }
   };
 
-  const handleResetPassword = async (email: string, userName: string) => {
-    if (confirm(`Send password reset email to ${userName} (${email})?`)) {
+  const handleResetPassword = async (uid: string, userName: string) => {
+    if (confirm(`Reset password for ${userName} to the default (123456)?\nThey will be asked to set a new password on next login.`)) {
       try {
         setLoading(true);
-        const auth = getAuth();
-        await sendPasswordResetEmail(auth, email);
-        setSuccessMsg(`Password reset email sent to ${userName}.`);
-        setTimeout(() => setSuccessMsg(null), 3000);
+        const currentUser = getAuth().currentUser;
+        if (!currentUser) throw new Error('Not signed in.');
+        const idToken = await currentUser.getIdToken();
+        const res = await fetch('https://us-central1-sg-tms-v2.cloudfunctions.net/api/admin/reset-user-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken}` },
+          body: JSON.stringify({ uid })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.success) throw new Error(data.error || `Reset failed (${res.status})`);
+
+        await logActivity({
+          action: 'USER_PASSWORD_RESET',
+          entityType: 'user',
+          entityId: uid,
+          entityName: userName,
+          performedByUid: user.uid,
+          performedByName: user.name,
+          performedByRole: user.role,
+          details: {}
+        });
+
+        setSuccessMsg(`Password for ${userName} reset to 123456. They must change it on next login.`);
+        setTimeout(() => setSuccessMsg(null), 4000);
       } catch (err: any) {
         setError(err.message);
         setTimeout(() => setError(null), 5000);
@@ -254,9 +274,9 @@ const Users: React.FC<{ user: User }> = ({ user }) => {
                       )}
                       {isAdmin && (
                         <button 
-                          onClick={() => handleResetPassword(u.email, u.name)}
+                          onClick={() => handleResetPassword(u.uid, u.name)}
                           className="text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-xl border border-blue-100 text-blue-600 hover:bg-blue-50 transition-all"
-                          title="Send Password Reset Email"
+                          title="Reset password to 123456"
                         >
                           Reset PW
                         </button>

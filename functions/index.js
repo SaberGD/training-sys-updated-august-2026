@@ -1505,6 +1505,44 @@ apiApp.use((req, res, next) => {
   next();
 });
 
+// Admin resets a staff user's password to the default and forces a change on next login.
+const DEFAULT_RESET_PASSWORD = "123456";
+
+apiApp.post("/admin/reset-user-password", async (req, res) => {
+  try {
+    const authHeader = String(req.headers.authorization || "");
+    const idToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
+    if (!idToken) {
+      return res.status(401).json({ error: "غير مصرح: يجب تسجيل الدخول." });
+    }
+
+    const decoded = await admin.auth().verifyIdToken(idToken);
+    const callerSnap = await db.collection("users").doc(decoded.uid).get();
+    if (!callerSnap.exists || callerSnap.data().role !== "admin" || callerSnap.data().disabled) {
+      return res.status(403).json({ error: "هذه العملية متاحة للأدمن فقط." });
+    }
+
+    const targetUid = String((req.body && req.body.uid) || "").trim();
+    if (!targetUid) {
+      return res.status(400).json({ error: "معرّف المستخدم مطلوب." });
+    }
+
+    await admin.auth().updateUser(targetUid, { password: DEFAULT_RESET_PASSWORD });
+    // Sign the user out of any existing sessions so they must log in with the default password.
+    await admin.auth().revokeRefreshTokens(targetUid);
+    await db.collection("users").doc(targetUid).set({
+      mustChangePassword: true,
+      passwordResetAt: admin.firestore.FieldValue.serverTimestamp(),
+      passwordResetBy: decoded.uid,
+    }, { merge: true });
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error("[reset-user-password]", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 apiApp.post("/gemy-chat", handleGemyChat);
 apiApp.post("/api/gemy-chat", handleGemyChat);
 

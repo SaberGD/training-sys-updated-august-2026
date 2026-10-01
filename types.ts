@@ -53,6 +53,7 @@ export interface User {
   role: UserRole;
   createdAt: any;
   disabled?: boolean;
+  mustChangePassword?: boolean; // set when an admin resets the password to the default
 }
 
 export interface CourseChecklistItemTemplate {

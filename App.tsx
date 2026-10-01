@@ -39,6 +39,7 @@ import StudentDirectory from './pages/StudentDirectory';
 import GraduationProjectsPage from './pages/GraduationProjects';
 import { PermissionsProvider } from './contexts/PermissionsContext';
 import BrandedLoader from './components/BrandedLoader';
+import ForcePasswordChange from './components/ForcePasswordChange';
 
 export const ViewAsContext = React.createContext<{
   viewAsRole: UserRole | null;
@@ -80,6 +81,17 @@ const App: React.FC = () => {
 
   if (loading) {
     return <BrandedLoader />;
+  }
+
+  if (actualUser?.mustChangePassword) {
+    return (
+      <ThemeProvider>
+        <ForcePasswordChange
+          user={actualUser}
+          onDone={() => setActualUser({ ...actualUser, mustChangePassword: false })}
+        />
+      </ThemeProvider>
+    );
   }
 
   const user = actualUser ? (viewAsRole ? { ...actualUser, role: viewAsRole } : actualUser) : null;
