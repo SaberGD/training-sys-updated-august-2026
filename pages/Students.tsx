@@ -1340,7 +1340,7 @@ const Students: React.FC<{ user: User }> = ({ user }) => {
       )}
       {isModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm md:pl-72">
-          <div className="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden animate-in zoom-in duration-200 border border-slate-200 dark:border-slate-800">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-lg max-h-[90dvh] overflow-y-auto overscroll-contain shadow-2xl animate-in zoom-in duration-200 border border-slate-200 dark:border-slate-800">
             <div className="p-8 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-950/50">
               <div>
                 <h3 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">
