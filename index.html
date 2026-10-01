@@ -5,8 +5,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
     <title>SABER GROUP Training management system</title>
+    <script>
+      (() => {
+        const savedTheme = localStorage.getItem('saber-theme');
+        document.documentElement.className = savedTheme === 'light' ? 'light' : 'dark';
+      })();
+    </script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Cairo:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <script>
       tailwind.config = {
         darkMode: 'class',
@@ -33,6 +39,8 @@
             },
             fontFamily: {
               sans: ['Inter', 'sans-serif'],
+              arabic: ['Cairo', 'sans-serif'],
+              display: ['Bebas Neue', 'sans-serif'],
             },
           }
         }
@@ -41,13 +49,14 @@
     <style>
         :root {
           color-scheme: dark;
-          background: #0a0a0a;
+          background: #070707;
         }
+        html.light { color-scheme: light; background: #f4f1ee; }
         html,
         body,
         #root {
           min-height: 100%;
-          background: #0a0a0a;
+          background: inherit;
         }
         body { 
           font-family: 'Inter', sans-serif; 

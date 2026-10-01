@@ -17,6 +17,7 @@ import { formatTime12h, parseTimeToMinutes, COUNTRY_CODES, parsePhoneAndDetect, 
 import { sanitizeCredentials, sanitizeEmail, sanitizePhone, stripHiddenChars } from '../lib/textUtils';
 
 import { GemyChatWidget } from '../components/GemyChatWidget';
+import BrandedLoader from '../components/BrandedLoader';
 
 const { collection, getDocs, getDoc, doc, query, where, addDoc, serverTimestamp, onSnapshot, updateDoc, limit } = firestore as any;
 
@@ -1711,14 +1712,7 @@ const StudentPortal: React.FC = () => {
 
   // NEW: Validate QR validation loading state
   if (isAttendanceMode && isCheckingQr) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a] p-6" dir="rtl">
-        <div className="text-center space-y-4">
-          <div className="animate-spin rounded-full h-14 w-14 border-b-2 border-red-500 mx-auto"></div>
-          <p className="text-slate-400 text-xs font-black uppercase tracking-widest leading-relaxed font-arabic">جاري التحقق من صلاحية كود الحضور... يرجى الانتظار</p>
-        </div>
-      </div>
-    );
+    return <BrandedLoader dir="rtl" message="جاري التحقق من صلاحية كود الحضور" />;
   }
 
   // NEW: Expiration / Validation Error Message Screen
@@ -1776,14 +1770,7 @@ const StudentPortal: React.FC = () => {
 
   // RENDERING COMPONENT LOADER
   if (loading && !loginLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a] p-6">
-        <div className="text-center space-y-4">
-          <div className="animate-spin rounded-full h-14 w-14 border-b-2 border-red-500 mx-auto"></div>
-          <p className="text-slate-400 text-xs font-black uppercase tracking-widest leading-relaxed">تحميل بوابة الطلاب... يرجى الانتظار</p>
-        </div>
-      </div>
-    );
+    return <BrandedLoader dir="rtl" message="جاري تجهيز بوابة الطلاب" />;
   }
 
   // A. ATTENDANCE CONFIRMATION RIPPLE SCREEN (SUCCESS SCREEN)
@@ -2399,22 +2386,20 @@ const StudentPortal: React.FC = () => {
   // B. STUDENT ENTERING LOGIN SCREEN (IF NO SESSION ACTIVE)
   if (!currentStudent) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-[#0a0a0a] p-6 relative overflow-hidden" dir="rtl">
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-red-600/10 blur-[120px] rounded-full translate-x-1/2 -translate-y-1/2"></div>
-        <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-red-600/10 blur-[100px] rounded-full -translate-x-1/4 translate-y-1/4"></div>
+      <div className="sg-os-shell sg-student-login min-h-screen flex flex-col items-center justify-center p-6 relative overflow-hidden" dir="rtl">
 
         <div className="mb-10 text-center relative z-10">
-          <div className="relative w-40 h-40 mx-auto flex items-center justify-center">
+          <div className="relative w-72 h-28 mx-auto flex items-center justify-center">
               <style>{`@keyframes emberPulse{0%,100%{transform:scale(0.88);opacity:.45}50%{transform:scale(1.22);opacity:.9}}`}</style>
               <div className="absolute inset-[-26px] rounded-3xl pointer-events-none" style={{background:'radial-gradient(circle, rgba(232,92,59,0.7) 0%, rgba(196,50,31,0.35) 45%, transparent 75%)', filter:'blur(18px)', animation:'emberPulse 2.4s ease-in-out infinite'}}></div>
-              <div className="relative w-28 h-28 rounded-3xl flex items-center justify-center overflow-hidden border bg-black" style={{borderColor:'rgba(196,50,31,0.45)', boxShadow:'0 0 30px rgba(196,50,31,0.3)'}}>
-                <img src="/apple-touch-icon.png" alt="SABER GROUP" className="w-full h-full object-contain" />
+              <div className="sg-student-login-logo relative w-64 flex items-center justify-center overflow-hidden border bg-black" style={{borderColor:'rgba(196,50,31,0.45)', boxShadow:'0 0 30px rgba(196,50,31,0.3)'}}>
+                <img src="/saber-group-logo.png" alt="SABER GROUP" className="w-full h-auto object-contain" />
               </div>
             </div>
           <p className="text-slate-500 font-black uppercase tracking-[0.2rem] text-[10px] mt-3">Student Workspace & Attendance Portal</p>
         </div>
 
-        <div className="w-full max-w-md bg-slate-900 rounded-3xl shadow-2xl p-8 relative z-10 border border-slate-800">
+        <div className="sg-login-card sg-cut-panel w-full max-w-md p-8 relative z-10">
           <div className="mb-8 text-center space-y-2">
             <h2 className="text-2xl font-black text-white tracking-tight">بوابة الطلاب والمتدربين</h2>
             <p className="text-xs font-semibold text-slate-400">سجل دخولك لمتابعة حضورك وتقييمك ومحاضرات المجموعة الخاصة بك.</p>
@@ -2613,21 +2598,21 @@ const StudentPortal: React.FC = () => {
 
   // C. DYNAMIC STUDENT DASHBOARD (LOGGED IN EXPERIENCE!)
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-slate-100 font-sans pb-16" dir="rtl">
+    <div className="sg-os-shell sg-portal-shell min-h-screen text-slate-100 font-sans pb-16" dir="rtl">
       {/* Premium Header Design */}
-      <header className="bg-slate-900 border-b border-slate-800 sticky top-0 z-40 shadow-md">
+      <header className="sg-portal-header border-b sticky top-0 z-40 shadow-md">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col sm:flex-row justify-between items-center gap-4">
           <div className="flex items-center gap-3">
-            <div className="relative w-11 h-11 flex items-center justify-center">
+            <div className="relative w-36 h-11 flex items-center justify-center">
               <style>{`@keyframes emberPulse{0%,100%{transform:scale(0.88);opacity:.45}50%{transform:scale(1.22);opacity:.9}}`}</style>
               <div className="absolute inset-[-8px] rounded-2xl pointer-events-none" style={{background:'radial-gradient(circle, rgba(232,92,59,0.7) 0%, rgba(196,50,31,0.35) 45%, transparent 75%)', filter:'blur(8px)', animation:'emberPulse 2.4s ease-in-out infinite'}}></div>
-              <div className="relative w-full h-full rounded-2xl flex items-center justify-center overflow-hidden border bg-black" style={{borderColor:'rgba(196,50,31,0.45)', boxShadow:'0 0 16px rgba(196,50,31,0.3)'}}>
-                <img src="/apple-touch-icon.png" alt="SABER GROUP" className="w-full h-full object-contain" />
+              <div className="sg-portal-brand-logo relative w-full flex items-center justify-center overflow-hidden border bg-black" style={{borderColor:'rgba(196,50,31,0.45)', boxShadow:'0 0 16px rgba(196,50,31,0.3)'}}>
+                <img src="/saber-group-logo.png" alt="SABER GROUP" className="w-full h-auto object-contain" />
               </div>
             </div>
             <div>
-              <h2 className="text-lg font-black text-white tracking-tight">SABER GROUP Portal</h2>
-              <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">لوحة متابعة المتدربين والتقييم الأكاديمي</p>
+              <h2 className="sg-brand-wordmark text-lg font-black text-white">SG STUDENT PORTAL</h2>
+              <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">LEARNING PROGRESS / ACADEMY ACCESS</p>
             </div>
           </div>
 
@@ -2759,10 +2744,10 @@ const StudentPortal: React.FC = () => {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8 space-y-8 animate-fade-in">
+      <main className="sg-portal-main max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8 space-y-8 animate-fade-in">
         {/* ENROLLED GROUPS & COURSES SWITCHER BAR */}
         {enrolledGroups.length > 0 && (
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-xl space-y-3 font-arabic" dir="rtl">
+          <div className="sg-portal-switcher sg-cut-panel p-5 shadow-xl space-y-3 font-arabic" dir="rtl">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
               <div className="flex items-center gap-2.5">
                 <div className="p-2 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400">

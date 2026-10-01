@@ -1,13 +1,16 @@
 
 import React, { useState } from 'react';
 import { signInWithEmailAndPassword } from 'firebase/auth';
+import { ArrowRight, LockKeyhole, Mail, Moon, ShieldCheck, Sun } from 'lucide-react';
 import { auth } from '../firebase';
+import { useTheme } from '../contexts/ThemeContext';
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { theme, setTheme } = useTheme();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,74 +26,93 @@ const Login: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-slate-950 p-6 relative overflow-hidden">
-      {/* Background Blobs */}
-      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary-600/10 blur-[120px] rounded-full translate-x-1/2 -translate-y-1/2"></div>
-      <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-indigo-600/10 blur-[100px] rounded-full -translate-x-1/4 translate-y-1/4"></div>
-
-      <div className="mb-12 text-center relative z-10">
-        <div className="bg-primary-600 w-20 h-20 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-2xl shadow-primary-600/40">
-          <span className="text-4xl font-black text-white">S</span>
-        </div>
-        <h1 className="text-4xl font-black text-white tracking-tighter mb-2">SABER GROUP</h1>
-        <p className="text-slate-500 font-black uppercase tracking-[0.3rem] text-[10px]">Training management system</p>
-      </div>
-
-      <div className="w-full max-w-md bg-white rounded-4xl shadow-2xl p-10 relative z-10 border border-white/5">
-        <div className="mb-10 text-center">
-          <h2 className="text-2xl font-black text-slate-900 tracking-tighter mb-2">Welcome Back</h2>
-          <p className="text-sm font-medium text-slate-500">Log in to manage your training sessions.</p>
-        </div>
-        
-        {error && (
-          <div className="mb-8 p-5 bg-red-50 text-red-600 text-xs rounded-2xl border border-red-100 font-black uppercase tracking-widest text-center animate-fade-in">
-            {error}
+    <div className="sg-os-shell sg-login-page">
+      <header className="sg-login-topbar">
+        <div className="sg-login-brand">
+          <img src="/saber-group-logo.png" alt="Saber Group" />
+          <div>
+            <span>TRAINING OPERATIONS</span>
           </div>
-        )}
-
-        <form onSubmit={handleLogin} className="space-y-6">
-          <div className="space-y-2">
-            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Email Address</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="w-full px-6 py-4 rounded-2xl bg-slate-50 border border-slate-200 focus:ring-4 focus:ring-primary-500/10 focus:border-primary-600 outline-none transition-all font-bold text-sm"
-              placeholder="trainer@sabergroupacademy.com"
-            />
-          </div>
-          <div className="space-y-2">
-            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Secret Password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              className="w-full px-6 py-4 rounded-2xl bg-slate-50 border border-slate-200 focus:ring-4 focus:ring-primary-500/10 focus:border-primary-600 outline-none transition-all font-bold text-sm"
-              placeholder="••••••••"
-            />
-          </div>
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-primary-600 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-[0.2rem] hover:bg-primary-700 active:scale-95 transition-all shadow-2xl shadow-primary-600/30 disabled:opacity-50 mt-4"
-          >
-            {loading ? 'Authenticating...' : 'Sign In Now'}
-          </button>
-        </form>
-
-        <div className="mt-12 pt-8 border-t border-slate-100 text-center">
-          <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest leading-relaxed">
-            Authorized Access Only<br/>
-            <span className="text-primary-600 mt-1 block">sabergroupacademy.com</span>
-          </p>
         </div>
-      </div>
-      
-      <p className="mt-10 text-slate-600 text-[10px] font-black uppercase tracking-widest opacity-50 relative z-10">
-        &copy; 2025 Saber Group Academy. All rights reserved.
-      </p>
+        <div className="flex items-center gap-3">
+          <div className="sg-login-security">
+            <ShieldCheck size={15} />
+            <span>AUTHORIZED STAFF ACCESS</span>
+          </div>
+          <div className="sg-theme-switch" role="group" aria-label="Choose theme">
+            <button type="button" className={theme === 'light' ? 'is-active' : ''} onClick={() => setTheme('light')} title="Light mode" aria-label="Light mode" aria-pressed={theme === 'light'}><Sun size={16} /></button>
+            <button type="button" className={theme === 'dark' ? 'is-active' : ''} onClick={() => setTheme('dark')} title="Dark mode" aria-label="Dark mode" aria-pressed={theme === 'dark'}><Moon size={16} /></button>
+          </div>
+        </div>
+      </header>
+
+      <main className="sg-login-stage">
+        <section className="sg-login-intro" aria-label="Training system introduction">
+          <div className="sg-kicker"><span /> SG TRAINING OS / 2026</div>
+          <h1>ACADEMY<br /><em>OPERATIONS</em></h1>
+          <p>إدارة المجموعات، الحضور، التقييمات والرحلة التدريبية من مساحة عمل واحدة.</p>
+          <div className="sg-system-readout">
+            <span><i /> SYSTEM READY</span>
+            <span>FIREBASE SYNC</span>
+            <span>ROLE BASED ACCESS</span>
+          </div>
+        </section>
+
+        <section className="sg-login-card sg-cut-panel">
+          <div className="sg-panel-index">ACCESS / 01</div>
+          <div className="sg-login-card-head">
+            <span>WELCOME BACK</span>
+            <h2>دخول فريق صابر جروب</h2>
+            <p>استخدم حساب الإدارة أو التدريب المسجل على النظام.</p>
+          </div>
+
+          {error && <div className="sg-login-error" role="alert">{error}</div>}
+
+          <form onSubmit={handleLogin} className="sg-login-form">
+            <label>
+              <span>EMAIL ADDRESS</span>
+              <div className="sg-field-shell">
+                <Mail size={18} />
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  autoComplete="email"
+                  placeholder="trainer@sabergroupacademy.com"
+                />
+              </div>
+            </label>
+            <label>
+              <span>SECRET PASSWORD</span>
+              <div className="sg-field-shell">
+                <LockKeyhole size={18} />
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  autoComplete="current-password"
+                  placeholder="Enter your password"
+                />
+              </div>
+            </label>
+            <button type="submit" disabled={loading} className="sg-primary-action">
+              <span>{loading ? 'AUTHENTICATING...' : 'SIGN IN TO SYSTEM'}</span>
+              <ArrowRight size={18} />
+            </button>
+          </form>
+
+          <div className="sg-login-meta">
+            <span>SECURE SESSION</span>
+            <span>sabergroupacademy.com</span>
+          </div>
+        </section>
+      </main>
+
+      <footer className="sg-login-footer">
+        Developed by Eng. Mohamed Saber <span /> All rights reserved by SABER GROUP
+      </footer>
     </div>
   );
 };

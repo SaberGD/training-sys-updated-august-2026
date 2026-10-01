@@ -12,31 +12,36 @@ import {
   Mail, 
   Globe, 
   BarChart3,
-  ArrowRight
+  ArrowRight,
+  Moon,
+  Sun
 } from 'lucide-react';
+import { useTheme } from '../contexts/ThemeContext';
 
 const LandingPage: React.FC = () => {
   const navigate = useNavigate();
+  const { theme, setTheme } = useTheme();
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-blue-500 selection:text-white">
+    <div className="sg-os-shell sg-training-landing min-h-screen text-slate-100 flex flex-col font-sans selection:bg-red-600 selection:text-white">
       {/* Navigation Header */}
-      <header className="sticky top-0 z-50 bg-slate-950/92 backdrop-blur border-b border-slate-800">
+      <header className="sg-landing-header sticky top-0 z-50 backdrop-blur border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-slate-900 border border-slate-700 flex items-center justify-center shadow-sm">
-              <GraduationCap className="w-5 h-5 text-sky-300" />
-            </div>
+            <img src="/saber-group-logo.png" alt="Saber Group" className="sg-landing-logo" />
             <div>
-              <span className="font-bold text-base text-white tracking-tight block">SABER GROUP</span>
-              <span className="text-[10px] font-semibold text-slate-400 tracking-wider uppercase block">Training Operations</span>
+              <span className="text-[9px] font-semibold text-slate-400 uppercase block">TRAINING OPERATIONS SYSTEM</span>
             </div>
           </div>
 
           <div className="flex items-center gap-4">
+            <div className="sg-theme-switch" role="group" aria-label="Choose theme">
+              <button type="button" className={theme === 'light' ? 'is-active' : ''} onClick={() => setTheme('light')} title="Light mode" aria-label="Light mode" aria-pressed={theme === 'light'}><Sun size={16} /></button>
+              <button type="button" className={theme === 'dark' ? 'is-active' : ''} onClick={() => setTheme('dark')} title="Dark mode" aria-label="Dark mode" aria-pressed={theme === 'dark'}><Moon size={16} /></button>
+            </div>
             <Link
               to="/login"
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold text-sm shadow-sm transition-colors"
+              className="sg-landing-login inline-flex items-center gap-2 px-4 py-2 font-bold text-sm shadow-sm transition-colors"
             >
               <LogIn className="w-4 h-4" />
               <span>Login to Dashboard</span>
@@ -46,15 +51,15 @@ const LandingPage: React.FC = () => {
       </header>
 
       {/* Hero Section */}
-      <section className="relative pt-16 pb-20 overflow-hidden border-b border-slate-900">
+      <section className="sg-landing-hero relative pt-16 pb-20 overflow-hidden border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-slate-900 border border-slate-800 text-slate-300 text-xs font-semibold mb-6">
-            <ShieldCheck className="w-3.5 h-3.5 text-sky-300" />
+            <ShieldCheck className="w-3.5 h-3.5 text-orange-400" />
             <span>Saber Group Academy operations workspace</span>
           </div>
 
-          <h1 className="text-4xl sm:text-5xl font-extrabold text-white tracking-tight leading-[1.1] mb-5 max-w-4xl">
-            Training management built for daily academy operations
+          <h1 className="sg-landing-title text-4xl sm:text-5xl text-white leading-[1.1] mb-5 max-w-4xl">
+            SABER GROUP <span>TRAINING OS</span>
           </h1>
 
           <p className="text-base sm:text-lg text-slate-300 max-w-3xl leading-relaxed mb-8 font-medium">
@@ -64,7 +69,7 @@ const LandingPage: React.FC = () => {
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
             <button
               onClick={() => navigate('/login')}
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-3 px-6 py-3 rounded-lg bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold text-sm shadow-sm transition-colors"
+              className="sg-landing-login w-full sm:w-auto inline-flex items-center justify-center gap-3 px-6 py-3 font-bold text-sm shadow-sm transition-colors"
             >
               <span>Login to Dashboard</span>
               <ArrowRight className="w-5 h-5" />
@@ -73,7 +78,7 @@ const LandingPage: React.FC = () => {
               to="/student/portal"
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-700 font-bold text-sm transition-colors"
             >
-              <GraduationCap className="w-5 h-5 text-sky-300" />
+                <GraduationCap className="w-5 h-5 text-orange-400" />
               <span>Student Portal</span>
             </Link>
           </div>

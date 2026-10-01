@@ -38,6 +38,7 @@ import StudentPortal from './pages/StudentPortal';
 import StudentDirectory from './pages/StudentDirectory';
 import GraduationProjectsPage from './pages/GraduationProjects';
 import { PermissionsProvider } from './contexts/PermissionsContext';
+import BrandedLoader from './components/BrandedLoader';
 
 export const ViewAsContext = React.createContext<{
   viewAsRole: UserRole | null;
@@ -78,11 +79,7 @@ const App: React.FC = () => {
   }, []);
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-950">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-      </div>
-    );
+    return <BrandedLoader />;
   }
 
   const user = actualUser ? (viewAsRole ? { ...actualUser, role: viewAsRole } : actualUser) : null;

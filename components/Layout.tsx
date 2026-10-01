@@ -61,7 +61,7 @@ interface LayoutProps {
 const Layout: React.FC<LayoutProps> = ({ user, children }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { theme, toggleTheme } = useTheme();
+  const { theme, setTheme } = useTheme();
   const { lang, setLang, t } = useLanguage();
   const { hasPermission, isPageHidden } = usePermissions();
   const { showSensitiveData, toggleShowSensitiveData } = useSensitiveData();
@@ -127,22 +127,27 @@ const Layout: React.FC<LayoutProps> = ({ user, children }) => {
                      (location.pathname.startsWith('/groups/') ? t('evaluation') : 'SABER GROUP');
 
   return (
-    <div className={`flex h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 overflow-hidden relative ${lang === 'ar' ? 'font-arabic' : ''}`}>
+    <div className={`sg-os-shell sg-training-shell flex h-screen text-slate-100 overflow-hidden relative ${lang === 'ar' ? 'font-arabic' : ''}`}>
       {isSidebarOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-30 md:hidden" onClick={() => setIsSidebarOpen(false)} />
       )}
 
-      <aside className={`
+      <aside className={`sg-os-sidebar
         fixed inset-y-0 ${lang === 'ar' ? 'right-0' : 'left-0'} bg-white dark:bg-slate-900 flex flex-col z-40 transition-all duration-300 transform
         md:relative md:translate-x-0 border-x border-slate-200 dark:border-slate-800
         ${isSidebarCollapsed ? 'w-72 md:w-20' : 'w-72 md:w-72'}
         ${isSidebarOpen ? 'translate-x-0' : (lang === 'ar' ? 'translate-x-full' : '-translate-x-full')}
       `}>
-        <div className={`p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center transition-all ${isSidebarCollapsed ? 'md:p-4' : 'md:p-8'}`}>
-          <h1 className="text-xl font-black tracking-tighter text-slate-900 dark:text-white flex items-center gap-3">
-            <span className="bg-primary-600 p-2 rounded-xl text-xs font-black text-white shrink-0">S</span>
-            <span className={`transition-all duration-300 ${isSidebarCollapsed ? 'md:hidden' : 'block'}`}>SABER GROUP</span>
-          </h1>
+        <div className={`sg-sidebar-brand p-6 border-b flex justify-between items-center transition-all ${isSidebarCollapsed ? 'md:p-4' : 'md:p-6'}`}>
+          <div className="sg-sidebar-identity">
+            <img
+              src="/saber-group-logo.png"
+              alt="Saber Group"
+              className={`sg-sidebar-wordmark ${isSidebarCollapsed ? 'md:hidden' : ''}`}
+            />
+            {isSidebarCollapsed && <span className="sg-sidebar-monogram hidden md:grid">SG</span>}
+            <span className={`sg-sidebar-product ${isSidebarCollapsed ? 'md:hidden' : 'block'}`}>TRAINING OPERATIONS</span>
+          </div>
           <div className="flex items-center gap-1 shrink-0">
             <button 
               onClick={() => {
@@ -175,9 +180,9 @@ const Layout: React.FC<LayoutProps> = ({ user, children }) => {
                 to={item.path}
                 target={item.target}
                 onClick={() => setIsSidebarOpen(false)}
-                className={`flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-all group ${
+                className={`sg-os-nav-item flex items-center gap-3 px-4 py-3.5 transition-all group ${
                   isActive 
-                  ? 'bg-primary-600 text-white font-black shadow-lg shadow-primary-600/30' 
+                  ? 'is-active text-white font-black'
                   : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5 hover:text-slate-900 dark:hover:text-white'
                 } ${isSidebarCollapsed ? 'md:justify-center md:px-0 md:h-12 md:w-12 md:mx-auto' : ''}`}
                 title={isSidebarCollapsed ? item.label : undefined}
@@ -194,7 +199,7 @@ const Layout: React.FC<LayoutProps> = ({ user, children }) => {
               href="https://mails.sabergroupacademy.com/"
               target="_blank"
               rel="noopener noreferrer"
-              className={`flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-all text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 group ${isSidebarCollapsed ? 'md:justify-center md:px-0 md:h-12 md:w-12 md:mx-auto' : ''}`}
+              className={`sg-os-nav-item flex items-center gap-3 px-4 py-3.5 transition-all text-red-400 group ${isSidebarCollapsed ? 'md:justify-center md:px-0 md:h-12 md:w-12 md:mx-auto' : ''}`}
               title={isSidebarCollapsed ? 'youtube bulk adder' : undefined}
             >
               <Tv size={20} className="shrink-0" />
@@ -230,17 +235,18 @@ const Layout: React.FC<LayoutProps> = ({ user, children }) => {
           </button>
         )}
 
-        <header className={`transition-all duration-300 shrink-0 z-30 ${
+        <header className={`sg-os-header transition-all duration-300 shrink-0 z-30 ${
           isHeaderCollapsed 
             ? 'h-0 border-b-0 py-0 opacity-0 pointer-events-none overflow-hidden' 
-            : 'h-20 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-6 md:px-10'
+            : 'h-20 backdrop-blur-md border-b flex items-center justify-between px-6 md:px-10'
         }`}>
           <div className="flex items-center gap-6">
             <button onClick={() => setIsSidebarOpen(true)} className="md:hidden p-2 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
               <Menu size={22} />
             </button>
-            <div className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest hidden sm:block">
-              {currentPage}
+            <div className="sg-page-heading hidden sm:block">
+              <span>OPERATIONS / CURRENT VIEW</span>
+              <strong>{currentPage}</strong>
             </div>
           </div>
           
@@ -344,13 +350,28 @@ const Layout: React.FC<LayoutProps> = ({ user, children }) => {
               {lang === 'ar' ? 'EN' : 'AR'}
             </button>
 
-            <button 
-              onClick={toggleTheme}
-              className="w-10 h-10 flex items-center justify-center bg-slate-100 dark:bg-slate-800 rounded-xl hover:bg-primary-50 dark:hover:bg-primary-950 transition-colors border border-slate-200 dark:border-slate-700 font-sans"
-              title="Toggle Theme"
-            >
-              {theme === 'dark' ? <Sun size={18} className="text-amber-400" /> : <Moon size={18} className="text-indigo-400" />}
-            </button>
+            <div className="sg-theme-switch" role="group" aria-label={lang === 'ar' ? 'اختيار المظهر' : 'Choose theme'}>
+              <button
+                type="button"
+                onClick={() => setTheme('light')}
+                className={theme === 'light' ? 'is-active' : ''}
+                title={lang === 'ar' ? 'الوضع الفاتح' : 'Light mode'}
+                aria-label={lang === 'ar' ? 'الوضع الفاتح' : 'Light mode'}
+                aria-pressed={theme === 'light'}
+              >
+                <Sun size={16} />
+              </button>
+              <button
+                type="button"
+                onClick={() => setTheme('dark')}
+                className={theme === 'dark' ? 'is-active' : ''}
+                title={lang === 'ar' ? 'الوضع الداكن' : 'Dark mode'}
+                aria-label={lang === 'ar' ? 'الوضع الداكن' : 'Dark mode'}
+                aria-pressed={theme === 'dark'}
+              >
+                <Moon size={16} />
+              </button>
+            </div>
 
             {actualRole === 'admin' && (
               <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700 select-none">
@@ -389,14 +410,14 @@ const Layout: React.FC<LayoutProps> = ({ user, children }) => {
               </div>
             )}
 
-            <div className="hidden lg:flex items-center gap-3 px-4 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl">
+            <div className="sg-system-status hidden lg:flex items-center gap-3 px-4 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl">
               <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]"></span>
               <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">{t('systemActive')}</span>
             </div>
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto p-6 md:p-10">
+        <main className="sg-os-content flex-1 overflow-y-auto p-6 md:p-10">
           <div className="max-w-7xl mx-auto animate-fade-in flex flex-col min-h-full">
             <div className="flex-1">
               {children}
