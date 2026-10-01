@@ -206,12 +206,26 @@ const GroupDetails: React.FC<{ user: User }> = ({ user }) => {
   const [isEditingMeetingLink, setIsEditingMeetingLink] = useState(false);
   const [tempMeetingLink, setTempMeetingLink] = useState('');
   const [visiblePasswords, setVisiblePasswords] = useState<Record<string, boolean>>({});
+  const [copiedCredentialsId, setCopiedCredentialsId] = useState<string | null>(null);
 
   const togglePasswordVisibility = (studentId: string) => {
     setVisiblePasswords(prev => ({
       ...prev,
       [studentId]: !prev[studentId]
     }));
+  };
+
+  const copyStudentCredentials = async (student: Student) => {
+    const password = student.studentPassword || (student as Student & { portalPassword?: string }).portalPassword || '';
+    if (!password) {
+      alert('لا توجد كلمة مرور محفوظة لهذا الطالب حتى الآن.');
+      return;
+    }
+    await navigator.clipboard.writeText(
+      `ID: ${student.studentIdNum || student.id}\nPassword: ${password}`
+    );
+    setCopiedCredentialsId(student.id);
+    window.setTimeout(() => setCopiedCredentialsId(null), 1800);
   };
 
   useEffect(() => {
@@ -5785,6 +5799,15 @@ const GroupDetails: React.FC<{ user: User }> = ({ user }) => {
                             Pass: {visiblePasswords[s.id] ? (s.studentPassword || 'Generating...') : '••••••••'} 
                             <span className="text-[9px] opacity-70">{visiblePasswords[s.id] ? '🙈' : '👁️'}</span>
                           </span>
+                          <button
+                            type="button"
+                            onClick={() => void copyStudentCredentials(s)}
+                            className="inline-flex items-center gap-1 rounded border border-primary-500/25 bg-primary-500/10 px-1.5 py-0.5 text-[9px] font-black text-primary-300 transition-colors hover:bg-primary-500/20"
+                            title="نسخ كود الطالب وكلمة المرور"
+                          >
+                            {copiedCredentialsId === s.id ? <Check size={10} /> : <Copy size={10} />}
+                            <span>{copiedCredentialsId === s.id ? 'تم' : 'نسخ الدخول'}</span>
+                          </button>
                         </div>
                         
                         <div className="mt-2 flex items-center gap-1.5 flex-wrap">

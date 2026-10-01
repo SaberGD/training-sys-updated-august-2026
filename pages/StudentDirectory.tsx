@@ -21,7 +21,7 @@ import {
   Calendar, Layers, Edit, Sparkles, ChevronRight, Loader2, Database, Bot
 } from 'lucide-react';
 
-const { collection, getDocs, getDoc, doc, query, where, limit } = firestore as any;
+const { collection, getDocs, getDoc, doc, query, where, limit, documentId } = firestore as any;
 
 interface StudentDirectoryProps {
   user: User;
@@ -44,6 +44,8 @@ export const StudentDirectory: React.FC<StudentDirectoryProps> = ({ user }) => {
 
   // Local Cache Stores (Prevents unnecessary database reads)
   const [studentCacheMap, setStudentCacheMap] = useState<Map<string, Student>>(new Map());
+  const [allStudentsLoaded, setAllStudentsLoaded] = useState(false);
+  const [groupStudentIds, setGroupStudentIds] = useState<Set<string>>(new Set());
   const [groups, setGroups] = useState<Group[]>([]);
   const [groupsLoaded, setGroupsLoaded] = useState(false);
   
@@ -112,6 +114,19 @@ export const StudentDirectory: React.FC<StudentDirectoryProps> = ({ user }) => {
     }
   }, [usersLoaded]);
 
+  const fetchAllStudents = useCallback(async (): Promise<Student[]> => {
+    if (allStudentsLoaded) return Array.from(studentCacheMap.values());
+    const snap = await getDocs(collection(db, 'students'));
+    const items = snap.docs.map((d: any) => ({ id: d.id, ...d.data() } as Student));
+    setStudentCacheMap(prev => {
+      const updated = new Map(prev);
+      items.forEach(student => updated.set(student.id, student));
+      return updated;
+    });
+    setAllStudentsLoaded(true);
+    return items;
+  }, [allStudentsLoaded, studentCacheMap]);
+
   // Execute Targeted Search in Firestore with Cache Saving
   const performSearch = useCallback(async (
     overrideTerm?: string, 
@@ -133,9 +148,38 @@ export const StudentDirectory: React.FC<StudentDirectoryProps> = ({ user }) => {
 
       // If user selected a group, query students in that group
       if (groupId) {
-        const qGroup = query(collection(db, 'students'), where('groupId', '==', groupId));
-        const snap = await getDocs(qGroup);
-        snap.docs.forEach((d: any) => fetchedStudents.push({ id: d.id, ...d.data() }));
+        const [legacyStudentsSnap, enrollmentsSnap] = await Promise.all([
+          getDocs(query(collection(db, 'students'), where('groupId', '==', groupId))),
+          getDocs(query(collection(db, 'enrollments'), where('groupId', '==', groupId)))
+        ]);
+        const membershipIds = new Set<string>();
+        legacyStudentsSnap.docs.forEach((d: any) => {
+          membershipIds.add(d.id);
+          fetchedStudents.push({ id: d.id, ...d.data() });
+        });
+
+        enrollmentsSnap.docs.forEach((d: any) => {
+          const studentId = String(d.data()?.studentId || '').trim();
+          if (studentId) membershipIds.add(studentId);
+        });
+
+        const loadedIds = new Set(fetchedStudents.map(student => student.id));
+        const missingIds = Array.from(membershipIds).filter(studentId => !loadedIds.has(studentId));
+        const idChunks: string[][] = [];
+        for (let index = 0; index < missingIds.length; index += 30) {
+          idChunks.push(missingIds.slice(index, index + 30));
+        }
+        const missingStudentSnaps = await Promise.all(
+          idChunks.map(ids => getDocs(query(collection(db, 'students'), where(documentId(), 'in', ids))))
+        );
+        missingStudentSnaps.forEach((snap: any) => {
+          snap.docs.forEach((studentDoc: any) => {
+            fetchedStudents.push({ id: studentDoc.id, ...studentDoc.data() });
+          });
+        });
+        setGroupStudentIds(membershipIds);
+      } else {
+        setGroupStudentIds(new Set());
       }
       
       // If term looks like ID / studentIdNum or phone or email
@@ -143,9 +187,11 @@ export const StudentDirectory: React.FC<StudentDirectoryProps> = ({ user }) => {
         const cleanDigits = getCleanDigitsOnly(term);
 
         // 1. Try studentIdNum match
-        const qIdNum = query(collection(db, 'students'), where('studentIdNum', '==', term));
-        const snapIdNum = await getDocs(qIdNum);
-        snapIdNum.docs.forEach((d: any) => fetchedStudents.push({ id: d.id, ...d.data() }));
+        for (const idCandidate of Array.from(new Set([term, cleanDigits].filter(Boolean)))) {
+          const qIdNum = query(collection(db, 'students'), where('studentIdNum', '==', idCandidate));
+          const snapIdNum = await getDocs(qIdNum);
+          snapIdNum.docs.forEach((d: any) => fetchedStudents.push({ id: d.id, ...d.data() }));
+        }
 
         // 2. Try direct doc ID
         if (fetchedStudents.length === 0 && term.length >= 4) {
@@ -177,11 +223,10 @@ export const StudentDirectory: React.FC<StudentDirectoryProps> = ({ user }) => {
           snapEmail.docs.forEach((d: any) => fetchedStudents.push({ id: d.id, ...d.data() }));
         }
 
-        // 5. Fallback: General sample fetch if no exact index match found yet
+        // Names, archived records and legacy formatting need a complete local
+        // search. Load the directory once instead of sampling the first 80.
         if (fetchedStudents.length === 0) {
-          const qGen = query(collection(db, 'students'), limit(80));
-          const snapGen = await getDocs(qGen);
-          snapGen.docs.forEach((d: any) => fetchedStudents.push({ id: d.id, ...d.data() }));
+          fetchedStudents.push(...await fetchAllStudents());
         }
       } else if (!groupId) {
         // Empty search & no group selected -> load top sample
@@ -203,7 +248,7 @@ export const StudentDirectory: React.FC<StudentDirectoryProps> = ({ user }) => {
     } finally {
       setIsSearching(false);
     }
-  }, [searchTerm, selectedGroupId, fetchGroupsIfNeeded]);
+  }, [searchTerm, selectedGroupId, fetchGroupsIfNeeded, fetchAllStudents]);
 
   // Initial load check for query parameter in URL (e.g. ?id=... or ?q=...)
   useEffect(() => {
@@ -283,6 +328,22 @@ export const StudentDirectory: React.FC<StudentDirectoryProps> = ({ user }) => {
     navigator.clipboard.writeText(text);
     setCopiedField(fieldName);
     setTimeout(() => setCopiedField(null), 2000);
+  };
+
+  const getStudentPassword = (student: Student) =>
+    student.studentPassword || (student as Student & { portalPassword?: string }).portalPassword || '';
+
+  const handleCopyCredentials = (student: Student, event?: React.MouseEvent) => {
+    event?.stopPropagation();
+    const password = getStudentPassword(student);
+    if (!password) {
+      alert('لا توجد كلمة مرور محفوظة لهذا الطالب. استخدم إعادة تجهيز بيانات الدخول أولاً.');
+      return;
+    }
+    handleCopy(
+      `ID: ${student.studentIdNum || student.id}\nPassword: ${password}`,
+      `credentials-${student.id}`
+    );
   };
 
   // Resend Welcome/Credentials Email
@@ -423,7 +484,7 @@ export const StudentDirectory: React.FC<StudentDirectoryProps> = ({ user }) => {
     const queryStr = searchTerm.trim().toLowerCase();
     return cachedStudentsList.filter(student => {
       // Group filter
-      if (selectedGroupId && student.groupId !== selectedGroupId) return false;
+      if (selectedGroupId && student.groupId !== selectedGroupId && !groupStudentIds.has(student.id)) return false;
       
       // Status filter
       if (selectedStatus !== 'all') {
@@ -439,11 +500,15 @@ export const StudentDirectory: React.FC<StudentDirectoryProps> = ({ user }) => {
       const groupName = (group?.name || '').toLowerCase();
       const courseName = (group?.courseName || '').toLowerCase();
 
+      const cleanQuery = getCleanDigitsOnly(queryStr);
+      const cleanPhone = getCleanDigitsOnly(student.phone);
+
       return (
         student.name.toLowerCase().includes(queryStr) ||
         (student.studentIdNum || '').toLowerCase().includes(queryStr) ||
         (student.id || '').toLowerCase().includes(queryStr) ||
         student.phone.includes(queryStr) ||
+        (cleanQuery.length >= 6 && cleanPhone.includes(cleanQuery)) ||
         (student.email || '').toLowerCase().includes(queryStr) ||
         (student.attendanceEmail || '').toLowerCase().includes(queryStr) ||
         (student.whatsappLink || '').includes(queryStr) ||
@@ -451,7 +516,7 @@ export const StudentDirectory: React.FC<StudentDirectoryProps> = ({ user }) => {
         courseName.includes(queryStr)
       );
     });
-  }, [cachedStudentsList, groups, searchTerm, selectedGroupId, selectedStatus]);
+  }, [cachedStudentsList, groups, groupStudentIds, searchTerm, selectedGroupId, selectedStatus]);
 
   // Student specific records from cache
   const currentStudentFollowUps = useMemo(() => {
@@ -931,7 +996,7 @@ export const StudentDirectory: React.FC<StudentDirectoryProps> = ({ user }) => {
                       <span className="text-xs text-slate-400 font-bold font-arabic">كلمة المرور (Password):</span>
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-bold text-emerald-400">
-                          {showPassword ? (selectedStudent.portalPassword || '123456') : '••••••••'}
+                          {showPassword ? (getStudentPassword(selectedStudent) || 'غير متوفرة') : '••••••••'}
                         </span>
                         <button
                           onClick={() => setShowPassword(!showPassword)}
@@ -940,7 +1005,11 @@ export const StudentDirectory: React.FC<StudentDirectoryProps> = ({ user }) => {
                           {showPassword ? 'إخفاء' : 'إظهار'}
                         </button>
                         <button
-                          onClick={() => handleCopy(selectedStudent.portalPassword || '123456', 'password')}
+                          onClick={() => {
+                            const password = getStudentPassword(selectedStudent);
+                            if (password) handleCopy(password, 'password');
+                          }}
+                          disabled={!getStudentPassword(selectedStudent)}
                           className="text-slate-400 hover:text-white p-1"
                           title="نسخ كلمة المرور"
                         >
@@ -1374,7 +1443,18 @@ export const StudentDirectory: React.FC<StudentDirectoryProps> = ({ user }) => {
 
                         <div className="pt-2 flex justify-between items-center text-xs font-bold text-primary-600 dark:text-primary-400">
                           <span>عرض الملف الفهرسي الشامل ➔</span>
-                          <ChevronRight size={16} className="rotate-180 group-hover:-translate-x-1 transition-all" />
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={(event) => handleCopyCredentials(student, event)}
+                              className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-primary-500/25 bg-primary-500/10 px-2.5 text-[10px] font-black text-primary-600 transition-colors hover:bg-primary-500/20 dark:text-primary-300"
+                              title="نسخ كود الطالب وكلمة المرور"
+                            >
+                              {copiedField === `credentials-${student.id}` ? <Check size={13} /> : <Copy size={13} />}
+                              <span>{copiedField === `credentials-${student.id}` ? 'تم النسخ' : 'نسخ الدخول'}</span>
+                            </button>
+                            <ChevronRight size={16} className="rotate-180 group-hover:-translate-x-1 transition-all" />
+                          </div>
                         </div>
                       </div>
                     );

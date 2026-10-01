@@ -487,25 +487,32 @@ const BulkStudentsImportModal: React.FC<BulkStudentsImportModalProps> = ({
             studentDocId = stud.existingStudentRef.id;
             linkedCount++;
           } else {
-            // Generate non-colliding
+            createdCount++;
+          }
+
+          if (!studentIdNum) {
             do {
               studentIdNum = Math.floor(100000 + Math.random() * 900000).toString();
             } while (localIdGenSet.has(studentIdNum));
             localIdGenSet.add(studentIdNum);
-
+          }
+          if (!studentPassword) {
             const chars = '0123456789';
             for (let i = 0; i < 5; i++) {
               studentPassword += chars[Math.floor(Math.random() * chars.length)];
             }
-            createdCount++;
           }
 
-          // 1. Write student document
-          const newStudentRef = doc(collection(db, 'students'));
-          studentDocId = newStudentRef.id;
+          // Reuse the existing student document and credentials when linking
+          // to another group. Creating a new document here duplicated the
+          // person and made directory searches inconsistent.
+          const studentRef = stud.status === 'existing_in_db' && stud.existingStudentRef
+            ? doc(db, 'students', stud.existingStudentRef.id)
+            : doc(collection(db, 'students'));
+          studentDocId = studentRef.id;
           const is50Paid = stud.is50PercentPaid !== false;
           const studentPayload: any = {
-            id: newStudentRef.id,
+            id: studentDocId,
             name: stud.fullName,
             phone: stud.phone,
             whatsapp: stud.whatsapp,
@@ -532,13 +539,22 @@ const BulkStudentsImportModal: React.FC<BulkStudentsImportModalProps> = ({
               performedByUid: user.uid,
               performedByName: user.name
             }] : [],
-            createdAt: serverTimestamp()
+            updatedAt: serverTimestamp()
           };
-          transaction.set(newStudentRef, studentPayload);
+          if (stud.status !== 'existing_in_db') {
+            studentPayload.createdAt = serverTimestamp();
+          } else {
+            // Keep the existing student's history and source references while
+            // linking the same account to another group.
+            delete studentPayload.deactivationHistory;
+            if (!stud.sourceBookingId) delete studentPayload.sourceBookingId;
+            if (!stud.sourceCustomerId) delete studentPayload.sourceCustomerId;
+          }
+          transaction.set(studentRef, studentPayload, { merge: stud.status === 'existing_in_db' });
 
           if (stud.email) {
             welcomeQueue.push({
-              id: newStudentRef.id,
+              id: studentDocId,
               name: stud.fullName,
               email: stud.email,
               studentIdNum,
@@ -549,9 +565,9 @@ const BulkStudentsImportModal: React.FC<BulkStudentsImportModalProps> = ({
           // 2. Write enrollment document
           const enrollRef = doc(collection(db, 'enrollments'));
           transaction.set(enrollRef, {
-            id: `${groupId}_${newStudentRef.id}`,
+            id: `${groupId}_${studentDocId}`,
             groupId: groupId,
-            studentId: newStudentRef.id,
+            studentId: studentDocId,
             sourceBookingId: stud.sourceBookingId,
             sourceCustomerId: stud.sourceCustomerId,
             paymentStatus: stud.paymentStatus || 'pending',

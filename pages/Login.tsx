@@ -50,7 +50,7 @@ const Login: React.FC = () => {
         <section className="sg-login-intro" aria-label="Training system introduction">
           <div className="sg-kicker"><span /> SG TRAINING OS / 2026</div>
           <h1>ACADEMY<br /><em>OPERATIONS</em></h1>
-          <p>إدارة المجموعات، الحضور، التقييمات والرحلة التدريبية من مساحة عمل واحدة.</p>
+          <p dir="rtl">إدارة المجموعات، الحضور، التقييمات والرحلة التدريبية من مساحة عمل واحدة.</p>
           <div className="sg-system-readout">
             <span><i /> SYSTEM READY</span>
             <span>FIREBASE SYNC</span>

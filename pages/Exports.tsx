@@ -64,17 +64,53 @@ const Exports: React.FC<{ user: User }> = ({ user }) => {
         { name: 'students', label: 'Students' },
         { name: 'courses', label: 'Courses' },
         { name: 'users', label: 'Users' },
+        { name: 'enrollments', label: 'Enrollments' },
+        { name: 'feedback', label: 'Feedback' },
+        { name: 'global_eval_forms', label: 'GlobalEvaluationForms' },
+        { name: 'sessions', label: 'Sessions' },
         { name: 'lectureEvaluations', label: 'LectureEvaluations' },
+        { name: 'finalProjects', label: 'FinalProjects' },
+        { name: 'attendance', label: 'Attendance' },
         { name: 'penalties', label: 'Penalties' },
         { name: 'groupRankings', label: 'Rankings' },
         { name: 'studentFollowUps', label: 'StudentFollowUps' },
+        { name: 'followUpMentions', label: 'FollowUpMentions' },
+        { name: 'followUpSuggestionRejections', label: 'FollowUpSuggestionRejections' },
+        { name: 'followUpSuggestionExemptions', label: 'FollowUpSuggestionExemptions' },
+        { name: 'suggestionEscalations', label: 'SuggestionEscalations' },
+        { name: 'studentWeaknesses', label: 'StudentWeaknesses' },
+        { name: 'studentCertificates', label: 'StudentCertificates' },
         { name: 'labelDefinitions', label: 'LabelDefinitions' },
         { name: 'complaints', label: 'Complaints' },
+        { name: 'notifications', label: 'Notifications' },
         { name: 'activityLogs', label: 'ActivityLogs' },
         { name: 'weeks', label: 'Weeks' },
         { name: 'weekDays', label: 'WeekDays' },
         { name: 'scheduleItems', label: 'ScheduleItems' },
-        { name: 'sessionMeta', label: 'SessionMeta' }
+        { name: 'dailyTrainerOps', label: 'DailyTrainerOps' },
+        { name: 'sessionMeta', label: 'SessionMeta' },
+        { name: 'assignedTasks', label: 'AssignedTasks' },
+        { name: 'recurringDailyTemplates', label: 'RecurringDailyTemplates' },
+        { name: 'trainerDailyReports', label: 'TrainerDailyReports' },
+        { name: 'dailyReports', label: 'DailyReports' },
+        { name: 'weeklyReports', label: 'WeeklyReports' },
+        { name: 'trainerPlans', label: 'TrainerPlans' },
+        { name: 'groupExecutionPlans', label: 'GroupExecutionPlans' },
+        { name: 'marketingResources', label: 'MarketingResources' },
+        { name: 'marketingCategories', label: 'MarketingCategories' },
+        { name: 'marketingSectionTemplates', label: 'MarketingSectionTemplates' },
+        { name: 'rolePermissions', label: 'RolePermissions' },
+        { name: 'settings', label: 'Settings' },
+        { name: 'meta', label: 'Meta' },
+        { name: 'googleConnections', label: 'GoogleConnections' },
+        { name: 'emailLogs', label: 'EmailLogs' },
+        { name: 'googleAuditLogs', label: 'GoogleAuditLogs' },
+        { name: 'rescheduleLogs', label: 'RescheduleLogs' },
+        { name: 'emailTemplates', label: 'EmailTemplates' },
+        { name: 'graduationProjects', label: 'GraduationProjects' },
+        { name: 'graduationSubmissions', label: 'GraduationSubmissions' },
+        { name: 'graduationEvaluations', label: 'GraduationEvaluations' },
+        { name: 'graduationComments', label: 'GraduationComments' }
       ];
 
       const masterBackup: Record<string, any[]> = {};
@@ -101,7 +137,8 @@ const Exports: React.FC<{ user: User }> = ({ user }) => {
       }
 
       zip.file('system_restore_data.json', JSON.stringify({
-        version: '4.0',
+        version: '5.0',
+        projectId: 'sg-tms-v2',
         timestamp: now.toISOString(),
         backup: masterBackup
       }));
@@ -151,7 +188,14 @@ const Exports: React.FC<{ user: User }> = ({ user }) => {
       if (!restoreFile) throw new Error(lang === 'ar' ? 'ملف الاستعادة غير موجود.' : 'Restore JSON not found.');
 
       const jsonStr = await restoreFile.async('string');
-      const { backup } = JSON.parse(jsonStr);
+      const restorePackage = JSON.parse(jsonStr);
+      if (restorePackage.projectId && restorePackage.projectId !== 'sg-tms-v2') {
+        throw new Error(lang === 'ar' ? 'ملف النسخة الاحتياطية تابع لسيستم مختلف.' : 'This backup belongs to a different system.');
+      }
+      const { backup } = restorePackage;
+      if (!backup || typeof backup !== 'object') {
+        throw new Error(lang === 'ar' ? 'ملف النسخة الاحتياطية غير صالح.' : 'Invalid backup package.');
+      }
 
       for (const [collName, docs] of Object.entries(backup)) {
         setStatus(lang === 'ar' ? `جاري استعادة: ${collName}` : `Restoring: ${collName}`);

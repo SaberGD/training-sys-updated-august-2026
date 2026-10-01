@@ -477,7 +477,8 @@ html.light .sg-landing-logo {
   font-family: "Cairo", sans-serif;
   font-size: 15px;
   line-height: 1.9;
-  text-align: right;
+  direction: rtl;
+  text-align: left;
 }
 
 .sg-system-readout {
