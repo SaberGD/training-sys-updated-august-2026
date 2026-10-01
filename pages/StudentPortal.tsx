@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { formatTime12h, parseTimeToMinutes, COUNTRY_CODES, parsePhoneAndDetect, normalizePhoneNumber } from '../utils';
+import { calculateGraduationProjectScore, formatGraduationScore, formatTime12h, GRADUATION_PROJECT_MAX_SCORE, parseTimeToMinutes, COUNTRY_CODES, parsePhoneAndDetect, normalizePhoneNumber } from '../utils';
 import { sanitizeCredentials, sanitizeEmail, sanitizePhone, stripHiddenChars } from '../lib/textUtils';
 
 import { GemyChatWidget } from '../components/GemyChatWidget';
@@ -3223,8 +3223,13 @@ const StudentPortal: React.FC = () => {
                       </span>
                       <div className="flex items-center gap-3">
                         <span className="text-2xl font-black text-white">
-                          الدرجة الإجمالية: <span className="text-emerald-400" dir="rtl">{graduationEvaluation.totalScore} نقطة</span>
+                          الدرجة الأساسية: <span className="text-emerald-400" dir="ltr">{formatGraduationScore(calculateGraduationProjectScore(graduationEvaluation).baseScore)} / {GRADUATION_PROJECT_MAX_SCORE}</span>
                         </span>
+                        {calculateGraduationProjectScore(graduationEvaluation).bonusScore > 0 && (
+                          <span className="text-sm font-black text-amber-300">
+                            +{formatGraduationScore(calculateGraduationProjectScore(graduationEvaluation).bonusScore)} بونص
+                          </span>
+                        )}
                       </div>
                     </div>
                     <button
@@ -4682,10 +4687,17 @@ const StudentPortal: React.FC = () => {
 
             {/* Total score box */}
             <div className="bg-gradient-to-r from-emerald-950/40 to-[#0a0a0a] p-5 rounded-2xl border border-emerald-500/30 flex justify-between items-center">
-              <span className="text-sm font-black text-white">الدرجة الإجمالية لمشروع التخرج:</span>
-              <span className="text-3xl font-black text-emerald-400 whitespace-nowrap" dir="rtl">
-                {graduationEvaluation.totalScore} نقطة
-              </span>
+              <span className="text-sm font-black text-white">الدرجة الأساسية لمشروع التخرج:</span>
+              <div className="text-left">
+                <span className="text-3xl font-black text-emerald-400 whitespace-nowrap block" dir="ltr">
+                  {formatGraduationScore(calculateGraduationProjectScore(graduationEvaluation).baseScore)} / {GRADUATION_PROJECT_MAX_SCORE}
+                </span>
+                {calculateGraduationProjectScore(graduationEvaluation).bonusScore > 0 && (
+                  <span className="text-sm font-black text-amber-300 block mt-1">
+                    +{formatGraduationScore(calculateGraduationProjectScore(graduationEvaluation).bonusScore)} بونص
+                  </span>
+                )}
+              </div>
             </div>
 
             {/* Criteria Scores */}

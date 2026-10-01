@@ -3,6 +3,7 @@ import { where } from 'firebase/firestore';
 import { User, Group, Student, GroupRanking, GraduationProject, GraduationProjectSubmission, GraduationProjectEvaluation, GraduationProjectComment } from '../types';
 import { subscribeToCollection, saveGraduationProject, saveGraduationProjectEvaluation, saveGraduationProjectComment, deleteGraduationProjectComment, importGraduationProjectToGroups } from '../services/firestore';
 import { GraduationCap, Plus, Edit2, ExternalLink, Copy, CheckCircle2, XCircle, AlertCircle, Clock, Link as LinkIcon, MessageSquare, Trash2, Award, ChevronDown, Sparkles, AlertTriangle, ShieldCheck } from 'lucide-react';
+import { calculateGraduationProjectScore, formatGraduationScore, GRADUATION_PROJECT_MAX_SCORE } from '../utils';
 
 interface GroupGraduationProjectsTabProps {
   group: Group;
@@ -241,19 +242,10 @@ export const GroupGraduationProjectsTab: React.FC<GroupGraduationProjectsTabProp
   };
 
   // Computed Evaluation Total
-  const calculatedEvalTotal = useMemo(() => {
-    if (evalForm.isRejected) return 0;
-    const base = 
-      Number(evalForm.c1_submission) +
-      Number(evalForm.c2_noPixelatedNoSizeErr) +
-      Number(evalForm.c3_typography) +
-      Number(evalForm.c4_aiUsage) +
-      Number(evalForm.c5_reference) +
-      Number(evalForm.c6_completeFilesOpenLinks);
-    
-    const final = base + Number(evalForm.bonusPoints || 0) - Number(evalForm.deductionPoints || 0);
-    return Math.max(0, final);
-  }, [evalForm]);
+  const calculatedEvalScore = useMemo(
+    () => calculateGraduationProjectScore(evalForm),
+    [evalForm]
+  );
 
   // Save Evaluation
   const handleSaveEvaluation = async (e: React.FormEvent) => {
@@ -289,7 +281,7 @@ export const GroupGraduationProjectsTab: React.FC<GroupGraduationProjectsTabProp
         isExtraWorkshopsEligible: evalForm.isExtraWorkshopsEligible,
         isRejected: evalForm.isRejected,
         rejectionReason: evalForm.rejectionReason.trim(),
-        totalScore: calculatedEvalTotal
+        totalScore: calculatedEvalScore.totalScore
       }, user);
 
       setEvaluatingStudent(null);
@@ -397,7 +389,7 @@ export const GroupGraduationProjectsTab: React.FC<GroupGraduationProjectsTabProp
       } else if (sortMode === 'name') {
         return a.name.localeCompare(b.name, 'ar');
       } else if (sortMode === 'score') {
-        return (b.evaluation?.totalScore || 0) - (a.evaluation?.totalScore || 0);
+        return calculateGraduationProjectScore(b.evaluation || {}).totalScore - calculateGraduationProjectScore(a.evaluation || {}).totalScore;
       }
       return 0;
     });
@@ -739,8 +731,13 @@ export const GroupGraduationProjectsTab: React.FC<GroupGraduationProjectsTabProp
                           ) : (
                             <div className="inline-flex flex-col items-center">
                               <span className="px-3 py-1 rounded-xl text-xs font-black bg-indigo-500/20 text-indigo-300 border border-indigo-500/40">
-                                {evalObj.totalScore} نقطة ⭐
+                                {formatGraduationScore(calculateGraduationProjectScore(evalObj).baseScore)} / {GRADUATION_PROJECT_MAX_SCORE}
                               </span>
+                              {calculateGraduationProjectScore(evalObj).bonusScore > 0 && (
+                                <span className="text-[10px] text-amber-300 font-black mt-1">
+                                  +{formatGraduationScore(calculateGraduationProjectScore(evalObj).bonusScore)} بونص
+                                </span>
+                              )}
                               {evalObj.isExtraWorkshopsEligible && (
                                 <span className="text-[9px] text-emerald-400 font-bold mt-0.5">
                                   ✓ مؤهل للورش الإضافية
@@ -1024,7 +1021,7 @@ export const GroupGraduationProjectsTab: React.FC<GroupGraduationProjectsTabProp
               {!evalForm.isRejected && (
                 <div className="space-y-4">
                   <span className="text-xs font-black text-slate-300 block border-b border-slate-800 pb-2">
-                    معايير التقييم الأساسية (نقطتان لكل معيار - الإجمالي 12):
+                    معايير التقييم الخام (نقطتان لكل معيار، وتُحوّل النتيجة إلى 20 درجة أساسية):
                   </span>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1184,10 +1181,17 @@ export const GroupGraduationProjectsTab: React.FC<GroupGraduationProjectsTabProp
 
                   {/* Final Points Summary Badge */}
                   <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 flex justify-between items-center">
-                    <span className="text-xs font-black text-slate-300">إجمالي النقاط النهائية لمشروع التخرج:</span>
-                    <span className="text-lg font-black text-emerald-400 font-mono">
-                      {calculatedEvalTotal} نقطة
-                    </span>
+                    <span className="text-xs font-black text-slate-300">نتيجة مشروع التخرج:</span>
+                    <div className="text-left">
+                      <span className="text-lg font-black text-emerald-400 font-mono block" dir="ltr">
+                        {formatGraduationScore(calculatedEvalScore.baseScore)} / {GRADUATION_PROJECT_MAX_SCORE}
+                      </span>
+                      {calculatedEvalScore.bonusScore > 0 && (
+                        <span className="text-xs font-black text-amber-300 block mt-1">
+                          +{formatGraduationScore(calculatedEvalScore.bonusScore)} بونص
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
               )}

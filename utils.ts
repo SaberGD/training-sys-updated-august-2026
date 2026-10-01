@@ -290,3 +290,50 @@ export function parsePhoneAndDetect(raw: string): ParsedPhone {
   // Default fallback
   return { countryCode: '+20', localNumber: cleaned };
 }
+
+export const GRADUATION_PROJECT_RAW_MAX_SCORE = 12;
+export const GRADUATION_PROJECT_MAX_SCORE = 20;
+
+type GraduationScoreInput = {
+  c1_submission?: number;
+  c2_noPixelatedNoSizeErr?: number;
+  c3_typography?: number;
+  c4_aiUsage?: number;
+  c5_reference?: number;
+  c6_completeFilesOpenLinks?: number;
+  bonusPoints?: number;
+  deductionPoints?: number;
+  isRejected?: boolean;
+};
+
+const roundGraduationScore = (value: number) => Math.round(value * 10) / 10;
+
+export const calculateGraduationProjectScore = (evaluation: GraduationScoreInput) => {
+  if (evaluation.isRejected) {
+    return { rawScore: 0, baseScore: 0, bonusScore: 0, totalScore: 0 };
+  }
+
+  const rawScore = [
+    evaluation.c1_submission,
+    evaluation.c2_noPixelatedNoSizeErr,
+    evaluation.c3_typography,
+    evaluation.c4_aiUsage,
+    evaluation.c5_reference,
+    evaluation.c6_completeFilesOpenLinks
+  ].reduce((sum, score) => sum + Number(score || 0), 0);
+
+  const normalizedBase = (rawScore / GRADUATION_PROJECT_RAW_MAX_SCORE) * GRADUATION_PROJECT_MAX_SCORE;
+  const deduction = Math.max(0, Number(evaluation.deductionPoints || 0));
+  const baseScore = roundGraduationScore(Math.max(0, Math.min(GRADUATION_PROJECT_MAX_SCORE, normalizedBase - deduction)));
+  const bonusScore = roundGraduationScore(Math.max(0, Number(evaluation.bonusPoints || 0)));
+
+  return {
+    rawScore,
+    baseScore,
+    bonusScore,
+    totalScore: roundGraduationScore(baseScore + bonusScore)
+  };
+};
+
+export const formatGraduationScore = (score: number) =>
+  Number.isInteger(score) ? String(score) : score.toFixed(1);
