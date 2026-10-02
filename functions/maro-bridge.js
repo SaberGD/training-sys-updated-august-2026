@@ -4,6 +4,7 @@ const crypto = require("crypto");
 
 const STAFF_ROLES = new Set(["admin", "supervisor", "coordinator", "team_leader", "trainer"]);
 const DEFAULT_SYNC_URL = "https://ai.sabergroupacademy.com/api/training-sync.php";
+const DEFAULT_RECONCILE_URL = "https://ai.sabergroupacademy.com/api/account-source-reconcile.php";
 const OWNER_EMAIL = "saber.gd.fl@gmail.com";
 
 function translateDigits(value) {
@@ -143,14 +144,19 @@ async function buildStudentProfile(db, initialDocs) {
   if (docs.length === 0) return null;
 
   const records = docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-  const primary = records.find((record) => !record.deactivated) || records[0];
+  const isPortalEligible = (record) => (
+    record.deactivated !== true &&
+    record.permanentDeactivation !== true &&
+    record.is50PercentPaid !== false
+  );
+  const primary = records.find(isPortalEligible) || records.find((record) => !record.deactivated) || records[0];
   const groupIds = records.map((record) => record.groupId).filter(Boolean);
   const groups = await loadGroups(db, groupIds);
-  const allDeactivated = records.every((record) => record.deactivated === true || record.permanentDeactivation === true);
+  const hasPortalEligibleRecord = records.some(isPortalEligible);
   const hasActiveGroup = groups.some((group) => !isArchivedGroup(group));
 
   let lifecycleStage = "alumni";
-  if (allDeactivated) lifecycleStage = "suspended";
+  if (!hasPortalEligibleRecord) lifecycleStage = "suspended";
   else if (hasActiveGroup) lifecycleStage = "current_student";
 
   const loginId = String(primary.studentIdNum || "").trim();
@@ -302,6 +308,35 @@ async function deliverProfile(profile, bridgeKey) {
   return { delivered: response.ok, status: response.status };
 }
 
+async function reconcileMaroAccounts(profiles, bridgeKey, action = "preview") {
+  if (!bridgeKey) throw new Error("MARO_BRIDGE_KEY is missing");
+  const allowedIdentityIds = Array.from(new Set(
+    profiles
+      .filter((profile) => profile?.active && String(profile.identityId || "").startsWith("training-"))
+      .map((profile) => profile.identityId),
+  ));
+  if (allowedIdentityIds.length === 0) throw new Error("Training allowlist is empty");
+
+  const apply = action === "apply";
+  const response = await fetch(process.env.MARO_RECONCILE_URL || DEFAULT_RECONCILE_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Maro-Bridge-Key": bridgeKey,
+    },
+    body: JSON.stringify({
+      action: apply ? "apply" : "preview",
+      confirm: apply ? "DELETE_NON_TRAINING_ACCOUNTS" : undefined,
+      allowedIdentityIds,
+    }),
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok || payload.ok !== true) {
+    throw new Error(`Maro account reconciliation failed (${response.status})`);
+  }
+  return payload;
+}
+
 async function queueAndDeliverProfile(db, profile, bridgeKey) {
   const ref = db.collection("maro_sync_outbox").doc(profile.identityId);
   await ref.set({
@@ -423,7 +458,7 @@ function buildStudentClusters(studentDocs) {
   return Array.from(clusters.values());
 }
 
-async function runMigration(db, admin, bridgeKey, { deliver = false } = {}) {
+async function runMigration(db, admin, bridgeKey, { deliver = false, accountReconciliation = "none" } = {}) {
   const startedAt = new Date();
   const runId = `migration_${startedAt.toISOString().replace(/[^0-9]/g, "").slice(0, 14)}`;
   const [studentSnapshot, staffSnapshot] = await Promise.all([
@@ -475,10 +510,12 @@ async function runMigration(db, admin, bridgeKey, { deliver = false } = {}) {
   }
 
   const allProfiles = [...profiles, ...staffProfiles];
+  const activeProfiles = allProfiles.filter((profile) => profile.active);
   const delivery = { requested: deliver, delivered: 0, pending: 0 };
   if (deliver) {
-    for (let index = 0; index < allProfiles.length; index += 5) {
-      await Promise.all(allProfiles.slice(index, index + 5).map(async (profile) => {
+    const deliveryProfiles = accountReconciliation === "apply" ? activeProfiles : allProfiles;
+    for (let index = 0; index < deliveryProfiles.length; index += 5) {
+      await Promise.all(deliveryProfiles.slice(index, index + 5).map(async (profile) => {
         await queueAndDeliverProfile(db, profile, bridgeKey);
         const outbox = await db.collection("maro_sync_outbox").doc(profile.identityId).get();
         if (outbox.data()?.status === "delivered") delivery.delivered += 1;
@@ -486,10 +523,18 @@ async function runMigration(db, admin, bridgeKey, { deliver = false } = {}) {
       }));
     }
   }
+  if (accountReconciliation === "apply" && delivery.pending > 0) {
+    throw new Error(`Refusing cleanup because ${delivery.pending} Training profiles were not delivered`);
+  }
+
+  let accountCleanup = null;
+  if (accountReconciliation !== "none") {
+    accountCleanup = await reconcileMaroAccounts(activeProfiles, bridgeKey, accountReconciliation);
+  }
 
   const report = {
     runId,
-    mode: deliver ? "migrate" : "audit",
+    mode: accountReconciliation !== "none" ? `reconcile_${accountReconciliation}` : (deliver ? "migrate" : "audit"),
     startedAt: startedAt.toISOString(),
     finishedAt: new Date().toISOString(),
     students: {
@@ -504,6 +549,7 @@ async function runMigration(db, admin, bridgeKey, { deliver = false } = {}) {
       skipped: skippedStaff,
     },
     delivery,
+    accountCleanup,
   };
   await db.collection("maro_migration_runs").doc(runId).set(report);
   return report;
@@ -516,9 +562,15 @@ async function migrationHandler(req, res, context) {
   if (!safeEqual(req.get("x-maro-bridge-key") || "", context.bridgeKey)) {
     return res.status(401).json({ error: "UNAUTHORIZED" });
   }
-  const action = req.body?.action === "migrate" ? "migrate" : "audit";
+  const requestedAction = String(req.body?.action || "audit");
+  const action = ["audit", "migrate", "reconcile_preview", "reconcile_apply"].includes(requestedAction)
+    ? requestedAction
+    : "audit";
   try {
-    const report = await runMigration(context.db, context.admin, context.bridgeKey, { deliver: action === "migrate" });
+    const report = await runMigration(context.db, context.admin, context.bridgeKey, {
+      deliver: action === "migrate" || action === "reconcile_apply",
+      accountReconciliation: action === "reconcile_apply" ? "apply" : (action === "reconcile_preview" ? "preview" : "none"),
+    });
     return res.json({ ok: true, report });
   } catch (error) {
     console.error("Maro migration failed", error);
@@ -530,6 +582,7 @@ module.exports = {
   authenticate,
   migrationHandler,
   reconcile,
+  reconcileMaroAccounts,
   runMigration,
   syncGroupStudents,
   syncStaffById,

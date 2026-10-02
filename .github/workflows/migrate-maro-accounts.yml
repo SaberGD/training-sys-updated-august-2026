@@ -4,13 +4,15 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: Audit only, or migrate all Training students and staff to MARO
+        description: Audit, sync, preview cleanup, or apply Training-only cleanup
         required: true
         type: choice
         default: audit
         options:
           - audit
           - migrate
+          - reconcile_preview
+          - reconcile_apply
 
 jobs:
   migrate:
