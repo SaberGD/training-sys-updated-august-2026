@@ -468,7 +468,7 @@ async function runMigration(db, admin, bridgeKey, { deliver = false, accountReco
   const clusters = buildStudentClusters(studentSnapshot.docs);
   const duplicateStudentClusters = clusters
     .filter((cluster) => cluster.length > 1)
-    .map((cluster) => cluster.map((doc) => doc.id));
+    .map((cluster) => ({ documentIds: cluster.map((doc) => doc.id) }));
   const invalidStudents = [];
   const profiles = [];
   const seenProfiles = new Set();
@@ -482,7 +482,7 @@ async function runMigration(db, admin, bridgeKey, { deliver = false, accountReco
         normalizePhone(data.phone || data.whatsapp || ""),
       );
       if (!hasIdentity) {
-        invalidStudents.push(cluster.map((doc) => doc.id));
+        invalidStudents.push({ documentIds: cluster.map((doc) => doc.id) });
         return;
       }
       const profile = await buildStudentProfile(db, cluster);
