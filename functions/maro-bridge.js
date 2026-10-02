@@ -297,13 +297,15 @@ async function authenticate(req, res, context) {
 
 async function deliverProfile(profile, bridgeKey) {
   if (!bridgeKey) return { delivered: false, status: 0 };
+  const encodedProfile = Buffer.from(JSON.stringify(profile), "utf8").toString("base64");
   const response = await fetch(process.env.MARO_SYNC_URL || DEFAULT_SYNC_URL, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       "X-Maro-Bridge-Key": bridgeKey,
     },
-    body: JSON.stringify({ profile }),
+    // Hostinger's edge WAF can reject nested entitlement arrays before PHP runs.
+    body: JSON.stringify({ profileB64: encodedProfile }),
   });
   return { delivered: response.ok, status: response.status };
 }
