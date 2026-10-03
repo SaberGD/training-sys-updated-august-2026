@@ -2,7 +2,7 @@
 import * as firestore from 'firebase/firestore';
 import { db } from '../firebase';
 import { getApiEndpoint } from '../lib/apiConfig';
-import { normalizePhoneNumber } from '../utils';
+import { normalizePhoneNumber, computeEvaluationTotal, mergeLectureEvaluations } from '../utils';
 import { 
   User, UserRole, Group, Course, Student, Session, 
   LectureEvaluation, FinalProject, Penalty, GroupRanking, Attendance, ActivityLog,
@@ -933,23 +933,9 @@ export const recalculateStudentRanking = async (groupId: string, studentId: stri
     ]);
     
     const rawEvals = evalSnap.docs.map((d: any) => d.data() as LectureEvaluation);
-    const uniqueEvalsMap = new Map<number, LectureEvaluation>();
-    for (const ev of rawEvals) {
-      if (ev.sessionNumber === undefined || ev.sessionNumber === null) continue;
-      const existing = uniqueEvalsMap.get(ev.sessionNumber);
-      if (!existing) {
-        uniqueEvalsMap.set(ev.sessionNumber, ev);
-      } else {
-        const merged = { ...existing, ...ev };
-        if (existing.attendance === 1 || ev.attendance === 1) {
-          merged.attendance = 1;
-        }
-        merged.total = Math.max(existing.total || 0, ev.total || 0);
-        uniqueEvalsMap.set(ev.sessionNumber, merged);
-      }
-    }
+    const uniqueEvals = mergeLectureEvaluations<LectureEvaluation>(rawEvals, ev => ev.sessionNumber);
     
-    const lectureTotal = Array.from(uniqueEvalsMap.values()).reduce((sum: number, ev: any) => sum + (ev.total || 0), 0);
+    const lectureTotal = uniqueEvals.reduce((sum: number, ev: any) => sum + (ev.total || 0), 0);
     const projectScore = projectDoc?.score || 0;
     const penaltiesTotal = penaltySnap.docs.reduce((sum: number, d: any) => sum + (d.data().points || 0), 0);
     const finalScore = lectureTotal + projectScore - penaltiesTotal;
@@ -969,15 +955,17 @@ export const batchSaveEvaluations = async (evals: Partial<LectureEvaluation>[]) 
 
   for (const ev of evals) {
     if (!ev.groupId || !ev.studentId || !ev.sessionNumber) throw new Error("Missing metadata.");
-    const docId = (ev as any).sessionId 
+    // Update the doc the lecture's evaluation already lives in, so a second
+    // doc (with a stale score) is never created for the same lecture.
+    const rawId = (ev as any).id;
+    const existingId = typeof rawId === 'string' && rawId.startsWith(`${ev.groupId}_`) && rawId.endsWith(`_${ev.studentId}`)
+      ? rawId
+      : null;
+    const docId = existingId || ((ev as any).sessionId 
       ? `${ev.groupId}_${(ev as any).sessionId}_${ev.studentId}`
-      : `${ev.groupId}_session_${ev.sessionNumber}_${ev.studentId}`;
+      : `${ev.groupId}_session_${ev.sessionNumber}_${ev.studentId}`);
     
-    const total = (ev.attendance || 0) + (ev.bonus || 0) + (
-      ev.taskNotSubmittedPenalty 
-        ? -1 
-        : ((ev.taskDelivered || 0) + (ev.taskOnTime || 0) + (ev.taskQuality || 0) + (ev.taskRedo || 0))
-    );
+    const total = computeEvaluationTotal(ev);
     const ref = doc(db, 'lectureEvaluations', docId);
     batch.set(ref, { ...ev, total, updatedAt: serverTimestamp() }, { merge: true });
     studentIds.add(ev.studentId!);
@@ -3380,6 +3368,7 @@ export const markStudentAttendanceSelf = async (groupId: string, studentId: stri
     evaluatorId: 'student_self', // student self-marked
     updatedAt: serverTimestamp()
   };
+  updatedEval.total = computeEvaluationTotal(updatedEval);
 
   const targetId = existingEval?.id || (sessionId 
     ? `${groupId}_${sessionId}_${studentId}`

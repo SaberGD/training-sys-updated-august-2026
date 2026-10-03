@@ -337,3 +337,46 @@ export const calculateGraduationProjectScore = (evaluation: GraduationScoreInput
 
 export const formatGraduationScore = (score: number) =>
   Number.isInteger(score) ? String(score) : score.toFixed(1);
+
+/**
+ * Score of one lecture evaluation, computed from its criteria so the shown
+ * number never depends on a stale stored `total`.
+ */
+export function computeEvaluationTotal(ev: any): number {
+  if (!ev) return 0;
+  const task = ev.taskNotSubmittedPenalty
+    ? -1
+    : (ev.taskDelivered || 0) + (ev.taskOnTime || 0) + (ev.taskQuality || 0) + (ev.taskRedo || 0);
+  return (ev.attendance || 0) + (ev.bonus || 0) + task;
+}
+
+function evaluationUpdatedAtMs(ev: any): number {
+  const t = ev?.updatedAt;
+  // A pending local write has no server timestamp yet: it is the newest one.
+  if (t === null) return Number.MAX_SAFE_INTEGER;
+  if (!t) return 0;
+  if (typeof t.toMillis === 'function') return t.toMillis();
+  if (typeof t.seconds === 'number') return t.seconds * 1000;
+  const parsed = Date.parse(t);
+  return Number.isNaN(parsed) ? 0 : parsed;
+}
+
+/**
+ * A student can have more than one evaluation doc for the same lecture
+ * (e.g. a legacy `_session_N_` id next to the `_<sessionId>_` id). Merge them
+ * by `keyOf`, letting the most recently updated doc win (attendance stays 1 if
+ * any doc has it), and recompute `total` from the merged criteria.
+ */
+export function mergeLectureEvaluations<T>(evals: T[], keyOf: (ev: T) => string | number | null | undefined): T[] {
+  const sorted = [...evals].sort((a, b) => evaluationUpdatedAtMs(a) - evaluationUpdatedAtMs(b));
+  const byKey = new Map<string | number, any>();
+  for (const ev of sorted as any[]) {
+    const key = keyOf(ev);
+    if (key === null || key === undefined) continue;
+    const existing = byKey.get(key);
+    const merged = existing ? { ...existing, ...ev } : { ...ev };
+    if (existing?.attendance === 1 || ev.attendance === 1) merged.attendance = 1;
+    byKey.set(key, merged);
+  }
+  return Array.from(byKey.values()).map(ev => ({ ...ev, total: computeEvaluationTotal(ev) })) as T[];
+}

@@ -38,7 +38,7 @@ import StudentStatusModal from '../components/StudentStatusModal';
 import BulkStudentsImportModal from '../components/BulkStudentsImportModal';
 import { GroupGraduationProjectsTab } from '../components/GroupGraduationProjectsTab';
 import { TrainerBroadcastEmailModal } from '../components/TrainerBroadcastEmailModal';
-import { formatTime12h, parseTimeToMinutes, normalizePhoneNumber } from '../utils';
+import { formatTime12h, parseTimeToMinutes, normalizePhoneNumber, mergeLectureEvaluations, computeEvaluationTotal } from '../utils';
 import { useLanguage } from '../contexts/LanguageContext';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -1160,23 +1160,12 @@ const GroupDetails: React.FC<{ user: User }> = ({ user }) => {
     }, [where('groupId', '==', groupId)]);
 
     const unsubEvals = subscribeToCollection<LectureEvaluation>('lectureEvaluations', (data) => {
-      // Deduplicate to prevent duplicate entries from multiple scans/manual creations
-      const uniqueEvalsMap = new Map<string, LectureEvaluation>();
-      for (const ev of data) {
-        if (ev.studentId === undefined || ev.sessionNumber === undefined) continue;
-        const key = `${ev.studentId}_${ev.sessionNumber}`;
-        const existing = uniqueEvalsMap.get(key);
-        if (!existing) {
-          uniqueEvalsMap.set(key, ev);
-        } else {
-          const merged = { ...existing, ...ev };
-          if (existing.attendance === 1 || ev.attendance === 1) {
-            merged.attendance = 1;
-          }
-          uniqueEvalsMap.set(key, merged);
-        }
-      }
-      setEvaluations(Array.from(uniqueEvalsMap.values()));
+      // Deduplicate to prevent duplicate entries from multiple scans/manual creations.
+      // The newest doc wins and the score is recomputed, so the grid never shows
+      // a stale duplicate's points.
+      setEvaluations(mergeLectureEvaluations(data, ev =>
+        ev.studentId === undefined || ev.sessionNumber === undefined ? null : `${ev.studentId}_${ev.sessionNumber}`
+      ));
     }, [where('groupId', '==', groupId)]);
     const unsubFollowUps = subscribeToCollection<StudentFollowUp>('studentFollowUps', setStudentFollowUps, [where('groupId', '==', groupId)]);
     const unsubExemptions = subscribeToCollection<FollowUpSuggestionExemption>('followUpSuggestionExemptions', setSuggestionExemptions, [where('groupId', '==', groupId)]);
@@ -3763,9 +3752,9 @@ const GroupDetails: React.FC<{ user: User }> = ({ user }) => {
 
                               {/* Column 8: Total Score for this lecture */}
                               <div className={`w-8 h-8 rounded-xl bg-slate-950 border flex items-center justify-center mx-auto text-[11px] font-black ${
-                                (evalData.total || 0) < 0 ? 'border-red-900/50 text-red-400 bg-red-950/20' : 'border-blue-900/30 text-blue-400'
+                                computeEvaluationTotal(evalData) < 0 ? 'border-red-900/50 text-red-400 bg-red-950/20' : 'border-blue-900/30 text-blue-400'
                               }`}>
-                                {evalData.total || 0}
+                                {computeEvaluationTotal(evalData)}
                               </div>
                             </div>
                           </div>

@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { calculateGraduationProjectScore, formatGraduationScore, formatTime12h, GRADUATION_PROJECT_MAX_SCORE, parseTimeToMinutes, COUNTRY_CODES, parsePhoneAndDetect, normalizePhoneNumber } from '../utils';
+import { calculateGraduationProjectScore, formatGraduationScore, formatTime12h, GRADUATION_PROJECT_MAX_SCORE, parseTimeToMinutes, COUNTRY_CODES, parsePhoneAndDetect, normalizePhoneNumber, mergeLectureEvaluations } from '../utils';
 import { sanitizeCredentials, sanitizeEmail, sanitizePhone, stripHiddenChars } from '../lib/textUtils';
 
 import { GemyChatWidget } from '../components/GemyChatWidget';
@@ -842,21 +842,7 @@ const StudentPortal: React.FC = () => {
       const qEvals = query(collection(db, 'lectureEvaluations'), where('studentId', '==', activeStudent.id));
       const evSnap = await getDocs(qEvals);
       const rawEvals = evSnap.docs.map((d: any) => d.data() as LectureEvaluation);
-      const uniqueEvalsMap = new Map<number, LectureEvaluation>();
-      for (const ev of rawEvals) {
-        if (ev.sessionNumber === undefined || ev.sessionNumber === null) continue;
-        const existing = uniqueEvalsMap.get(ev.sessionNumber);
-        if (!existing) {
-          uniqueEvalsMap.set(ev.sessionNumber, ev);
-        } else {
-          const merged = { ...existing, ...ev };
-          if (existing.attendance === 1 || ev.attendance === 1) {
-            merged.attendance = 1;
-          }
-          uniqueEvalsMap.set(ev.sessionNumber, merged);
-        }
-      }
-      setEvaluations(Array.from(uniqueEvalsMap.values()));
+      setEvaluations(mergeLectureEvaluations<LectureEvaluation>(rawEvals, ev => ev.sessionNumber));
 
       const qPen = query(collection(db, 'penalties'), where('studentId', '==', activeStudent.id));
       const penSnap = await getDocs(qPen);
@@ -1399,21 +1385,7 @@ const StudentPortal: React.FC = () => {
       const qEvals = query(collection(db, 'lectureEvaluations'), where('studentId', '==', student.id));
       const evSnap = await getDocs(qEvals);
       const rawEvals = evSnap.docs.map((d: any) => d.data() as LectureEvaluation);
-      const uniqueEvalsMap = new Map<number, LectureEvaluation>();
-      for (const ev of rawEvals) {
-        if (ev.sessionNumber === undefined || ev.sessionNumber === null) continue;
-        const existing = uniqueEvalsMap.get(ev.sessionNumber);
-        if (!existing) {
-          uniqueEvalsMap.set(ev.sessionNumber, ev);
-        } else {
-          const merged = { ...existing, ...ev };
-          if (existing.attendance === 1 || ev.attendance === 1) {
-            merged.attendance = 1;
-          }
-          uniqueEvalsMap.set(ev.sessionNumber, merged);
-        }
-      }
-      setEvaluations(Array.from(uniqueEvalsMap.values()));
+      setEvaluations(mergeLectureEvaluations<LectureEvaluation>(rawEvals, ev => ev.sessionNumber));
 
       const qRanks = query(collection(db, 'groupRankings'), where('groupId', '==', activeGId));
       const rankSnap = await getDocs(qRanks);
