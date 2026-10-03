@@ -20,7 +20,9 @@ if (!admin.apps.length) {
 
 const db = admin.firestore();
 const maroBridge = require("./maro-bridge");
+const accountingSync = require("./accounting-sync");
 const MARO_BRIDGE_KEY = defineSecret("MARO_BRIDGE_KEY");
+const ACCOUNTING_SYNC_KEY = defineSecret("ACCOUNTING_SYNC_KEY");
 const TRAINING_FIREBASE_WEB_API_KEY = defineSecret("TRAINING_FIREBASE_WEB_API_KEY");
 const GOOGLE_CLIENT_ID = defineSecret("SG_GOOGLE_CLIENT_ID");
 const GOOGLE_CLIENT_SECRET = defineSecret("SG_GOOGLE_CLIENT_SECRET");
@@ -1444,6 +1446,17 @@ exports.maroBridgeAuth = onRequest({
   db,
   bridgeKey: MARO_BRIDGE_KEY.value(),
   webApiKey: TRAINING_FIREBASE_WEB_API_KEY.value(),
+}));
+
+// Accounting -> Training portal access sync (see accounting-sync.js).
+exports.accountingSync = onRequest({
+  cors: false,
+  timeoutSeconds: 120,
+  secrets: [ACCOUNTING_SYNC_KEY],
+}, (req, res) => accountingSync.handler(req, res, {
+  admin,
+  db,
+  syncKey: ACCOUNTING_SYNC_KEY.value(),
 }));
 
 exports.maroMigration = onRequest({

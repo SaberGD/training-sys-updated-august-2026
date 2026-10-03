@@ -117,6 +117,29 @@ jobs:
           echo "::add-mask::$selected_key"
           printf '%s' "$selected_key" | firebase functions:secrets:set SG_GEMINI_API_KEY --data-file=- --project sg-tms-v2 --force
 
+      # Shared key for the accounting -> training access sync (accountingSync).
+      # The function needs the secret to exist, so when the GitHub secret is not
+      # configured yet a random placeholder is created instead of failing the
+      # deploy; the endpoint then rejects every call until the real key is set.
+      - name: Configure accounting sync secret
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+          ACCOUNTING_SYNC_KEY: ${{ secrets.ACCOUNTING_SYNC_KEY }}
+        run: |
+          if [ -n "$ACCOUNTING_SYNC_KEY" ]; then
+            CURRENT=$(firebase functions:secrets:access ACCOUNTING_SYNC_KEY --project sg-tms-v2 2>/dev/null || true)
+            if [ "$CURRENT" != "$ACCOUNTING_SYNC_KEY" ]; then
+              printf '%s' "$ACCOUNTING_SYNC_KEY" | firebase functions:secrets:set ACCOUNTING_SYNC_KEY --data-file=- --project sg-tms-v2 --force
+            else
+              echo "ACCOUNTING_SYNC_KEY is already up to date."
+            fi
+          elif firebase functions:secrets:access ACCOUNTING_SYNC_KEY --project sg-tms-v2 >/dev/null 2>&1; then
+            echo "::warning::ACCOUNTING_SYNC_KEY GitHub secret is missing; keeping the existing Firebase secret."
+          else
+            echo "::warning::ACCOUNTING_SYNC_KEY GitHub secret is missing; creating a placeholder so the deploy continues (sync stays inactive)."
+            openssl rand -hex 32 | tr -d '\n' | firebase functions:secrets:set ACCOUNTING_SYNC_KEY --data-file=- --project sg-tms-v2 --force
+          fi
+
       - name: Deploy Cloud Functions & Firestore Rules to Firebase
         run: firebase deploy --only functions,firestore:rules --force --project sg-tms-v2
         env:
