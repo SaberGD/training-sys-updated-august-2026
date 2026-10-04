@@ -132,11 +132,15 @@ function studentEntitlements(stage) {
   return [];
 }
 
-function staffEntitlements() {
-  return [
+function staffEntitlements(sourceRole) {
+  const entitlements = [
     "chat", "trainer_maro", "technical_help", "creative_block", "design_review",
     "prompt_studio", "image_to_prompt", "learn_from_design", "generate_brief",
   ];
+  if (["admin", "supervisor", "coordinator", "team_leader"].includes(sourceRole)) {
+    entitlements.push("sales_copilot");
+  }
+  return entitlements;
 }
 
 async function buildStudentProfile(db, initialDocs) {
@@ -209,7 +213,7 @@ function buildStaffProfile(doc, authUser) {
     groupNames: [],
     courseIds: [],
     courseNames: [],
-    entitlements: staffEntitlements(),
+    entitlements: staffEntitlements(sourceRole),
     syncedAt: new Date().toISOString(),
   };
 }
