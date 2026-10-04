@@ -39,6 +39,7 @@ import BulkStudentsImportModal from '../components/BulkStudentsImportModal';
 import { GroupGraduationProjectsTab } from '../components/GroupGraduationProjectsTab';
 import { TrainerBroadcastEmailModal } from '../components/TrainerBroadcastEmailModal';
 import { formatTime12h, parseTimeToMinutes, normalizePhoneNumber, mergeLectureEvaluations, computeEvaluationTotal } from '../utils';
+import { useStudentFinancials, StudentFinancialsBadge } from '../components/StudentFinancialsBadge';
 import { useLanguage } from '../contexts/LanguageContext';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -1058,6 +1059,11 @@ const GroupDetails: React.FC<{ user: User }> = ({ user }) => {
     const percent = total > 0 ? Math.round((loggedIn / total) * 100) : 0;
     return { total, loggedIn, notLoggedIn, percent };
   }, [students]);
+
+  // Booking price / paid amount synced from accounting (management only,
+  // behind "show sensitive data").
+  const groupStudentIds = useMemo(() => students.map(st => st.id), [students]);
+  const { enabled: showFinancials, financials } = useStudentFinancials(groupStudentIds, user.role);
 
   const processedStudents = useMemo(() => {
     let result = [...students].map(s => {
@@ -5798,6 +5804,7 @@ const GroupDetails: React.FC<{ user: User }> = ({ user }) => {
                             <span>{copiedCredentialsId === s.id ? 'تم' : 'نسخ الدخول'}</span>
                           </button>
                         </div>
+                        {showFinancials && <StudentFinancialsBadge financials={financials[s.id]} />}
                         
                         <div className="mt-2 flex items-center gap-1.5 flex-wrap">
                           {s.tasksLink ? (
