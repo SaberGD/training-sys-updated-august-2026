@@ -65,7 +65,13 @@ function cleanState(raw) {
     eligible: raw.eligible === true,
     paidPercentage: Number.isFinite(raw.paidPercentage) ? raw.paidPercentage : null,
     reason: typeof raw.reason === "string" ? raw.reason.trim().slice(0, 500) : "",
+    totalPrice: money(raw.totalPrice),
+    paidTotal: money(raw.paidTotal),
   };
+}
+
+function money(v) {
+  return typeof v === "number" && Number.isFinite(v) && v >= 0 && v < 1e9 ? Math.round(v * 100) / 100 : null;
 }
 
 // Stable fingerprint of what accounting says, stored on the student when the
@@ -217,11 +223,69 @@ async function findStudents(db, bookingIds) {
   return byBooking;
 }
 
+/**
+ * Price / paid amounts per student, kept in `studentFinancials/{studentDocId}`
+ * (staff-only, never in the publicly readable `students` docs). Written in both
+ * event and reconcile mode since it does not change access; only changed docs
+ * are written.
+ */
+async function syncFinancials(admin, db, states, byBooking) {
+  const targets = [];
+  for (const state of states) {
+    if (state.totalPrice === null || state.paidTotal === null) continue;
+    for (const docSnap of byBooking.get(state.bookingId) || []) {
+      targets.push({ ref: db.collection("studentFinancials").doc(docSnap.id), student: docSnap, state });
+    }
+  }
+  if (!targets.length) return 0;
+
+  const existing = new Map();
+  for (let i = 0; i < targets.length; i += 300) {
+    const snaps = await db.getAll(...targets.slice(i, i + 300).map((t) => t.ref));
+    snaps.forEach((snap) => existing.set(snap.id, snap.exists ? snap.data() : null));
+  }
+
+  let written = 0;
+  let batch = db.batch();
+  let pending = 0;
+  for (const t of targets) {
+    const prev = existing.get(t.ref.id);
+    const remaining = Math.max(0, Math.round((t.state.totalPrice - t.state.paidTotal) * 100) / 100);
+    const data = {
+      studentId: t.student.id,
+      groupId: t.student.get("groupId") || null,
+      sourceBookingId: t.state.bookingId,
+      totalPrice: t.state.totalPrice,
+      paidTotal: t.state.paidTotal,
+      remaining,
+      paidPercentage: t.state.paidPercentage,
+      bookingStatus: t.state.status,
+    };
+    if (prev && Object.keys(data).every((k) => prev[k] === data[k])) continue;
+    batch.set(t.ref, { ...data, currency: "EGP", updatedAt: admin.firestore.FieldValue.serverTimestamp() });
+    written++;
+    if (++pending === 400) {
+      await batch.commit();
+      batch = db.batch();
+      pending = 0;
+    }
+  }
+  if (pending) await batch.commit();
+  return written;
+}
+
 async function processStates(admin, db, states, mode, settings) {
   const now = new Date().toISOString();
   const applyChanges = mode === "event" || settings.reconcileMode === "apply";
   const byBooking = await findStudents(db, states.map((s) => s.bookingId));
   const result = { bookings: states.length, matchedStudents: 0, changed: 0, skipped: {}, changes: [] };
+  try {
+    result.financialsWritten = await syncFinancials(admin, db, states, byBooking);
+  } catch (err) {
+    // Display-only data: never let it block the access sync.
+    console.error("accountingSync: financials sync failed", err);
+    result.financialsWritten = 0;
+  }
   const writes = [];
 
   for (const state of states) {
@@ -335,6 +399,7 @@ async function handler(req, res, { admin, db, syncKey }) {
     console.log("accountingSync", JSON.stringify({
       mode, bookings: result.bookings, matched: result.matchedStudents,
       changed: result.changed, applied: result.applied, skipped: result.skipped,
+      financialsWritten: result.financialsWritten,
     }));
     const { changes, ...summary } = result;
     res.json({ ok: true, ...summary });
