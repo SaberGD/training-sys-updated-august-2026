@@ -67,7 +67,27 @@ function cleanState(raw) {
     reason: typeof raw.reason === "string" ? raw.reason.trim().slice(0, 500) : "",
     totalPrice: money(raw.totalPrice),
     paidTotal: money(raw.paidTotal),
+    // Used only to link students imported without a sourceBookingId.
+    customerId: typeof raw.customerId === "string" ? raw.customerId.slice(0, 128) : null,
+    groupId: typeof raw.groupId === "string" ? raw.groupId.slice(0, 128) : null,
+    phones: Array.isArray(raw.phones)
+      ? [...new Set(raw.phones.filter((p) => typeof p === "string" && /^\+?\d{8,15}$/.test(p)))].slice(0, 12)
+      : [],
+    customerBookingCount: Number.isInteger(raw.customerBookingCount) ? raw.customerBookingCount : null,
   };
+}
+
+/** Same variants the accounting side sends ("01…", "+201…", "201…", "+intl"). */
+function phoneVariants(raw) {
+  if (raw === null || raw === undefined) return [];
+  let d = String(raw)
+    .replace(/[٠-٩]/g, (c) => String("٠١٢٣٤٥٦٧٨٩".indexOf(c)))
+    .replace(/[۰-۹]/g, (c) => String("۰۱۲۳۴۵۶۷۸۹".indexOf(c)))
+    .replace(/\D/g, "");
+  if (d.startsWith("00")) d = d.slice(2);
+  const eg = d.match(/^(?:20|0)?(1[0125]\d{8})$/);
+  if (eg) return ["0" + eg[1], "+20" + eg[1], "20" + eg[1]];
+  return d.length >= 8 ? ["+" + d, d] : [];
 }
 
 function money(v) {
@@ -274,11 +294,120 @@ async function syncFinancials(admin, db, states, byBooking) {
   return written;
 }
 
+/**
+ * Links students that were imported without a sourceBookingId to their
+ * booking, by WhatsApp/phone. A link is made only when it is unambiguous:
+ *  1. phone + group: the student's training group came from the booking's
+ *     accounting group (groups.sourceGroupId) and exactly one such student;
+ *  2. phone only: when no group matches, only if the customer has a single
+ *     live booking, exactly one unlinked student has that phone, and that
+ *     student's group is not tied to another accounting group.
+ * A student claimed by two bookings is never linked. Nothing about access
+ * changes in the request that creates the link (reported as newly_linked).
+ */
+async function linkByPhone(admin, db, states, byBooking) {
+  const out = { linked: 0, ambiguous: 0, noMatch: 0, newlyLinked: new Set(), samples: [] };
+  const pending = states.filter((st) =>
+    st.status !== "DELETED" && st.phones.length && !(byBooking.get(st.bookingId) || []).length);
+  if (!pending.length) return out;
+
+  // Unlinked students whose phone or WhatsApp matches any of the phones.
+  const allPhones = [...new Set(pending.flatMap((st) => st.phones))];
+  const candidates = new Map();
+  for (let i = 0; i < allPhones.length; i += 30) {
+    const chunk = allPhones.slice(i, i + 30);
+    for (const field of ["phone", "whatsapp"]) {
+      const snap = await db.collection("students").where(field, "in", chunk).get();
+      snap.docs.forEach((d) => {
+        if (!d.get("sourceBookingId")) candidates.set(d.id, d);
+      });
+    }
+  }
+  if (!candidates.size) {
+    out.noMatch = pending.length;
+    return out;
+  }
+
+  const byPhone = new Map();
+  for (const [id, d] of candidates) {
+    for (const v of [...phoneVariants(d.get("phone")), ...phoneVariants(d.get("whatsapp"))]) {
+      if (!byPhone.has(v)) byPhone.set(v, new Set());
+      byPhone.get(v).add(id);
+    }
+  }
+
+  const groupIds = [...new Set([...candidates.values()].map((d) => d.get("groupId")).filter(Boolean))];
+  const sourceGroupOf = new Map();
+  for (let i = 0; i < groupIds.length; i += 300) {
+    const snaps = await db.getAll(...groupIds.slice(i, i + 300).map((g) => db.collection("groups").doc(g)));
+    snaps.forEach((g) => sourceGroupOf.set(g.id, (g.exists && g.get("sourceGroupId")) || ""));
+  }
+  const srcGroup = (studentId) => sourceGroupOf.get(candidates.get(studentId).get("groupId")) || "";
+
+  const claims = new Map(); // studentId -> [{ state, method }]
+  for (const st of pending) {
+    const ids = new Set();
+    st.phones.forEach((p) => (byPhone.get(p) || []).forEach((id) => ids.add(id)));
+    if (!ids.size) {
+      out.noMatch++;
+      continue;
+    }
+    const list = [...ids];
+    const sameGroup = st.groupId ? list.filter((id) => srcGroup(id) === st.groupId) : [];
+    let pick = null;
+    let method = null;
+    if (sameGroup.length === 1) {
+      pick = sameGroup[0];
+      method = "phone_group";
+    } else if (sameGroup.length === 0 && list.length === 1 && st.customerBookingCount === 1 && !srcGroup(list[0])) {
+      pick = list[0];
+      method = "phone_only";
+    }
+    if (!pick) {
+      out.ambiguous++;
+      if (out.samples.length < 50) out.samples.push({ bookingId: st.bookingId, candidates: list.slice(0, 5) });
+      continue;
+    }
+    if (!claims.has(pick)) claims.set(pick, []);
+    claims.get(pick).push({ st, method });
+  }
+
+  const now = new Date().toISOString();
+  const batch = db.batch();
+  for (const [studentId, list] of claims) {
+    if (list.length !== 1) {
+      out.ambiguous += list.length;
+      continue;
+    }
+    const { st, method } = list[0];
+    const snap = candidates.get(studentId);
+    const update = {
+      sourceBookingId: st.bookingId,
+      accountingLink: { method, bookingId: st.bookingId, linkedAt: now },
+    };
+    if (st.customerId && !snap.get("sourceCustomerId")) update.sourceCustomerId = st.customerId;
+    batch.update(snap.ref, update);
+    byBooking.set(st.bookingId, [snap]);
+    out.newlyLinked.add(studentId);
+    out.linked++;
+  }
+  if (out.linked) await batch.commit();
+  return out;
+}
+
 async function processStates(admin, db, states, mode, settings) {
   const now = new Date().toISOString();
   const applyChanges = mode === "event" || settings.reconcileMode === "apply";
   const byBooking = await findStudents(db, states.map((s) => s.bookingId));
   const result = { bookings: states.length, matchedStudents: 0, changed: 0, skipped: {}, changes: [] };
+  let newlyLinked = new Set();
+  try {
+    const link = await linkByPhone(admin, db, states, byBooking);
+    newlyLinked = link.newlyLinked;
+    result.phoneLink = { linked: link.linked, ambiguous: link.ambiguous, noMatch: link.noMatch, samples: link.samples };
+  } catch (err) {
+    console.error("accountingSync: phone linking failed", err);
+  }
   try {
     result.financialsWritten = await syncFinancials(admin, db, states, byBooking);
   } catch (err) {
@@ -292,6 +421,10 @@ async function processStates(admin, db, states, mode, settings) {
     const docs = byBooking.get(state.bookingId) || [];
     for (const docSnap of docs) {
       result.matchedStudents++;
+      if (newlyLinked.has(docSnap.id)) {
+        result.skipped.newly_linked = (result.skipped.newly_linked || 0) + 1;
+        continue;
+      }
       const student = docSnap.data();
       if (mode === "reconcile" && student.accountingSync?.stateHash === stateHash(state)) {
         result.skipped.unchanged_since_last_sync = (result.skipped.unchanged_since_last_sync || 0) + 1;
@@ -380,7 +513,9 @@ async function handler(req, res, { admin, db, syncKey }) {
   try {
     const result = await processStates(admin, db, states, mode, settings);
 
-    if (mode === "reconcile" && body.runId && typeof body.runId === "string" && result.changed > 0) {
+    const linkStats = result.phoneLink || {};
+    if (mode === "reconcile" && body.runId && typeof body.runId === "string" &&
+        (result.changed > 0 || linkStats.linked > 0 || linkStats.ambiguous > 0)) {
       // Accumulate the reconcile report so admins can review it before
       // switching settings/accountingSync.reconcileMode to "apply".
       const runId = body.runId.replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 64);
@@ -391,7 +526,10 @@ async function handler(req, res, { admin, db, syncKey }) {
           applied: result.applied,
           updatedAt: new Date().toISOString(),
           changed: admin.firestore.FieldValue.increment(result.changed),
-          changes: admin.firestore.FieldValue.arrayUnion(...result.changes.slice(0, 100)),
+          ...(result.changes.length ? { changes: admin.firestore.FieldValue.arrayUnion(...result.changes.slice(0, 100)) } : {}),
+          phoneLinked: admin.firestore.FieldValue.increment(linkStats.linked || 0),
+          phoneAmbiguous: admin.firestore.FieldValue.increment(linkStats.ambiguous || 0),
+          ...(linkStats.samples?.length ? { phoneAmbiguousSamples: admin.firestore.FieldValue.arrayUnion(...linkStats.samples.slice(0, 50)) } : {}),
         }, { merge: true });
       }
     }
@@ -400,6 +538,7 @@ async function handler(req, res, { admin, db, syncKey }) {
       mode, bookings: result.bookings, matched: result.matchedStudents,
       changed: result.changed, applied: result.applied, skipped: result.skipped,
       financialsWritten: result.financialsWritten,
+      phoneLink: result.phoneLink && { linked: result.phoneLink.linked, ambiguous: result.phoneLink.ambiguous, noMatch: result.phoneLink.noMatch },
     }));
     const { changes, ...summary } = result;
     res.json({ ok: true, ...summary });
