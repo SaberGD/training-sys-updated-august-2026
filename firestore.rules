@@ -80,6 +80,13 @@ service cloud.firestore {
     }
 
     // Users collection
+    // Booking price / paid amounts from the accounting sync (Cloud Function
+    // only). Management only (not trainers), behind the "sensitive data" toggle.
+    match /studentFinancials/{studentId} {
+      allow read: if isStaff();
+      allow write: if false;
+    }
+
     match /users/{userId} {
       // Readable by any signed-in account so the app can load a disabled
       // profile and show the "account disabled" message.
