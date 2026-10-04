@@ -6852,7 +6852,7 @@ const GroupDetails: React.FC<{ user: User }> = ({ user }) => {
               <button
                 onClick={() => {
                   setReconnectModalOpen(false);
-                  navigate('/trainer-google-connect');
+                  navigate('/trainer/google-connect');
                 }}
                 className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-xs font-black bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/30 transition-all cursor-pointer"
               >
