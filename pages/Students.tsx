@@ -503,13 +503,15 @@ const Students: React.FC<{ user: User }> = ({ user }) => {
   };
 
   // Filter logic
-  // Booking price / paid amount synced from accounting. Sensitive: only loaded
-  // and shown while "show sensitive data" is on.
-  const { showSensitiveData } = useSensitiveData();
+  // Booking price / paid amount synced from accounting. Management only, and
+  // only loaded and shown while "show sensitive data" is on.
+  const { showSensitiveData: sensitiveToggle } = useSensitiveData();
+  const canSeeFinancials = ['admin', 'coordinator', 'team_leader', 'supervisor'].includes(user.role);
+  const showFinancials = sensitiveToggle && canSeeFinancials;
   const [financials, setFinancials] = useState<Record<string, StudentFinancials>>({});
   const studentIdsKey = useMemo(() => students.map(s => s.id).sort().join(','), [students]);
   useEffect(() => {
-    if (!showSensitiveData || !studentIdsKey) {
+    if (!showFinancials || !studentIdsKey) {
       setFinancials({});
       return;
     }
@@ -527,7 +529,7 @@ const Students: React.FC<{ user: User }> = ({ user }) => {
       }, [where(firestore.documentId(), 'in', chunk)]));
     }
     return () => unsubs.forEach(u => u());
-  }, [showSensitiveData, studentIdsKey]);
+  }, [showFinancials, studentIdsKey]);
 
   const filtered = useMemo(() => {
     const term = searchTerm.trim();
@@ -810,7 +812,7 @@ const Students: React.FC<{ user: User }> = ({ user }) => {
                                 <span className="text-[9px] opacity-70">{visiblePasswords[s.id] ? '🙈' : '👁️'}</span>
                               </span>
                             </div>
-                            {showSensitiveData && (() => {
+                            {showFinancials && (() => {
                               const f = financials[s.id];
                               if (!f) {
                                 return (
