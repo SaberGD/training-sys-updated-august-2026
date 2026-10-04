@@ -26,15 +26,7 @@ import { StudentHistoryModal } from '../components/StudentHistoryModal';
 import { TrainerBroadcastEmailModal } from '../components/TrainerBroadcastEmailModal';
 import { Clock, Trash2, MessageSquare, Share2, Send, Copy, Check, RotateCcw, Smartphone, Settings, Bot, Mail } from 'lucide-react';
 import { normalizePhoneNumber, getCleanDigitsOnly, COUNTRY_CODES, parsePhoneAndDetect } from '../utils';
-import { useSensitiveData } from '../contexts/SensitiveDataContext';
-
-interface StudentFinancials {
-  totalPrice: number;
-  paidTotal: number;
-  remaining: number;
-  paidPercentage: number | null;
-  bookingStatus?: string;
-}
+import { useStudentFinancials, StudentFinancialsBadge } from '../components/StudentFinancialsBadge';
 
 const ABSOLUTE_DEFAULT_TEMPLATE = `مرحباً {name}، 👋
 
@@ -503,33 +495,10 @@ const Students: React.FC<{ user: User }> = ({ user }) => {
   };
 
   // Filter logic
-  // Booking price / paid amount synced from accounting. Management only, and
-  // only loaded and shown while "show sensitive data" is on.
-  const { showSensitiveData: sensitiveToggle } = useSensitiveData();
-  const canSeeFinancials = ['admin', 'coordinator', 'team_leader', 'supervisor'].includes(user.role);
-  const showFinancials = sensitiveToggle && canSeeFinancials;
-  const [financials, setFinancials] = useState<Record<string, StudentFinancials>>({});
-  const studentIdsKey = useMemo(() => students.map(s => s.id).sort().join(','), [students]);
-  useEffect(() => {
-    if (!showFinancials || !studentIdsKey) {
-      setFinancials({});
-      return;
-    }
-    const ids = studentIdsKey.split(',');
-    const unsubs: (() => void)[] = [];
-    for (let i = 0; i < ids.length; i += 30) {
-      const chunk = ids.slice(i, i + 30);
-      unsubs.push(subscribeToCollection<StudentFinancials & { id: string }>('studentFinancials', (data) => {
-        setFinancials(prev => {
-          const next = { ...prev };
-          chunk.forEach(id => { delete next[id]; });
-          data.forEach(f => { next[f.id] = f; });
-          return next;
-        });
-      }, [where(firestore.documentId(), 'in', chunk)]));
-    }
-    return () => unsubs.forEach(u => u());
-  }, [showFinancials, studentIdsKey]);
+  // Booking price / paid amount synced from accounting (management only,
+  // behind "show sensitive data").
+  const studentIds = useMemo(() => students.map(st => st.id), [students]);
+  const { enabled: showFinancials, financials } = useStudentFinancials(studentIds, user.role);
 
   const filtered = useMemo(() => {
     const term = searchTerm.trim();
@@ -812,34 +781,7 @@ const Students: React.FC<{ user: User }> = ({ user }) => {
                                 <span className="text-[9px] opacity-70">{visiblePasswords[s.id] ? '🙈' : '👁️'}</span>
                               </span>
                             </div>
-                            {showFinancials && (() => {
-                              const f = financials[s.id];
-                              if (!f) {
-                                return (
-                                  <span className="mt-1 text-[9px] text-slate-400 font-arabic" dir="rtl">💰 لا توجد بيانات مالية من الحسابات</span>
-                                );
-                              }
-                              const fmt = (n: number) => (n || 0).toLocaleString('en-US');
-                              const pct = f.paidPercentage ?? (f.totalPrice > 0 ? Math.round((f.paidTotal / f.totalPrice) * 100) : 100);
-                              const below50 = pct < 50;
-                              return (
-                                <div
-                                  className={`mt-1 inline-flex items-center gap-1.5 flex-wrap px-2 py-0.5 rounded-lg border text-[10px] font-black font-arabic w-fit ${below50 ? 'bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-amber-400' : 'bg-emerald-500/10 border-emerald-500/25 text-emerald-700 dark:text-emerald-400'}`}
-                                  dir="rtl"
-                                  title="بيانات حساسة من نظام الحسابات"
-                                >
-                                  <span>💰 حاجز بـ {fmt(f.totalPrice)} ج.م</span>
-                                  <span className="opacity-50">•</span>
-                                  <span>دفع {fmt(f.paidTotal)} ({pct}%)</span>
-                                  {f.remaining > 0 && (
-                                    <>
-                                      <span className="opacity-50">•</span>
-                                      <span>متبقي {fmt(f.remaining)}</span>
-                                    </>
-                                  )}
-                                </div>
-                              );
-                            })()}
+                            {showFinancials && <StudentFinancialsBadge financials={financials[s.id]} />}
                             
                             <div className="mt-2 flex items-center gap-1.5 flex-wrap">
                               {s.tasksLink ? (
