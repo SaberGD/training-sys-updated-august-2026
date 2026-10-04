@@ -12,9 +12,23 @@ service cloud.firestore {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
     
+    // A signed-in staff account that exists and is not disabled. A disabled
+    // account is cut off from all data immediately, even with an open session.
+    function isActiveAccount() {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && getUserData().get('disabled', false) != true;
+    }
+
+    // Accounts that are promoted to admin automatically on login (same list as
+    // ADMIN_EMAILS in services/firestore.ts).
+    function isDefaultAdminEmail() {
+      return request.auth.token.get('email', '') in ['saber.gd.fl@gmail.com', 'sabergroup.eg@gmail.com'];
+    }
+
     // Helper for roles
     function hasRole(role) {
-      return isSignedIn() && getUserData().role == role;
+      return isActiveAccount() && getUserData().role == role;
     }
     
     function isStaff() {
@@ -67,8 +81,26 @@ service cloud.firestore {
 
     // Users collection
     match /users/{userId} {
+      // Readable by any signed-in account so the app can load a disabled
+      // profile and show the "account disabled" message.
       allow read: if isSignedIn();
-      allow write: if isStaff() || (isSignedIn() && request.auth.uid == userId);
+      allow write: if isStaff();
+      // First login creates the own profile (getOrCreateUser): trainer, or admin
+      // for the default admin emails, never pre-disabled.
+      allow create: if isSignedIn() && request.auth.uid == userId
+        && request.resource.data.get('disabled', false) == false
+        && (request.resource.data.role == 'trainer'
+            || (request.resource.data.role == 'admin' && isDefaultAdminEmail()));
+      // Own profile: only the forced password change flags, plus the automatic
+      // admin promotion of the default admin emails. role/disabled stay locked.
+      allow update: if isActiveAccount() && request.auth.uid == userId
+        && resource.data.get('disabled', false) != true
+        && (
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['mustChangePassword', 'passwordChangedAt', 'updatedAt'])
+          || (isDefaultAdminEmail()
+              && request.resource.data.role == 'admin'
+              && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['role', 'updatedAt']))
+        );
     }
 
     // Courses collection
@@ -118,30 +150,30 @@ service cloud.firestore {
 
     // Weekly Schedules, Weeks & Items
     match /weeks/{id} {
-      allow read: if isSignedIn();
+      allow read: if isActiveAccount();
       allow write: if isStaff();
     }
     
     match /weekDays/{id} {
-      allow read: if isSignedIn();
+      allow read: if isActiveAccount();
       allow write: if isStaff();
     }
     
     match /scheduleItems/{id} {
-      allow read: if isSignedIn();
-      allow write: if isStaff() || (isSignedIn() && request.resource.data.trainerId == request.auth.uid);
+      allow read: if isActiveAccount();
+      allow write: if isStaff() || (isActiveAccount() && request.resource.data.trainerId == request.auth.uid);
     }
 
     // Daily Ops
     match /dailyTrainerOps/{id} {
-      allow read: if isStaff() || (isSignedIn() && id.matches(request.auth.uid + '_.*'));
-      allow write: if isSignedIn() && id.matches(request.auth.uid + '_.*');
+      allow read: if isStaff() || (isActiveAccount() && id.matches(request.auth.uid + '_.*'));
+      allow write: if isActiveAccount() && id.matches(request.auth.uid + '_.*');
     }
 
     // Session Meta
     match /sessionMeta/{id} {
       allow read: if true;
-      allow write: if isSignedIn();
+      allow write: if isActiveAccount();
     }
 
     // Evaluation & Ranking collections
@@ -172,17 +204,17 @@ service cloud.firestore {
 
     // Marketing Resources
     match /marketingResources/{id} {
-      allow read: if isSignedIn();
-      allow write: if isSignedIn();
+      allow read: if isActiveAccount();
+      allow write: if isActiveAccount();
     }
 
     match /marketingCategories/{id} {
-      allow read: if isSignedIn();
+      allow read: if isActiveAccount();
       allow write: if isStaff();
     }
 
     match /marketingSectionTemplates/{id} {
-      allow read: if isSignedIn();
+      allow read: if isActiveAccount();
       allow write: if isStaff();
     }
 
@@ -200,60 +232,60 @@ service cloud.firestore {
 
     // Assigned Tasks
     match /assignedTasks/{taskId} {
-      allow read: if isSignedIn();
-      allow write: if isSignedIn();
+      allow read: if isActiveAccount();
+      allow write: if isActiveAccount();
     }
 
     // Recurring Task Templates
     match /recurringDailyTemplates/{templateId} {
-      allow read: if isSignedIn();
+      allow read: if isActiveAccount();
       allow write: if isStaff();
     }
 
     // Trainer Daily Reports
     match /trainerDailyReports/{reportId} {
-      allow read: if isSignedIn();
-      allow write: if isSignedIn();
+      allow read: if isActiveAccount();
+      allow write: if isActiveAccount();
     }
 
     // Performance Reports (Daily & Weekly)
     match /dailyReports/{reportId} {
-      allow read: if isSignedIn();
-      allow write: if isSignedIn();
+      allow read: if isActiveAccount();
+      allow write: if isActiveAccount();
     }
 
     match /weeklyReports/{reportId} {
-      allow read: if isSignedIn();
-      allow write: if isSignedIn();
+      allow read: if isActiveAccount();
+      allow write: if isActiveAccount();
     }
 
     // Student Follow Ups
     match /studentFollowUps/{id} {
-      allow read: if isSignedIn();
-      allow write: if isSignedIn();
+      allow read: if isActiveAccount();
+      allow write: if isActiveAccount();
     }
 
     // Per-person follow-up mention tasks (independent of the follow-up's own status)
     match /followUpMentions/{id} {
-      allow read: if isSignedIn();
-      allow write: if isSignedIn();
+      allow read: if isActiveAccount();
+      allow write: if isActiveAccount();
     }
 
     // Rejected follow-up suggestions (cooldown before they can reappear)
     match /followUpSuggestionRejections/{id} {
-      allow read: if isSignedIn();
+      allow read: if isActiveAccount();
       allow write: if isStaff();
     }
 
     // Permanent, reason-scoped follow-up suggestion exemptions
     match /followUpSuggestionExemptions/{id} {
-      allow read: if isSignedIn();
+      allow read: if isActiveAccount();
       allow write: if isStaff();
     }
 
     // Suggestion decisions escalated to admin (e.g. remove a student entirely)
     match /suggestionEscalations/{id} {
-      allow read: if isSignedIn();
+      allow read: if isActiveAccount();
       allow write: if isStaff();
     }
 
@@ -271,36 +303,36 @@ service cloud.firestore {
 
     // Label Definitions
     match /labelDefinitions/{id} {
-      allow read: if isSignedIn();
+      allow read: if isActiveAccount();
       allow write: if isStaff();
     }
 
     // Complaints
     match /complaints/{id} {
-      allow read: if isSignedIn();
-      allow write: if isSignedIn();
+      allow read: if isActiveAccount();
+      allow write: if isActiveAccount();
     }
 
     // Notifications
     match /notifications/{id} {
-      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
-      allow write: if isSignedIn(); // System or other users can send notifications
+      allow read: if isActiveAccount() && resource.data.userId == request.auth.uid;
+      allow write: if isActiveAccount(); // System or other users can send notifications
     }
 
     // Trainer Plans
     match /trainerPlans/{id} {
-      allow read, write: if isSignedIn();
+      allow read, write: if isActiveAccount();
     }
 
     // Group Execution Plans
     match /groupExecutionPlans/{id} {
       allow read: if true;
-      allow write: if isSignedIn();
+      allow write: if isActiveAccount();
     }
     
     // Meta (Migrations)
     match /meta/{id} {
-      allow read: if isSignedIn();
+      allow read: if isActiveAccount();
       allow write: if isStaff();
     }
 
