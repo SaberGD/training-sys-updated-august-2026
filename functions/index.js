@@ -21,6 +21,7 @@ if (!admin.apps.length) {
 const db = admin.firestore();
 const maroBridge = require("./maro-bridge");
 const accountingSync = require("./accounting-sync");
+const studentPortal = require("./student-portal");
 const MARO_BRIDGE_KEY = defineSecret("MARO_BRIDGE_KEY");
 const ACCOUNTING_SYNC_KEY = defineSecret("ACCOUNTING_SYNC_KEY");
 const TRAINING_FIREBASE_WEB_API_KEY = defineSecret("TRAINING_FIREBASE_WEB_API_KEY");
@@ -1447,6 +1448,13 @@ exports.maroBridgeAuth = onRequest({
   bridgeKey: MARO_BRIDGE_KEY.value(),
   webApiKey: TRAINING_FIREBASE_WEB_API_KEY.value(),
 }));
+
+// Student portal login on the server (see student-portal.js).
+exports.studentPortal = onRequest({
+  cors: true,
+  timeoutSeconds: 60,
+  memory: "512MiB",
+}, (req, res) => studentPortal.handler(req, res, { admin, db }));
 
 // Accounting -> Training portal access sync (see accounting-sync.js).
 exports.accountingSync = onRequest({
