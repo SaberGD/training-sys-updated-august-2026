@@ -6,7 +6,7 @@ import { getAuth } from 'firebase/auth';
 // Fix: Using namespace import for firestore to avoid 'no exported member' errors
 import * as firestore from 'firebase/firestore';
 
-const firebaseConfig = {
+export const firebaseConfig = {
   apiKey: "AIzaSyDALDGiPJQUOV1FODEC-Wv9lof0fbDI6GI",
   authDomain: "sg-tms-v2.firebaseapp.com",
   projectId: "sg-tms-v2",

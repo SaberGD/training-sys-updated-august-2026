@@ -4,6 +4,7 @@ import * as firestore from 'firebase/firestore';
 import { db } from '../firebase';
 import { Student, Group, Session, LectureEvaluation, Penalty, GroupRanking, SessionMeta, AppNotification, GlobalEvalForm, GraduationProject, GraduationProjectSubmission, GraduationProjectEvaluation, GraduationProjectComment, StudentCertificateRecord, StudentWeaknessPoint } from '../types';
 import { markStudentAttendanceSelf, markNotificationRead, saveGraduationProjectSubmission } from '../services/firestore';
+import { portalLogin, portalRoster, portalLogout } from '../lib/studentPortalApi';
 import { 
   Award, CheckCircle, CheckCircle2, Calendar, TrendingUp, AlertTriangle, 
   FileText, BookOpen, MessageSquare, Send, Users, LogOut, 
@@ -412,11 +413,19 @@ const StudentPortal: React.FC = () => {
   // HELPER TO LOAD STUDENT SESSION, ENROLLED GROUPS & AUTOMATICALLY UNIFY CREDENTIALS
   const loadStudentSessionAndGroups = async (
     primaryStudent: Student, 
-    preferredGroupId?: string
+    preferredGroupId?: string,
+    serverRecords?: Student[]
   ) => {
     setLoading(true);
     setError(null);
     try {
+      let studentRecords: Student[];
+      if (serverRecords && serverRecords.length > 0) {
+        // Fresh login: the studentPortal function already matched, unified
+        // credentials and recorded the login on the server.
+        studentRecords = serverRecords;
+        setAllStudentRecords(studentRecords);
+      } else {
       const normP = normalizePhoneNumber(primaryStudent.phone);
       const normE = (primaryStudent.email || primaryStudent.attendanceEmail || '').trim().toLowerCase();
       const sIdNum = (primaryStudent.studentIdNum || '').trim();
@@ -443,16 +452,14 @@ const StudentPortal: React.FC = () => {
         }
       });
 
-      const studentRecords = matchedRecords.length > 0 ? matchedRecords : [primaryStudent];
+      studentRecords = matchedRecords.length > 0 ? matchedRecords : [primaryStudent];
       setAllStudentRecords(studentRecords);
 
-      // Unify credentials & record portal login acknowledgment across all records for this student
-      const unifiedId = primaryStudent.studentIdNum || studentRecords.find(r => r.studentIdNum)?.studentIdNum || Math.floor(100000 + Math.random() * 900000).toString();
-      const unifiedPass = primaryStudent.studentPassword || studentRecords.find(r => r.studentPassword)?.studentPassword || Math.floor(10000 + Math.random() * 90000).toString();
+      // Restored session: record the visit. Credentials are unified by the
+      // server at login, never rewritten from the browser.
       const currentLoginTime = new Date().toISOString();
 
       studentRecords.forEach(rec => {
-        const needsCredSync = rec.studentIdNum !== unifiedId || rec.studentPassword !== unifiedPass;
         const updates: any = {
           hasLoggedIn: true,
           lastLoginAt: currentLoginTime,
@@ -464,19 +471,13 @@ const StudentPortal: React.FC = () => {
           rec.firstLoginAt = currentLoginTime;
         }
 
-        if (needsCredSync) {
-          rec.studentIdNum = unifiedId;
-          rec.studentPassword = unifiedPass;
-          updates.studentIdNum = unifiedId;
-          updates.studentPassword = unifiedPass;
-        }
-
         rec.hasLoggedIn = true;
         rec.lastLoginAt = currentLoginTime;
         rec.loginCount = (rec.loginCount || 0) + 1;
 
         updateDoc(doc(db, 'students', rec.id), updates).catch(e => console.error("Error updating student doc with login stats:", e));
       });
+      }
 
       // Fetch all Group documents corresponding to these student records
       const groupIds = Array.from(new Set(studentRecords.map(r => r.groupId).filter(Boolean)));
@@ -569,18 +570,10 @@ const StudentPortal: React.FC = () => {
       const performAutoLogin = async () => {
         setLoading(true);
         try {
-          const cleanInput = sanitizeCredentials(qLoginId);
-          const cleanPassword = sanitizeCredentials(qPassword);
-          const allSnap = await getDocs(collection(db, 'students'));
-          const matching = allSnap.docs
-            .map((d: any) => ({ id: d.id, ...d.data() } as Student))
-            .find((s: Student) => 
-              sanitizeCredentials(s.studentIdNum)?.toLowerCase() === cleanInput.toLowerCase() &&
-              sanitizeCredentials(s.studentPassword) === cleanPassword
-            );
-
+          const { primaryId, records } = await portalLogin<Student>(qLoginId, qPassword, true);
+          const matching = records.find(r => r.id === primaryId);
           if (matching) {
-            await loadStudentSessionAndGroups(matching, qGroupId || undefined);
+            await loadStudentSessionAndGroups(matching, qGroupId || undefined, records);
           } else {
             setLoading(false);
           }
@@ -869,9 +862,8 @@ const StudentPortal: React.FC = () => {
     if ((isAttendanceMode || isFeedbackMode) && qGroupId) {
       const fetchGroupDetailsForAttendance = async () => {
         try {
-          const qStuds = query(collection(db, 'students'), where('groupId', '==', qGroupId));
-          const snap = await getDocs(qStuds);
-          setGroupStudents(snap.docs.map((d: any) => ({ id: d.id, ...d.data() } as Student)));
+          const roster = await portalRoster(qGroupId);
+          setGroupStudents(roster as Student[]);
         } catch (error) {
           console.error(error);
         }
@@ -986,43 +978,16 @@ const StudentPortal: React.FC = () => {
     setLoginLoading(true);
     setLoginError(null);
     try {
-      const cleanInput = sanitizeCredentials(loginId);
-      const cleanInputLower = sanitizeEmail(loginId) || cleanInput.toLowerCase();
-      const normInputPhone = normalizePhoneNumber(cleanInput) || sanitizePhone(cleanInput);
-      const cleanPassword = sanitizeCredentials(loginPassword);
-
-      const allSnap = await getDocs(collection(db, 'students'));
-      const matchingDocs: Student[] = [];
-
-      allSnap.docs.forEach((docSnap: any) => {
-        const s = { id: docSnap.id, ...docSnap.data() } as Student;
-        const sIdNum = sanitizeCredentials(s.studentIdNum);
-        const sEmail = sanitizeEmail(s.email || s.attendanceEmail);
-        const sPhoneNorm = normalizePhoneNumber(s.phone) || sanitizePhone(s.phone);
-
-        const matchId = sIdNum && sIdNum.toLowerCase() === cleanInput.toLowerCase();
-        const matchEmail = sEmail && sEmail === cleanInputLower;
-        const matchPhone = normInputPhone && sPhoneNorm && (sPhoneNorm === normInputPhone || sPhoneNorm.endsWith(normInputPhone) || normInputPhone.endsWith(sPhoneNorm));
-
-        if (matchId || matchEmail || matchPhone) {
-          matchingDocs.push(s);
-        }
-      });
-
-      if (matchingDocs.length === 0) {
-        if (cleanInput.includes('@')) {
-          throw new Error('تنبيه: لقد قمت بكتابة بريد إلكتروني! تسجيل الدخول في البورتال يتطلب كتابة الرقم التعريفي (Student ID المكون من 6 أرقام) المستلم في إيميل الترحيب وليس الإيميل.');
-        }
-        throw new Error('الرقم التعريفي (Student ID) أو رقم الموبايل غير مطابق لأي طالب مسجل. يرجى التأكد من كتابة كود الـ ID الخاص بك.');
-      }
-
-      const validStudent = matchingDocs.find(s => sanitizeCredentials(s.studentPassword) === cleanPassword);
+      // Matching and password check happen on the server (studentPortal
+      // Cloud Function); only this student's own records come back.
+      const { primaryId, records: matchingDocs } = await portalLogin<Student>(loginId, loginPassword);
+      const validStudent = matchingDocs.find(r => r.id === primaryId) || matchingDocs[0];
       if (!validStudent) {
-        throw new Error('كلمة المرور غير صحيحة، يرجى المحاولة مرة أخرى.');
+        throw new Error('حدث خطأ أثناء تسجيل الدخول، يرجى المحاولة مرة أخرى.');
       }
 
       // Validated! Load full profile & enrolled groups
-      await loadStudentSessionAndGroups(validStudent, qGroupId || undefined);
+      await loadStudentSessionAndGroups(validStudent, qGroupId || undefined, matchingDocs);
 
       // Handle QR Code Attendance checkin
       if (isAttendanceMode && qGroupId && qSessionId && qSessionNumber) {
@@ -1043,6 +1008,7 @@ const StudentPortal: React.FC = () => {
 
   // 6. LOG OUT STUDENT SESSION
   const handleLogout = () => {
+    portalLogout();
     localStorage.removeItem('studentSession');
     setCurrentStudent(null);
     setStudentGroup(null);
@@ -1146,18 +1112,10 @@ const StudentPortal: React.FC = () => {
     }
     setEvalLoginLoading(true);
     try {
-      const q = query(
-        collection(db, 'students'),
-        where('studentId', '==', evalStudentId.trim())
-      );
-      const snap = await getDocs(q);
-      if (snap.empty) {
+      const { primaryId, records } = await portalLogin<Student>(evalStudentId.trim(), evalPassword.trim());
+      const student = records.find(r => r.groupId === qGroupId) || records.find(r => r.id === primaryId) || records[0];
+      if (!student) {
         throw new Error('الرقم التعريفي (Student ID) غير مطابق لأي طالب مسجل.');
-      }
-      const foundDoc = snap.docs[0];
-      const student = { id: foundDoc.id, ...foundDoc.data() } as Student;
-      if (student.studentPassword !== evalPassword.trim()) {
-        throw new Error('كلمة المرور غير صحيحة، يرجى المحاولة مرة أخرى.');
       }
       localStorage.setItem('studentSession', JSON.stringify(student));
       setCurrentStudent(student);
@@ -2342,6 +2300,7 @@ const StudentPortal: React.FC = () => {
 
             <button
               onClick={() => {
+                portalLogout();
                 localStorage.removeItem('studentSession');
                 setCurrentStudent(null);
               }}
