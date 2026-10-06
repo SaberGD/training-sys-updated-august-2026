@@ -3732,7 +3732,7 @@ const GroupDetails: React.FC<{ user: User }> = ({ user }) => {
                             </div>
                             <div className={`contents ${student.deactivated ? 'opacity-30 pointer-events-none select-none' : ''}`}>
                               {/* Column 2: Attendance */}
-                              <button onClick={() => toggleBooleanCriteria(student.id, 'attendance')} className={`w-8 h-8 rounded-full border flex items-center justify-center mx-auto ${evalData.attendance === 1 ? 'bg-white text-black font-bold' : 'bg-slate-950 text-slate-700 border-slate-800'}`}>{evalData.attendance === 1 && '✓'}</button>
+                              <button onClick={() => toggleBooleanCriteria(student.id, 'attendance')} className={`w-8 h-8 rounded-full border flex items-center justify-center mx-auto ${evalData.attendance === 1 ? 'bg-emerald-600 text-white border-emerald-500 font-bold' : 'bg-slate-950 text-slate-700 border-slate-800'}`}>{evalData.attendance === 1 && '✓'}</button>
 
                               {/* Columns 3-6: Task evaluation or Task penalty badge */}
                               {evalData.taskNotSubmittedPenalty ? (
@@ -3747,8 +3747,8 @@ const GroupDetails: React.FC<{ user: User }> = ({ user }) => {
                                     <span className="text-[11px] font-black text-blue-400">{evalData.taskDelivered || 0}</span>
                                     <button onClick={() => updateTaskPoints(student.id, 1)} className="text-slate-500 hover:text-green-500">+</button>
                                   </div>
-                                  <button onClick={() => toggleBooleanCriteria(student.id, 'taskOnTime')} className={`w-8 h-8 rounded-full border flex items-center justify-center mx-auto ${evalData.taskOnTime === 1 ? 'bg-white text-black font-bold' : 'bg-slate-950 text-slate-700 border-slate-800'}`}>{evalData.taskOnTime === 1 && '✓'}</button>
-                                  <button onClick={() => toggleBooleanCriteria(student.id, 'taskQuality')} className={`w-8 h-8 rounded-full border flex items-center justify-center mx-auto ${evalData.taskQuality === 1 ? 'bg-white text-black font-bold' : 'bg-slate-950 text-slate-700 border-slate-800'}`}>{evalData.taskQuality === 1 && '✓'}</button>
+                                  <button onClick={() => toggleBooleanCriteria(student.id, 'taskOnTime')} className={`w-8 h-8 rounded-full border flex items-center justify-center mx-auto ${evalData.taskOnTime === 1 ? 'bg-emerald-600 text-white border-emerald-500 font-bold' : 'bg-slate-950 text-slate-700 border-slate-800'}`}>{evalData.taskOnTime === 1 && '✓'}</button>
+                                  <button onClick={() => toggleBooleanCriteria(student.id, 'taskQuality')} className={`w-8 h-8 rounded-full border flex items-center justify-center mx-auto ${evalData.taskQuality === 1 ? 'bg-emerald-600 text-white border-emerald-500 font-bold' : 'bg-slate-950 text-slate-700 border-slate-800'}`}>{evalData.taskQuality === 1 && '✓'}</button>
                                   <button onClick={() => toggleBooleanCriteria(student.id, 'taskRedo')} className={`w-8 h-8 rounded-full border flex items-center justify-center mx-auto ${evalData.taskRedo === 1 ? 'bg-amber-600 text-white border-amber-500 font-bold' : 'bg-slate-950 text-slate-700 border-slate-800'}`}>{evalData.taskRedo === 1 && '!'}</button>
                                 </>
                               )}
