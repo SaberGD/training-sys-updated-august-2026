@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { calculateGraduationProjectScore, formatGraduationScore, formatTime12h, GRADUATION_PROJECT_MAX_SCORE, parseTimeToMinutes, COUNTRY_CODES, parsePhoneAndDetect, normalizePhoneNumber, mergeLectureEvaluations } from '../utils';
+import { calculateGraduationProjectScore, formatGraduationScore, formatTime12h, GRADUATION_PROJECT_MAX_SCORE, parseTimeToMinutes, COUNTRY_CODES, parsePhoneAndDetect, normalizePhoneNumber, mergeLectureEvaluations, isEvalFormMonthOpen } from '../utils';
 import { sanitizeCredentials, sanitizeEmail, sanitizePhone, stripHiddenChars } from '../lib/textUtils';
 
 import { GemyChatWidget } from '../components/GemyChatWidget';
@@ -213,7 +213,10 @@ const StudentPortal: React.FC = () => {
       try {
         const qForms = query(collection(db, 'global_eval_forms'), where('isActive', '==', true));
         const snap = await getDocs(qForms);
-        const list = snap.docs.map((d: any) => ({ id: d.id, ...d.data() } as GlobalEvalForm));
+        // Monthly forms close on their own after the following month ends.
+        const list = snap.docs
+          .map((d: any) => ({ id: d.id, ...d.data() } as GlobalEvalForm))
+          .filter(f => isEvalFormMonthOpen(f.month));
         setActiveGlobalForms(list);
 
         const urlGlobalEvalId = searchParams.get('globalEvalId');

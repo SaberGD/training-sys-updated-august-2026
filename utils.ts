@@ -380,3 +380,15 @@ export function mergeLectureEvaluations<T>(evals: T[], keyOf: (ev: T) => string 
   }
   return Array.from(byKey.values()).map(ev => ({ ...ev, total: computeEvaluationTotal(ev) })) as T[];
 }
+
+/**
+ * A monthly evaluation form (month "YYYY-MM") stays open for its own month
+ * and the following one, then expires on its own even if still active.
+ * Forms without a month never expire by date.
+ */
+export function isEvalFormMonthOpen(month: string | undefined | null, now: Date = new Date()): boolean {
+  const m = /^(\d{4})-(\d{2})$/.exec((month || '').trim());
+  if (!m) return true;
+  const closesAt = new Date(Number(m[1]), Number(m[2]) + 1, 1); // 1st day of month + 2
+  return now < closesAt;
+}

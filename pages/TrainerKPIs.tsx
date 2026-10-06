@@ -4,7 +4,7 @@ import { User, Session, Group, Course, LectureFeedback, GlobalEvalForm } from '.
 import { db } from '../firebase';
 import { collection, getDocs, query, where, orderBy, addDoc, updateDoc, doc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import { Award, Clock, FileCheck, CheckCircle, Calendar, Filter, Download, ArrowLeft, ChevronRight, UserCheck, Star, MessageSquare, Search, User as UserIcon, Building, Briefcase, DollarSign, Copy, Printer, Check, Plus, ToggleLeft, ToggleRight, Trash2, Globe, LayoutGrid, CheckSquare, Layers, Eye, Users, AlertCircle, ExternalLink, X, Loader2, Save } from 'lucide-react';
-import { formatTime12h, formatTime12hArabic, parseTimeToMinutes, timeTo12hParts, partsTo24hString, partsTo12hString } from '../utils';
+import { formatTime12h, formatTime12hArabic, parseTimeToMinutes, timeTo12hParts, partsTo24hString, partsTo12hString, isEvalFormMonthOpen } from '../utils';
 
 
 const parseTimeStr = (str: string | undefined | null): number | null => {
@@ -1950,6 +1950,11 @@ const TrainerKPIs: React.FC<TrainerKPIsProps> = ({ user }) => {
                                 <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full border ${form.isActive ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-slate-800 text-slate-400 border-slate-700'}`}>
                                   {form.isActive ? 'متاحة للطلاب الآن 🟢' : 'غير مفعلة 🔴'}
                                 </span>
+                                {form.isActive && !isEvalFormMonthOpen(form.month) && (
+                                  <span className="mr-2 text-[10px] font-black px-2.5 py-0.5 rounded-full border bg-amber-500/15 text-amber-400 border-amber-500/30" title="الشهر انتهى، فالاستمارة لم تعد تظهر للطلاب تلقائياً">
+                                    انتهت مدتها ⏳
+                                  </span>
+                                )}
                                 {form.month && (
                                   <span className="mr-2 text-[10px] font-mono font-bold text-slate-400 bg-slate-800 px-2 py-0.5 rounded-md">
                                     🗓️ {form.month}
