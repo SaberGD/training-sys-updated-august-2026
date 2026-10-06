@@ -19,8 +19,10 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   useEffect(() => {
     const root = window.document.documentElement;
+    // The student portal is dark-only and manages the root class itself.
+    const onStudentPortal = /^#\/student[-/]portal/.test(window.location.hash);
     root.classList.remove('light', 'dark');
-    root.classList.add(theme);
+    root.classList.add(onStudentPortal ? 'dark' : theme);
     localStorage.setItem('saber-theme', theme);
 
     const themeColor = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');

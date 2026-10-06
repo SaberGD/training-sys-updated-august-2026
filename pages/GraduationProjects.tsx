@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
 import { User, Group, GraduationProject } from '../types';
 import { subscribeToCollection, importGraduationProjectToGroups } from '../services/firestore';
+import { briefToPlainText } from '../components/BriefText';
 import { GraduationCap, ExternalLink, Copy, Search, Calendar, FolderCheck, Users, CheckCircle2, AlertCircle, Clock, ChevronRight } from 'lucide-react';
 
 interface GraduationProjectsProps {
@@ -201,7 +202,7 @@ const GraduationProjectsPage: React.FC<GraduationProjectsProps> = ({ user }) => 
                     {/* Description preview */}
                     {project.description && (
                       <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed bg-slate-950/50 p-3 rounded-2xl border border-slate-800/80">
-                        {project.description}
+                        {briefToPlainText(project.description)}
                       </p>
                     )}
 

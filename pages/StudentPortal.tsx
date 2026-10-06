@@ -18,6 +18,7 @@ import { calculateGraduationProjectScore, formatGraduationScore, formatTime12h, 
 import { sanitizeCredentials, sanitizeEmail, sanitizePhone, stripHiddenChars } from '../lib/textUtils';
 
 import { GemyChatWidget } from '../components/GemyChatWidget';
+import BriefText, { BriefInline } from '../components/BriefText';
 import BrandedLoader from '../components/BrandedLoader';
 
 const { collection, getDocs, getDoc, doc, query, where, addDoc, serverTimestamp, onSnapshot, updateDoc, limit } = firestore as any;
@@ -58,6 +59,19 @@ const formatPortalDate = (value: any, fallback = 'حديثًا') =>
 const getPortalDateTime = (value: any) => toPortalDate(value)?.getTime() || 0;
 
 const StudentPortal: React.FC = () => {
+  // The portal is designed for the dark theme only; a light theme saved by the staff app
+  // (e.g. an admin previewing the portal) must not apply here.
+  useEffect(() => {
+    const root = document.documentElement;
+    const previous = root.classList.contains('light') ? 'light' : 'dark';
+    root.classList.remove('light');
+    root.classList.add('dark');
+    return () => {
+      root.classList.remove('light', 'dark');
+      root.classList.add(previous);
+    };
+  }, []);
+
   useEffect(() => {
     const manifestLink = document.getElementById('app-manifest') as HTMLLinkElement | null;
     const appleTitleMeta = document.getElementById('apple-title') as HTMLMetaElement | null;
@@ -3073,9 +3087,7 @@ const StudentPortal: React.FC = () => {
                     <BookOpen size={15} />
                     <span>فكرة ومفهوم المشروع:</span>
                   </h4>
-                  <p className="text-xs text-slate-300 leading-relaxed bg-[#0a0a0a]/80 p-4 rounded-2xl border border-slate-800 whitespace-pre-line">
-                    {graduationProject.description}
-                  </p>
+                  <BriefText text={graduationProject.description} className="text-xs text-slate-300 bg-[#0a0a0a]/80 p-4 rounded-2xl border border-slate-800" />
                 </div>
               )}
 
@@ -3086,9 +3098,7 @@ const StudentPortal: React.FC = () => {
                     <CheckCircle size={15} />
                     <span>المطلوب تسليمه من المتدرب (تسليمات المشروع):</span>
                   </h4>
-                  <p className="text-xs text-slate-200 leading-relaxed bg-red-950/20 p-4 rounded-2xl border border-red-500/20 whitespace-pre-line">
-                    {projRequirements}
-                  </p>
+                  <BriefText text={projRequirements} className="text-xs text-slate-200 bg-red-950/20 p-4 rounded-2xl border border-red-500/20" />
                 </div>
               )}
 
@@ -3103,7 +3113,7 @@ const StudentPortal: React.FC = () => {
                     {projRules.split('\n').filter(r => r.trim()).map((rule, idx) => (
                       <div key={idx} className="flex items-start gap-2 text-xs text-rose-200">
                         <span className="font-bold text-rose-400">{idx + 1}.</span>
-                        <span className="leading-relaxed">{rule}</span>
+                        <span className="leading-relaxed"><BriefInline text={rule.replace(/^\s*(?:[-*•·]|[0-9\u0660-\u0669]+[.)])\s+/, '')} /></span>
                       </div>
                     ))}
                   </div>
@@ -4275,18 +4285,14 @@ const StudentPortal: React.FC = () => {
               {/* Description */}
               <div className="space-y-2">
                 <h4 className="text-xs font-black text-red-400">وصف وفكرة المشروع:</h4>
-                <p className="text-xs text-slate-300 leading-relaxed bg-[#0a0a0a] p-4 rounded-2xl border border-slate-800 whitespace-pre-line">
-                  {graduationProject.description || 'لا يوجد وصف تفصيلي للمشروع بعد.'}
-                </p>
+                <BriefText text={graduationProject.description || 'لا يوجد وصف تفصيلي للمشروع بعد.'} className="text-xs text-slate-300 bg-[#0a0a0a] p-4 rounded-2xl border border-slate-800" />
               </div>
 
               {/* Deliverables Required */}
               {projRequirements && (
                 <div className="space-y-2">
                   <h4 className="text-xs font-black text-red-400">المطلوب من المتدرب للإنهاء والتسليم:</h4>
-                  <p className="text-xs text-slate-300 leading-relaxed bg-[#0a0a0a] p-4 rounded-2xl border border-slate-800 whitespace-pre-line">
-                    {projRequirements}
-                  </p>
+                  <BriefText text={projRequirements} className="text-xs text-slate-300 bg-[#0a0a0a] p-4 rounded-2xl border border-slate-800" />
                 </div>
               )}
 
@@ -4301,7 +4307,7 @@ const StudentPortal: React.FC = () => {
                     {projRules.split('\n').filter(r => r.trim()).map((rule, idx) => (
                       <div key={idx} className="flex items-start gap-2 text-xs text-rose-200">
                         <span className="font-bold text-rose-400">{idx + 1}.</span>
-                        <span className="leading-relaxed">{rule}</span>
+                        <span className="leading-relaxed"><BriefInline text={rule.replace(/^\s*(?:[-*•·]|[0-9\u0660-\u0669]+[.)])\s+/, '')} /></span>
                       </div>
                     ))}
                   </div>

@@ -3,6 +3,7 @@ import { where } from 'firebase/firestore';
 import { User, Group, Student, GroupRanking, GraduationProject, GraduationProjectSubmission, GraduationProjectEvaluation, GraduationProjectComment } from '../types';
 import { subscribeToCollection, saveGraduationProject, saveGraduationProjectEvaluation, saveGraduationProjectComment, deleteGraduationProjectComment, importGraduationProjectToGroups } from '../services/firestore';
 import { GraduationCap, Plus, Edit2, ExternalLink, Copy, CheckCircle2, XCircle, AlertCircle, Clock, Link as LinkIcon, MessageSquare, Trash2, Award, ChevronDown, Sparkles, AlertTriangle, ShieldCheck } from 'lucide-react';
+import BriefText from './BriefText';
 import { calculateGraduationProjectScore, formatGraduationScore, GRADUATION_PROJECT_MAX_SCORE } from '../utils';
 
 interface GroupGraduationProjectsTabProps {
@@ -478,21 +479,21 @@ export const GroupGraduationProjectsTab: React.FC<GroupGraduationProjectsTabProp
               {activeProject.description && (
                 <div className="bg-slate-950/60 p-4 rounded-2xl border border-slate-800/80 space-y-1.5">
                   <span className="text-[11px] font-black text-indigo-400 block">📌 تفاصيل مشروع التخرج:</span>
-                  <p className="text-xs text-slate-300 leading-relaxed whitespace-pre-wrap">{activeProject.description}</p>
+                  <BriefText text={activeProject.description} className="text-xs text-slate-300" />
                 </div>
               )}
 
               {activeProject.requirements && (
                 <div className="bg-slate-950/60 p-4 rounded-2xl border border-slate-800/80 space-y-1.5">
                   <span className="text-[11px] font-black text-amber-400 block">🎯 المطلوب من المتدرب:</span>
-                  <p className="text-xs text-slate-300 leading-relaxed whitespace-pre-wrap">{activeProject.requirements}</p>
+                  <BriefText text={activeProject.requirements} className="text-xs text-slate-300" />
                 </div>
               )}
 
               {activeProject.rules && (
                 <div className="bg-rose-950/20 p-4 rounded-2xl border border-rose-500/20 space-y-1.5">
                   <span className="text-[11px] font-black text-rose-400 block">⚠️ القواعد الأساسية للمشروع (لا يجب الخروج عنها):</span>
-                  <p className="text-xs text-rose-200 leading-relaxed whitespace-pre-wrap">{activeProject.rules}</p>
+                  <BriefText text={activeProject.rules} className="text-xs text-rose-200" />
                 </div>
               )}
             </div>
@@ -829,23 +830,37 @@ export const GroupGraduationProjectsTab: React.FC<GroupGraduationProjectsTabProp
               <div>
                 <label className="block text-xs font-black text-slate-300 mb-1">تفاصيل ومفهوم المشروع</label>
                 <textarea
-                  rows={3}
+                  rows={8}
                   value={projectForm.description}
                   onChange={(e) => setProjectForm({ ...projectForm, description: e.target.value })}
                   placeholder="شرح مختصر عن البراند ورؤيته والجمهور المستهدف..."
                   className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-indigo-500"
                 />
+                <p className="text-[10px] text-slate-500 mt-1">التنسيق: <code dir="ltr">### عنوان</code> · <code dir="ltr">*بولد*</code> · <code dir="ltr">- نقطة</code> · <code dir="ltr">1. ترقيم</code> · <code dir="ltr">---</code> فاصل</p>
+                {projectForm.description.trim() && (
+                  <div className="mt-2 p-3 rounded-xl border border-slate-800 bg-slate-900/60 max-h-64 overflow-y-auto">
+                    <span className="block text-[9px] font-black text-slate-500 mb-2">معاينة كما سيظهر للمتدرب</span>
+                    <BriefText text={projectForm.description} className="text-xs text-slate-300" />
+                  </div>
+                )}
               </div>
 
               <div>
                 <label className="block text-xs font-black text-slate-300 mb-1">المطلوب تسليمه من المتدرب</label>
                 <textarea
-                  rows={3}
+                  rows={8}
                   value={projectForm.requirements}
                   onChange={(e) => setProjectForm({ ...projectForm, requirements: e.target.value })}
                   placeholder="مثال: شعار البراند الرئيسي + 3 تصاميم سوشيال ميديا + المطبوعات..."
                   className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-indigo-500"
                 />
+                <p className="text-[10px] text-slate-500 mt-1">التنسيق: <code dir="ltr">### عنوان</code> · <code dir="ltr">*بولد*</code> · <code dir="ltr">- نقطة</code> · <code dir="ltr">1. ترقيم</code> · <code dir="ltr">---</code> فاصل</p>
+                {projectForm.requirements.trim() && (
+                  <div className="mt-2 p-3 rounded-xl border border-slate-800 bg-slate-900/60 max-h-64 overflow-y-auto">
+                    <span className="block text-[9px] font-black text-slate-500 mb-2">معاينة كما سيظهر للمتدرب</span>
+                    <BriefText text={projectForm.requirements} className="text-xs text-slate-300" />
+                  </div>
+                )}
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
