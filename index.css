@@ -1002,6 +1002,299 @@ thead th {
   box-shadow: 0 4px 14px color-mix(in srgb, var(--sg-red) 14%, transparent);
 }
 
+/* Dark theme: light status tints (bg-*-50/100) from older screens become translucent
+   tints, and their dark text shades become readable light shades. */
+html:not(.light) .sg-training-shell .bg-red-50,
+html:not(.light) .sg-training-shell .bg-red-100,
+html:not(.light) .sg-training-shell .hover\:bg-red-50:hover,
+html:not(.light) .sg-training-shell .hover\:bg-red-100:hover {
+  background-color: rgba(239,68,68, 0.13) !important;
+}
+
+html:not(.light) .sg-training-shell .border-red-100,
+html:not(.light) .sg-training-shell .border-red-200 {
+  border-color: rgba(239,68,68, 0.32) !important;
+}
+
+html:not(.light) .sg-training-shell .text-red-700,
+html:not(.light) .sg-training-shell .text-red-800,
+html:not(.light) .sg-training-shell .text-red-900,
+html:not(.light) .sg-training-shell .text-red-950 {
+  color: #fca5a5 !important;
+}
+
+html:not(.light) .sg-training-shell .bg-rose-50,
+html:not(.light) .sg-training-shell .bg-rose-100,
+html:not(.light) .sg-training-shell .hover\:bg-rose-50:hover,
+html:not(.light) .sg-training-shell .hover\:bg-rose-100:hover {
+  background-color: rgba(244,63,94, 0.13) !important;
+}
+
+html:not(.light) .sg-training-shell .border-rose-100,
+html:not(.light) .sg-training-shell .border-rose-200 {
+  border-color: rgba(244,63,94, 0.32) !important;
+}
+
+html:not(.light) .sg-training-shell .text-rose-700,
+html:not(.light) .sg-training-shell .text-rose-800,
+html:not(.light) .sg-training-shell .text-rose-900,
+html:not(.light) .sg-training-shell .text-rose-950 {
+  color: #fda4af !important;
+}
+
+html:not(.light) .sg-training-shell .bg-emerald-50,
+html:not(.light) .sg-training-shell .bg-emerald-100,
+html:not(.light) .sg-training-shell .hover\:bg-emerald-50:hover,
+html:not(.light) .sg-training-shell .hover\:bg-emerald-100:hover {
+  background-color: rgba(16,185,129, 0.13) !important;
+}
+
+html:not(.light) .sg-training-shell .border-emerald-100,
+html:not(.light) .sg-training-shell .border-emerald-200 {
+  border-color: rgba(16,185,129, 0.32) !important;
+}
+
+html:not(.light) .sg-training-shell .text-emerald-700,
+html:not(.light) .sg-training-shell .text-emerald-800,
+html:not(.light) .sg-training-shell .text-emerald-900,
+html:not(.light) .sg-training-shell .text-emerald-950 {
+  color: #6ee7b7 !important;
+}
+
+html:not(.light) .sg-training-shell .bg-green-50,
+html:not(.light) .sg-training-shell .bg-green-100,
+html:not(.light) .sg-training-shell .hover\:bg-green-50:hover,
+html:not(.light) .sg-training-shell .hover\:bg-green-100:hover {
+  background-color: rgba(34,197,94, 0.13) !important;
+}
+
+html:not(.light) .sg-training-shell .border-green-100,
+html:not(.light) .sg-training-shell .border-green-200 {
+  border-color: rgba(34,197,94, 0.32) !important;
+}
+
+html:not(.light) .sg-training-shell .text-green-700,
+html:not(.light) .sg-training-shell .text-green-800,
+html:not(.light) .sg-training-shell .text-green-900,
+html:not(.light) .sg-training-shell .text-green-950 {
+  color: #86efac !important;
+}
+
+html:not(.light) .sg-training-shell .bg-teal-50,
+html:not(.light) .sg-training-shell .bg-teal-100,
+html:not(.light) .sg-training-shell .hover\:bg-teal-50:hover,
+html:not(.light) .sg-training-shell .hover\:bg-teal-100:hover {
+  background-color: rgba(20,184,166, 0.13) !important;
+}
+
+html:not(.light) .sg-training-shell .border-teal-100,
+html:not(.light) .sg-training-shell .border-teal-200 {
+  border-color: rgba(20,184,166, 0.32) !important;
+}
+
+html:not(.light) .sg-training-shell .text-teal-700,
+html:not(.light) .sg-training-shell .text-teal-800,
+html:not(.light) .sg-training-shell .text-teal-900,
+html:not(.light) .sg-training-shell .text-teal-950 {
+  color: #5eead4 !important;
+}
+
+html:not(.light) .sg-training-shell .bg-amber-50,
+html:not(.light) .sg-training-shell .bg-amber-100,
+html:not(.light) .sg-training-shell .hover\:bg-amber-50:hover,
+html:not(.light) .sg-training-shell .hover\:bg-amber-100:hover {
+  background-color: rgba(245,158,11, 0.13) !important;
+}
+
+html:not(.light) .sg-training-shell .border-amber-100,
+html:not(.light) .sg-training-shell .border-amber-200 {
+  border-color: rgba(245,158,11, 0.32) !important;
+}
+
+html:not(.light) .sg-training-shell .text-amber-700,
+html:not(.light) .sg-training-shell .text-amber-800,
+html:not(.light) .sg-training-shell .text-amber-900,
+html:not(.light) .sg-training-shell .text-amber-950 {
+  color: #fcd34d !important;
+}
+
+html:not(.light) .sg-training-shell .bg-yellow-50,
+html:not(.light) .sg-training-shell .bg-yellow-100,
+html:not(.light) .sg-training-shell .hover\:bg-yellow-50:hover,
+html:not(.light) .sg-training-shell .hover\:bg-yellow-100:hover {
+  background-color: rgba(234,179,8, 0.13) !important;
+}
+
+html:not(.light) .sg-training-shell .border-yellow-100,
+html:not(.light) .sg-training-shell .border-yellow-200 {
+  border-color: rgba(234,179,8, 0.32) !important;
+}
+
+html:not(.light) .sg-training-shell .text-yellow-700,
+html:not(.light) .sg-training-shell .text-yellow-800,
+html:not(.light) .sg-training-shell .text-yellow-900,
+html:not(.light) .sg-training-shell .text-yellow-950 {
+  color: #fde047 !important;
+}
+
+html:not(.light) .sg-training-shell .bg-orange-50,
+html:not(.light) .sg-training-shell .bg-orange-100,
+html:not(.light) .sg-training-shell .hover\:bg-orange-50:hover,
+html:not(.light) .sg-training-shell .hover\:bg-orange-100:hover {
+  background-color: rgba(249,115,22, 0.13) !important;
+}
+
+html:not(.light) .sg-training-shell .border-orange-100,
+html:not(.light) .sg-training-shell .border-orange-200 {
+  border-color: rgba(249,115,22, 0.32) !important;
+}
+
+html:not(.light) .sg-training-shell .text-orange-700,
+html:not(.light) .sg-training-shell .text-orange-800,
+html:not(.light) .sg-training-shell .text-orange-900,
+html:not(.light) .sg-training-shell .text-orange-950 {
+  color: #fdba74 !important;
+}
+
+html:not(.light) .sg-training-shell .bg-cyan-50,
+html:not(.light) .sg-training-shell .bg-cyan-100,
+html:not(.light) .sg-training-shell .hover\:bg-cyan-50:hover,
+html:not(.light) .sg-training-shell .hover\:bg-cyan-100:hover {
+  background-color: rgba(6,182,212, 0.13) !important;
+}
+
+html:not(.light) .sg-training-shell .border-cyan-100,
+html:not(.light) .sg-training-shell .border-cyan-200 {
+  border-color: rgba(6,182,212, 0.32) !important;
+}
+
+html:not(.light) .sg-training-shell .text-cyan-700,
+html:not(.light) .sg-training-shell .text-cyan-800,
+html:not(.light) .sg-training-shell .text-cyan-900,
+html:not(.light) .sg-training-shell .text-cyan-950 {
+  color: #67e8f9 !important;
+}
+
+html:not(.light) .sg-training-shell .bg-primary-50,
+html:not(.light) .sg-training-shell .bg-primary-100,
+html:not(.light) .sg-training-shell .hover\:bg-primary-50:hover,
+html:not(.light) .sg-training-shell .hover\:bg-primary-100:hover {
+  background-color: rgba(216,59,37, 0.13) !important;
+}
+
+html:not(.light) .sg-training-shell .border-primary-100,
+html:not(.light) .sg-training-shell .border-primary-200 {
+  border-color: rgba(216,59,37, 0.32) !important;
+}
+
+html:not(.light) .sg-training-shell .text-primary-700,
+html:not(.light) .sg-training-shell .text-primary-800,
+html:not(.light) .sg-training-shell .text-primary-900,
+html:not(.light) .sg-training-shell .text-primary-950 {
+  color: #ffa36f !important;
+}
+
+html:not(.light) .sg-training-shell .bg-blue-50,
+html:not(.light) .sg-training-shell .bg-blue-100,
+html:not(.light) .sg-training-shell .hover\:bg-blue-50:hover,
+html:not(.light) .sg-training-shell .hover\:bg-blue-100:hover {
+  background-color: rgba(216,59,37, 0.13) !important;
+}
+
+html:not(.light) .sg-training-shell .border-blue-100,
+html:not(.light) .sg-training-shell .border-blue-200 {
+  border-color: rgba(216,59,37, 0.32) !important;
+}
+
+html:not(.light) .sg-training-shell .text-blue-700,
+html:not(.light) .sg-training-shell .text-blue-800,
+html:not(.light) .sg-training-shell .text-blue-900,
+html:not(.light) .sg-training-shell .text-blue-950 {
+  color: #ffa36f !important;
+}
+
+html:not(.light) .sg-training-shell .bg-indigo-50,
+html:not(.light) .sg-training-shell .bg-indigo-100,
+html:not(.light) .sg-training-shell .hover\:bg-indigo-50:hover,
+html:not(.light) .sg-training-shell .hover\:bg-indigo-100:hover {
+  background-color: rgba(216,59,37, 0.13) !important;
+}
+
+html:not(.light) .sg-training-shell .border-indigo-100,
+html:not(.light) .sg-training-shell .border-indigo-200 {
+  border-color: rgba(216,59,37, 0.32) !important;
+}
+
+html:not(.light) .sg-training-shell .text-indigo-700,
+html:not(.light) .sg-training-shell .text-indigo-800,
+html:not(.light) .sg-training-shell .text-indigo-900,
+html:not(.light) .sg-training-shell .text-indigo-950 {
+  color: #ffa36f !important;
+}
+
+html:not(.light) .sg-training-shell .bg-purple-50,
+html:not(.light) .sg-training-shell .bg-purple-100,
+html:not(.light) .sg-training-shell .hover\:bg-purple-50:hover,
+html:not(.light) .sg-training-shell .hover\:bg-purple-100:hover {
+  background-color: rgba(216,59,37, 0.13) !important;
+}
+
+html:not(.light) .sg-training-shell .border-purple-100,
+html:not(.light) .sg-training-shell .border-purple-200 {
+  border-color: rgba(216,59,37, 0.32) !important;
+}
+
+html:not(.light) .sg-training-shell .text-purple-700,
+html:not(.light) .sg-training-shell .text-purple-800,
+html:not(.light) .sg-training-shell .text-purple-900,
+html:not(.light) .sg-training-shell .text-purple-950 {
+  color: #ffa36f !important;
+}
+
+html:not(.light) .sg-training-shell .bg-violet-50,
+html:not(.light) .sg-training-shell .bg-violet-100,
+html:not(.light) .sg-training-shell .hover\:bg-violet-50:hover,
+html:not(.light) .sg-training-shell .hover\:bg-violet-100:hover {
+  background-color: rgba(216,59,37, 0.13) !important;
+}
+
+html:not(.light) .sg-training-shell .border-violet-100,
+html:not(.light) .sg-training-shell .border-violet-200 {
+  border-color: rgba(216,59,37, 0.32) !important;
+}
+
+html:not(.light) .sg-training-shell .text-violet-700,
+html:not(.light) .sg-training-shell .text-violet-800,
+html:not(.light) .sg-training-shell .text-violet-900,
+html:not(.light) .sg-training-shell .text-violet-950 {
+  color: #ffa36f !important;
+}
+
+html:not(.light) .sg-training-shell .bg-sky-50,
+html:not(.light) .sg-training-shell .bg-sky-100,
+html:not(.light) .sg-training-shell .hover\:bg-sky-50:hover,
+html:not(.light) .sg-training-shell .hover\:bg-sky-100:hover {
+  background-color: rgba(249,115,22, 0.13) !important;
+}
+
+html:not(.light) .sg-training-shell .border-sky-100,
+html:not(.light) .sg-training-shell .border-sky-200 {
+  border-color: rgba(249,115,22, 0.32) !important;
+}
+
+html:not(.light) .sg-training-shell .text-sky-700,
+html:not(.light) .sg-training-shell .text-sky-800,
+html:not(.light) .sg-training-shell .text-sky-900,
+html:not(.light) .sg-training-shell .text-sky-950 {
+  color: #fdba74 !important;
+}
+
+/* Previews of outgoing emails keep the email's own white canvas. */
+.sg-training-shell .sg-keep-light {
+  color: #0d0d0d !important;
+  background-color: #fff !important;
+}
+
 /* Student portal */
 .sg-student-login {
   background-color: var(--sg-bg) !important;

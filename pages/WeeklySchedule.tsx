@@ -348,7 +348,7 @@ const WeeklySchedulePage: React.FC<{ user: User }> = ({ user }) => {
                           {expandedContent[item.id] ? '▼ Hide Plan' : '▶ View Plan'}
                         </button>
                         {expandedContent[item.id] && (
-                          <p className={`text-xs font-medium whitespace-pre-wrap p-3 rounded-xl border animate-in fade-in slide-in-from-top-2 ${item.status === 'done' ? 'bg-emerald-100/50 text-emerald-800 border-emerald-200/50' : 'bg-slate-50 text-slate-600 border-slate-100'}`}>
+                          <p className={`text-xs font-medium whitespace-pre-wrap p-3 rounded-xl border animate-in fade-in slide-in-from-top-2 ${item.status === 'done' ? 'bg-emerald-100/50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border-emerald-200/50 dark:border-emerald-800/40' : 'bg-slate-50 text-slate-600 border-slate-100'}`}>
                             {item.lectureContent}
                           </p>
                         )}

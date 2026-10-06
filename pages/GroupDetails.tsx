@@ -4842,14 +4842,14 @@ const GroupDetails: React.FC<{ user: User }> = ({ user }) => {
                       rate: totalRequired > 0 ? Math.round((totalCompleted / totalRequired) * 100) : 0
                     };
                   })}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
-                    <XAxis dataKey="name" stroke="#64748b" fontSize={10} fontWeight="bold" />
-                    <YAxis stroke="#64748b" fontSize={10} fontWeight="bold" />
+                    <CartesianGrid strokeDasharray="3 3" stroke="#34302e" vertical={false} />
+                    <XAxis dataKey="name" stroke="#77767c" fontSize={10} fontWeight="bold" />
+                    <YAxis stroke="#77767c" fontSize={10} fontWeight="bold" />
                     <Tooltip 
-                      contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '12px' }}
+                      contentStyle={{ backgroundColor: '#131212', border: '1px solid #34302e', borderRadius: '12px' }}
                       itemStyle={{ color: '#fff', fontSize: '12px' }}
                     />
-                    <Bar dataKey="completed" fill="#3b82f6" radius={[4, 4, 0, 0]} name="Completed Tasks" />
+                    <Bar dataKey="completed" fill="#d83b25" radius={[4, 4, 0, 0]} name="Completed Tasks" />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -4876,7 +4876,7 @@ const GroupDetails: React.FC<{ user: User }> = ({ user }) => {
                       <Cell fill="#ef4444" />
                     </Pie>
                     <Tooltip 
-                      contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '12px' }}
+                      contentStyle={{ backgroundColor: '#131212', border: '1px solid #34302e', borderRadius: '12px' }}
                     />
                     <Legend />
                   </PieChart>
@@ -5421,13 +5421,13 @@ const GroupDetails: React.FC<{ user: User }> = ({ user }) => {
                 <div className="h-72 w-full" dir="ltr">
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={chartData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                      <XAxis dataKey="sessionNumber" stroke="#94a3b8" />
-                      <YAxis stroke="#94a3b8" domain={[0, 5]} />
-                      <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', color: '#fff', textAlign: 'right' }} />
+                      <CartesianGrid strokeDasharray="3 3" stroke="#34302e" />
+                      <XAxis dataKey="sessionNumber" stroke="#92939a" />
+                      <YAxis stroke="#92939a" domain={[0, 5]} />
+                      <Tooltip contentStyle={{ backgroundColor: '#131212', borderColor: '#34302e', color: '#fff', textAlign: 'right' }} />
                       <Legend />
                       <Line type="monotone" dataKey="التقييم العام" stroke="#34d399" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
-                      <Line type="monotone" dataKey="أداء المدرب" stroke="#60a5fa" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                      <Line type="monotone" dataKey="أداء المدرب" stroke="#ff8a1f" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
@@ -5948,7 +5948,7 @@ const GroupDetails: React.FC<{ user: User }> = ({ user }) => {
                   className="bg-slate-950 border border-slate-800 rounded-xl py-2 pl-9 pr-3 text-xs font-bold text-slate-200 outline-none"
                 />
               </div>
-              <button onClick={handleRecalculateAll} disabled={isRecalculating} className="bg-white text-slate-950 px-6 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl">Force Sync</button>
+              <button onClick={handleRecalculateAll} disabled={isRecalculating} className="bg-primary-600 hover:bg-primary-700 text-white px-6 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl">Force Sync</button>
             </div>
           </div>
           <div className="overflow-x-auto">

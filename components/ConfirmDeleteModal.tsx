@@ -33,12 +33,12 @@ const ConfirmDeleteModal: React.FC<ConfirmDeleteModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200 md:pl-72">
       <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden animate-in zoom-in duration-200">
-        <div className="p-6 border-b border-slate-100 bg-red-50/50">
-          <h3 className="text-xl font-bold text-red-800 tracking-tight">Confirm Deletion</h3>
+        <div className="p-6 border-b border-slate-100 bg-red-50/50 dark:bg-red-950/40">
+          <h3 className="text-xl font-bold text-red-800 dark:text-red-300 tracking-tight">Confirm Deletion</h3>
         </div>
         <div className="p-6 space-y-4">
-          <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl">
-            <p className="text-sm text-amber-800 font-semibold leading-relaxed">
+          <div className="p-4 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 rounded-xl">
+            <p className="text-sm text-amber-800 dark:text-amber-200 font-semibold leading-relaxed">
               ⚠️ You are about to delete <strong>{entityType}</strong>: <span className="underline">{entityName}</span>. 
               This action is permanent and cannot be undone.
             </p>

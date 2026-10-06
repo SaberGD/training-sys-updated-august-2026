@@ -642,13 +642,13 @@ const TasksPage: React.FC<TasksPageProps> = ({ user }) => {
                         rate: totalRequired > 0 ? Math.round((totalCompleted / totalRequired) * 100) : 0
                       };
                     }).filter(d => d.required > 0)}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
-                      <XAxis dataKey="name" stroke="#64748b" fontSize={10} fontWeight="bold" />
-                      <YAxis stroke="#64748b" fontSize={10} fontWeight="bold" />
+                      <CartesianGrid strokeDasharray="3 3" stroke="#34302e" vertical={false} />
+                      <XAxis dataKey="name" stroke="#77767c" fontSize={10} fontWeight="bold" />
+                      <YAxis stroke="#77767c" fontSize={10} fontWeight="bold" />
                       <Tooltip 
-                        contentStyle={{ backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '12px' }}
+                        contentStyle={{ backgroundColor: '#131212', border: '1px solid #34302e', borderRadius: '12px' }}
                       />
-                      <Bar dataKey="rate" fill="#3b82f6" radius={[6, 6, 0, 0]} name="Completion %" />
+                      <Bar dataKey="rate" fill="#d83b25" radius={[6, 6, 0, 0]} name="Completion %" />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -671,9 +671,9 @@ const TasksPage: React.FC<TasksPageProps> = ({ user }) => {
                       }).length;
                       return { date: dateStr.split('-').slice(1).join('/'), count: dayTasks };
                     })}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
-                      <XAxis dataKey="date" stroke="#64748b" fontSize={10} fontWeight="bold" />
-                      <YAxis stroke="#64748b" fontSize={10} fontWeight="bold" />
+                      <CartesianGrid strokeDasharray="3 3" stroke="#34302e" vertical={false} />
+                      <XAxis dataKey="date" stroke="#77767c" fontSize={10} fontWeight="bold" />
+                      <YAxis stroke="#77767c" fontSize={10} fontWeight="bold" />
                       <Tooltip />
                       <Line type="monotone" dataKey="count" stroke="#10b981" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
                     </LineChart>

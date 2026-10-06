@@ -339,7 +339,7 @@ const AIStudentExportModal: React.FC<AIStudentExportModalProps> = ({
                 <div className={`mt-0.5 w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
                   exportScope === 'all_db' ? 'border-indigo-600 bg-indigo-600' : 'border-slate-400'
                 }`}>
-                  {exportScope === 'all_db' && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                  {exportScope === 'all_db' && <div className="w-1.5 h-1.5 rounded-full bg-neutral-50" />}
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
@@ -372,7 +372,7 @@ const AIStudentExportModal: React.FC<AIStudentExportModalProps> = ({
                 <div className={`mt-0.5 w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
                   exportScope === 'group' ? 'border-blue-600 bg-blue-600' : 'border-slate-400'
                 }`}>
-                  {exportScope === 'group' && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                  {exportScope === 'group' && <div className="w-1.5 h-1.5 rounded-full bg-neutral-50" />}
                 </div>
                 <div className="w-full">
                   <div className="flex items-center justify-between gap-2">
@@ -405,7 +405,7 @@ const AIStudentExportModal: React.FC<AIStudentExportModalProps> = ({
                 <div className={`mt-0.5 w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
                   exportScope === 'new_only' ? 'border-purple-600 bg-purple-600' : 'border-slate-400'
                 }`}>
-                  {exportScope === 'new_only' && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                  {exportScope === 'new_only' && <div className="w-1.5 h-1.5 rounded-full bg-neutral-50" />}
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
@@ -436,7 +436,7 @@ const AIStudentExportModal: React.FC<AIStudentExportModalProps> = ({
                   <div className={`mt-0.5 w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
                     exportScope === 'filtered' ? 'border-emerald-600 bg-emerald-600' : 'border-slate-400'
                   }`}>
-                    {exportScope === 'filtered' && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                    {exportScope === 'filtered' && <div className="w-1.5 h-1.5 rounded-full bg-neutral-50" />}
                   </div>
                   <div>
                     <div className="flex items-center gap-2">

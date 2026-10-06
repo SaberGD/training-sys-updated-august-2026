@@ -151,7 +151,7 @@ const Groups: React.FC<GroupsProps> = ({ user, isTrainerOnly }) => {
             <button
               onClick={() => setShowArchived(false)}
               className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${
-                !showArchived ? 'bg-white text-primary-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                !showArchived ? 'bg-primary-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-700'
               }`}
             >
               Active Groups
@@ -159,7 +159,7 @@ const Groups: React.FC<GroupsProps> = ({ user, isTrainerOnly }) => {
             <button
               onClick={() => setShowArchived(true)}
               className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${
-                showArchived ? 'bg-white text-primary-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                showArchived ? 'bg-primary-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-700'
               }`}
             >
               Archived Groups
@@ -250,7 +250,7 @@ const Groups: React.FC<GroupsProps> = ({ user, isTrainerOnly }) => {
                             {primaryT ? (
                               <div className="flex items-center gap-1.5">
                                 <span className="text-[10px] bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-md font-bold">أساسي</span>
-                                <span className="text-indigo-900 font-extrabold">{primaryT.name}</span>
+                                <span className="text-indigo-900 dark:text-slate-100 font-extrabold">{primaryT.name}</span>
                               </div>
                             ) : (
                               <span className="text-slate-400 italic">لم يحدد مدرب أساسي</span>
@@ -264,7 +264,7 @@ const Groups: React.FC<GroupsProps> = ({ user, isTrainerOnly }) => {
                             {assistantT && (
                               <div className="flex items-center gap-1.5 mt-1.5">
                                 <span className="text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200/60 px-2 py-0.5 rounded-md font-bold">مُساعد</span>
-                                <span className="text-emerald-900 font-bold">{assistantT.name}</span>
+                                <span className="text-emerald-900 dark:text-emerald-300 font-bold">{assistantT.name}</span>
                               </div>
                             )}
                           </>

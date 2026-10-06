@@ -296,13 +296,13 @@ const MarketingResourcesPage: React.FC<{ user: User }> = ({ user }) => {
                     <div className="flex gap-2">
                       <button 
                         onClick={() => setSortBy('date')}
-                        className={`flex-1 py-2 rounded-xl text-[10px] font-black uppercase transition-all border ${sortBy === 'date' ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-400 border-slate-200'}`}
+                        className={`flex-1 py-2 rounded-xl text-[10px] font-black uppercase transition-all border ${sortBy === 'date' ? 'bg-primary-600 text-white border-primary-600' : 'bg-white text-slate-400 border-slate-200'}`}
                       >
                         Date
                       </button>
                       <button 
                         onClick={() => setSortBy('rating')}
-                        className={`flex-1 py-2 rounded-xl text-[10px] font-black uppercase transition-all border ${sortBy === 'rating' ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-400 border-slate-200'}`}
+                        className={`flex-1 py-2 rounded-xl text-[10px] font-black uppercase transition-all border ${sortBy === 'rating' ? 'bg-primary-600 text-white border-primary-600' : 'bg-white text-slate-400 border-slate-200'}`}
                       >
                         Rating
                       </button>

@@ -239,9 +239,9 @@ const Labels: React.FC<{ user: User }> = ({ user }) => {
                 {/* neat switch indicator */}
                 <div 
                   onClick={() => setFormData({...formData, visibleOnScreen: !formData.visibleOnScreen})}
-                  className={`w-11 h-6 rounded-full p-1 cursor-pointer transition-all shrink-0 ${formData.visibleOnScreen ? 'bg-indigo-600' : 'bg-slate-300 dark:bg-slate-800'}`}
+                  className={`w-11 h-6 rounded-full p-1 cursor-pointer transition-all shrink-0 ${formData.visibleOnScreen ? 'bg-indigo-600' : 'bg-slate-300 dark:bg-slate-700'}`}
                 >
-                  <div className={`w-4 h-4 rounded-full bg-white transition-all shadow-sm ${formData.visibleOnScreen ? (lang === 'ar' ? '-translate-x-5' : 'translate-x-5') : 'translate-x-0'}`}></div>
+                  <div className={`w-4 h-4 rounded-full bg-neutral-50 transition-all shadow-sm ${formData.visibleOnScreen ? (lang === 'ar' ? '-translate-x-5' : 'translate-x-5') : 'translate-x-0'}`}></div>
                 </div>
               </div>
 

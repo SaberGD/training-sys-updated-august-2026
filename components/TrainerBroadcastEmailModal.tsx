@@ -663,7 +663,7 @@ export const TrainerBroadcastEmailModal: React.FC<TrainerBroadcastEmailModalProp
               </div>
 
               {/* Rendered HTML Container */}
-              <div className="bg-white p-4 rounded-2xl border border-slate-300 shadow-inner max-h-[420px] overflow-y-auto scrollbar-thin">
+              <div className="sg-keep-light bg-white p-4 rounded-2xl border border-slate-300 shadow-inner max-h-[420px] overflow-y-auto scrollbar-thin">
                 <div dangerouslySetInnerHTML={{ __html: getRenderedBodyHtml(sampleStudent) }} />
               </div>
             </div>

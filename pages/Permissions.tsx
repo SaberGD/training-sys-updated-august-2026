@@ -168,7 +168,7 @@ const PermissionsPage: React.FC<{ user: User }> = ({ user }) => {
                             {permissionLabels[key]}
                           </span>
                           <div className={`w-10 h-5 rounded-full relative transition-all ${perms[key] ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-700'}`}>
-                            <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${perms[key] ? 'right-1' : 'left-1'}`}></div>
+                            <div className={`absolute top-1 w-3 h-3 bg-neutral-50 rounded-full transition-all ${perms[key] ? 'right-1' : 'left-1'}`}></div>
                           </div>
                         </div>
                       ))}
@@ -242,7 +242,7 @@ const PermissionsPage: React.FC<{ user: User }> = ({ user }) => {
                         
                         {/* Custom Switch Toggle */}
                         <div className={`w-11 h-6 rounded-full p-1 transition-all ${!isHidden ? 'bg-indigo-600' : 'bg-rose-500/20 dark:bg-rose-950/60'}`}>
-                          <div className={`w-4 h-4 rounded-full bg-white transition-all shadow-sm ${!isHidden ? 'translate-x-5' : 'translate-x-0'}`}></div>
+                          <div className={`w-4 h-4 rounded-full bg-neutral-50 transition-all shadow-sm ${!isHidden ? 'translate-x-5' : 'translate-x-0'}`}></div>
                         </div>
                       </div>
                       

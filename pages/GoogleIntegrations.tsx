@@ -2209,7 +2209,7 @@ async function safeFetchJson(url: string, options?: RequestInit) {
                       onInput={(e) => setTemplateBody(e.currentTarget.innerHTML)}
                       onBlur={(e) => setTemplateBody(e.currentTarget.innerHTML)}
                       dangerouslySetInnerHTML={{ __html: templateBody }}
-                      className="bg-white text-slate-900 rounded-2xl shadow-xl overflow-hidden max-w-xl mx-auto border border-slate-200 p-6 sm:p-8 outline-none focus:ring-2 focus:ring-indigo-500 min-h-[420px] dir-rtl text-right cursor-text"
+                      className="sg-keep-light bg-white text-slate-900 rounded-2xl shadow-xl overflow-hidden max-w-xl mx-auto border border-slate-200 p-6 sm:p-8 outline-none focus:ring-2 focus:ring-indigo-500 min-h-[420px] dir-rtl text-right cursor-text"
                       dir="rtl"
                     />
                   </div>
@@ -2264,7 +2264,7 @@ async function safeFetchJson(url: string, options?: RequestInit) {
                   {/* Rendered HTML Container */}
                   <div className="p-6 sm:p-10 rounded-2xl bg-slate-200/60 dark:bg-slate-950 border border-slate-300/80 dark:border-slate-800 overflow-x-auto">
                     <div 
-                      className="bg-white rounded-2xl shadow-xl overflow-hidden max-w-xl mx-auto border border-slate-200"
+                      className="sg-keep-light bg-white rounded-2xl shadow-xl overflow-hidden max-w-xl mx-auto border border-slate-200"
                       dangerouslySetInnerHTML={{ __html: renderedPreviewHtml }}
                     />
                   </div>
@@ -3128,7 +3128,7 @@ async function safeFetchJson(url: string, options?: RequestInit) {
                 </div>
                 <div className="p-4 sm:p-6 rounded-2xl bg-slate-200/60 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 overflow-x-auto">
                   <div 
-                    className="bg-white rounded-2xl shadow-xl overflow-hidden max-w-xl mx-auto border border-slate-200"
+                    className="sg-keep-light bg-white rounded-2xl shadow-xl overflow-hidden max-w-xl mx-auto border border-slate-200"
                     dangerouslySetInnerHTML={{
                       __html: wrapInSaberEmailFrame(
                         'عنوان الإيميل التجريبي',

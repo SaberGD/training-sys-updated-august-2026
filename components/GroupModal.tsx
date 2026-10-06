@@ -261,14 +261,14 @@ const GroupModal: React.FC<GroupModalProps> = ({
                 {courses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
               {editingGroup && formData.courseId !== editingGroup.courseId && (
-                <div className="mt-2.5 p-3.5 bg-amber-500/10 border border-amber-500/30 rounded-xl text-amber-900 font-arabic text-right text-[11px] leading-relaxed space-y-1 shadow-sm">
-                  <div className="flex items-center gap-1.5 font-black text-amber-800">
+                <div className="mt-2.5 p-3.5 bg-amber-500/10 border border-amber-500/30 rounded-xl text-amber-900 dark:text-amber-200 font-arabic text-right text-[11px] leading-relaxed space-y-1 shadow-sm">
+                  <div className="flex items-center gap-1.5 font-black text-amber-800 dark:text-amber-300">
                     <span>🔄 تغيير نوع الكورس وإعادة هيكلة الجروب:</span>
                   </div>
                   <p>
                     سيتم تحويل الجروب إلى كورس <strong>"{courses.find(c => c.id === formData.courseId)?.name}"</strong> وإعادة رسم جدول المحاضرات والخطة التعليمية تلقائياً.
                   </p>
-                  <p className="text-[10px] text-amber-700 font-bold">
+                  <p className="text-[10px] text-amber-700 dark:text-amber-300 font-bold">
                     ✅ تنبيه: سيتم الاحتفاظ بجميع بيانات الطلاب الحالية، وأرقام الـ ID، وكلمات المرور، ونقاط الحضور والتاسكات كما هي تماماً دون تغيير.
                   </p>
                 </div>
@@ -344,7 +344,7 @@ const GroupModal: React.FC<GroupModalProps> = ({
             </p>
 
             <div className="col-span-2 pt-3 border-t border-slate-200/80 font-arabic text-right" dir="rtl">
-              <label className="block text-xs font-black text-indigo-900 uppercase mb-1 tracking-wider">
+              <label className="block text-xs font-black text-indigo-900 dark:text-primary-300 uppercase mb-1 tracking-wider">
                 📅 Calendar Invitation Mode / نظام إرسال دعوات التقويم للطلاب
               </label>
               <p className="text-[10px] text-slate-500 font-bold mb-2.5">
@@ -353,8 +353,8 @@ const GroupModal: React.FC<GroupModalProps> = ({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <label className={`p-3 rounded-xl border cursor-pointer flex items-center gap-2.5 transition-all ${
                   formData.calendarInvitationMode === '24h_before'
-                    ? 'bg-white border-indigo-600 shadow-sm text-indigo-950 font-black'
-                    : 'bg-slate-100/70 border-slate-200 text-slate-600 font-bold'
+                    ? 'bg-indigo-600/15 border-indigo-600 shadow-sm text-indigo-950 dark:text-white font-black'
+                    : 'bg-slate-100/70 dark:bg-slate-800/60 border-slate-200 text-slate-600 dark:text-slate-300 font-bold'
                 }`}>
                   <input
                     type="radio"
@@ -369,8 +369,8 @@ const GroupModal: React.FC<GroupModalProps> = ({
 
                 <label className={`p-3 rounded-xl border cursor-pointer flex items-center gap-2.5 transition-all ${
                   formData.calendarInvitationMode === 'all_at_creation'
-                    ? 'bg-white border-indigo-600 shadow-sm text-indigo-950 font-black'
-                    : 'bg-slate-100/70 border-slate-200 text-slate-600 font-bold'
+                    ? 'bg-indigo-600/15 border-indigo-600 shadow-sm text-indigo-950 dark:text-white font-black'
+                    : 'bg-slate-100/70 dark:bg-slate-800/60 border-slate-200 text-slate-600 dark:text-slate-300 font-bold'
                 }`}>
                   <input
                     type="radio"
