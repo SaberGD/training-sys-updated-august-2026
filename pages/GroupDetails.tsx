@@ -1941,8 +1941,8 @@ const GroupDetails: React.FC<{ user: User }> = ({ user }) => {
         const checklistPercent = totalItemsCount > 0 ? Math.round((completedItemsCount / totalItemsCount) * 100) : 0;
 
         const completedLectures = sessions.filter(s => s.status === 'done');
-        const actHoursSum = completedLectures.reduce((s, x) => s + (Number(x.actualHours) || 0), 0);
-        const appHoursSum = completedLectures.reduce((s, x) => s + (Number(x.approvedHours) || 0), 0);
+        const actHoursSum = Math.round(completedLectures.reduce((s, x) => s + (Number(x.actualHours) || 0), 0) * 100) / 100;
+        const appHoursSum = Math.round(completedLectures.reduce((s, x) => s + (Number(x.approvedHours) || 0), 0) * 100) / 100;
         
         const maxCourseLimit = courses.find(c => c.id === group?.courseId)?.maxApprovedHours || 3;
         const isLimitViolated = completedLectures.some(x => (Number(x.approvedHours) || 0) > maxCourseLimit);

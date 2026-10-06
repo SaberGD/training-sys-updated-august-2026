@@ -19,6 +19,28 @@
         theme: {
           extend: {
             colors: {
+              // SABER GROUP identity: legacy slate/blue/indigo/sky utilities across
+              // older pages are remapped to the warm-black + rust/ember palette.
+              slate: {
+                50: '#f6f3f2', 100: '#ebe6e2', 200: '#d9d3cf', 300: '#cbc7c5',
+                400: '#92939a', 500: '#77767c', 600: '#57534f', 700: '#34302e',
+                800: '#1f1c1b', 850: '#191716', 900: '#131212', 950: '#0c0b0b',
+              },
+              blue: {
+                50: '#fff4ef', 100: '#ffe4d6', 200: '#ffc6a8', 300: '#ffa36f',
+                400: '#ff8a1f', 500: '#ee4e2b', 600: '#d83b25', 700: '#b42b1b',
+                800: '#8f2017', 900: '#6e1a13', 950: '#3d0e0a',
+              },
+              indigo: {
+                50: '#fff4ef', 100: '#ffe4d6', 200: '#ffc6a8', 300: '#ffa36f',
+                400: '#ff8a1f', 500: '#ee4e2b', 600: '#d83b25', 700: '#b42b1b',
+                800: '#8f2017', 900: '#6e1a13', 950: '#3d0e0a',
+              },
+              sky: {
+                50: '#fff7ed', 100: '#ffedd5', 200: '#fed7aa', 300: '#fdba74',
+                400: '#fb923c', 500: '#f97316', 600: '#ea580c', 700: '#c2410c',
+                800: '#9a3412', 900: '#7c2d12', 950: '#431407',
+              },
               primary: {
                 50: '#f0f9ff',
                 100: '#e0f2fe',
@@ -70,7 +92,7 @@
         
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
-        .dark ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
+        .dark ::-webkit-scrollbar-thumb { background: #34302e; border-radius: 10px; }
         .light ::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
 
         @keyframes fadeIn {
