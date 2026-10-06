@@ -21,6 +21,7 @@
   --sg-subtle: #77767c;
   --sg-placeholder: #68676c;
   --sg-success: #2bc98f;
+  --sg-accent-text: #ff9b47;
   --sg-radius: 7px;
   --sg-cut: 17px;
   --sg-shadow: 0 24px 70px rgba(0, 0, 0, 0.42);
@@ -51,6 +52,7 @@ html.light {
   --sg-muted: #77706c;
   --sg-subtle: #918984;
   --sg-placeholder: #9a928d;
+  --sg-accent-text: #b42b1b;
   --sg-shadow: 0 20px 55px rgba(64, 38, 30, 0.12);
   --sg-sidebar-shadow: 18px 0 48px rgba(64, 38, 30, 0.1);
   --sg-shell-background:
@@ -888,8 +890,12 @@ html.light .sg-training-landing [class*="text-slate-400"] {
 }
 
 .sg-training-shell [class*="text-primary-"],
-.sg-training-shell [class*="text-indigo-"] {
-  color: #ff9b47 !important;
+.sg-training-shell [class*="text-indigo-"],
+.sg-training-shell [class*="text-blue-"],
+.sg-training-shell [class*="text-purple-"],
+.sg-training-shell [class*="text-violet-"],
+.sg-training-shell [class*="text-sky-"] {
+  color: var(--sg-accent-text) !important;
 }
 
 .sg-training-shell [class*="border-primary-"],
@@ -1287,6 +1293,35 @@ html:not(.light) .sg-training-shell .text-sky-800,
 html:not(.light) .sg-training-shell .text-sky-900,
 html:not(.light) .sg-training-shell .text-sky-950 {
   color: #fdba74 !important;
+}
+
+/* Light theme: sections hardcoded as dark (bg-slate-900/950) keep the dark
+   token set, so their fields, table headers and text stay consistent. */
+html.light .sg-training-shell :is(.bg-slate-900, .bg-slate-950, .bg-black, [class*="to-slate-900"], [class*="to-slate-950"]):not(input, select, textarea) {
+  --sg-bg: #070707;
+  --sg-bg-raised: #0c0b0b;
+  --sg-panel: rgba(19, 18, 18, 0.94);
+  --sg-panel-soft: rgba(25, 22, 21, 0.82);
+  --sg-sidebar: rgba(9, 9, 9, 0.97);
+  --sg-header: rgba(10, 9, 9, 0.9);
+  --sg-field: #0d0c0c;
+  --sg-hover: rgba(255, 255, 255, 0.045);
+  --sg-grid: rgba(255, 255, 255, 0.022);
+  --sg-line: rgba(255, 255, 255, 0.1);
+  --sg-line-hot: rgba(238, 78, 43, 0.42);
+  --sg-red: #d83b25;
+  --sg-red-deep: #8f2017;
+  --sg-orange: #ff8a1f;
+  --sg-text: #f6f3f2;
+  --sg-text-soft: #cbc7c5;
+  --sg-muted: #92939a;
+  --sg-subtle: #77767c;
+  --sg-placeholder: #68676c;
+  --sg-success: #2bc98f;
+  --sg-shadow: 0 24px 70px rgba(0, 0, 0, 0.42);
+  --sg-sidebar-shadow: 22px 0 70px rgba(0, 0, 0, 0.34);
+  --sg-accent-text: #ff9b47;
+  color: var(--sg-text);
 }
 
 /* Previews of outgoing emails keep the email's own white canvas. */

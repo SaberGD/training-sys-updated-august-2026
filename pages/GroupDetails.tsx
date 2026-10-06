@@ -1985,7 +1985,7 @@ const GroupDetails: React.FC<{ user: User }> = ({ user }) => {
                     ⚠️ تنبيه: تجاوز للحد الأقصى!
                   </span>
                 ) : (
-                  <span className="text-[9px] bg-green-950/40 text-green-455 border border-green-900/40 px-2.5 py-0.5 rounded-full font-black self-start mt-3">
+                  <span className="text-[9px] bg-green-950/40 text-green-400 border border-green-900/40 px-2.5 py-0.5 rounded-full font-black self-start mt-3">
                     ✔ ساعات معافاة وضمن الحدود
                   </span>
                 )}

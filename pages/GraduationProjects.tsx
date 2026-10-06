@@ -157,11 +157,11 @@ const GraduationProjectsPage: React.FC<GraduationProjectsProps> = ({ user }) => 
 
         {/* Projects Grid */}
         {filteredProjects.length === 0 ? (
-          <div className="bg-slate-900/50 border border-slate-800 rounded-3xl p-12 text-center space-y-4">
+          <div className="bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-3xl p-12 text-center space-y-4">
             <div className="w-16 h-16 bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 rounded-2xl flex items-center justify-center mx-auto text-3xl">
               🎓
             </div>
-            <h3 className="text-lg font-black text-white">لا توجد مشاريع تخرج مضافة حتى الآن</h3>
+            <h3 className="text-lg font-black text-slate-900 dark:text-white">لا توجد مشاريع تخرج مضافة حتى الآن</h3>
             <p className="text-xs text-slate-400 max-w-md mx-auto">
               يمكنك إضافة مشروعات تخرج جديدة مباشرة من داخل التاب الخاصة بـ "مشاريع التخرج" في تفاصيل أي مجموعة تدريبية.
             </p>
