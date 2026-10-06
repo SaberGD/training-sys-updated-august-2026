@@ -218,14 +218,19 @@ async function login(req, res, { admin, db }) {
   const fresh = await db.getAll(...out);
   const publicRecords = fresh.filter((d) => d.exists).map(publicRecord);
 
-  // Custom token for the portal's own Firebase app. Best effort: a missing
-  // IAM permission must not break logins.
+  // Custom token for the portal's own Firebase app. Firestore rules let it
+  // read/update only students docs whose studentIdNum equals `sidn` (all of
+  // this student's records were just unified to it).
   let token = null;
   try {
-    const sids = publicRecords.map((r) => r.id).slice(0, 35);
-    token = await admin.auth().createCustomToken(`student_${primaryDoc.id}`.slice(0, 128), { portal: "student", sids });
+    token = await admin.auth().createCustomToken(`student_${primaryDoc.id}`.slice(0, 128), {
+      portal: "student",
+      sidn: String(unifiedId),
+    });
   } catch (err) {
     console.error("studentPortal: custom token failed", err.message || err);
+    res.status(500).json({ error: "token_failed" });
+    return;
   }
 
   res.json({ ok: true, primaryId: primaryDoc.id, records: publicRecords, token });

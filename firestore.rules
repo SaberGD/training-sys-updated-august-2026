@@ -14,8 +14,14 @@ service cloud.firestore {
     
     // A signed-in staff account that exists and is not disabled. A disabled
     // account is cut off from all data immediately, even with an open session.
+    // Student portal sessions (custom tokens) are never staff accounts.
+    function isPortalSession() {
+      return request.auth != null && request.auth.token.get('portal', '') == 'student';
+    }
+
     function isActiveAccount() {
       return isSignedIn()
+        && !isPortalSession()
         && exists(/databases/$(database)/documents/users/$(request.auth.uid))
         && getUserData().get('disabled', false) != true;
     }
@@ -90,11 +96,11 @@ service cloud.firestore {
     match /users/{userId} {
       // Readable by any signed-in account so the app can load a disabled
       // profile and show the "account disabled" message.
-      allow read: if isSignedIn();
+      allow read: if isSignedIn() && !isPortalSession();
       allow write: if isStaff();
       // First login creates the own profile (getOrCreateUser): trainer, or admin
       // for the default admin emails, never pre-disabled.
-      allow create: if isSignedIn() && request.auth.uid == userId
+      allow create: if isSignedIn() && !isPortalSession() && request.auth.uid == userId
         && request.resource.data.get('disabled', false) == false
         && (request.resource.data.role == 'trainer'
             || (request.resource.data.role == 'admin' && isDefaultAdminEmail()));
@@ -123,10 +129,25 @@ service cloud.firestore {
       allow update: if canTrainerIncreaseTotalSessions();
     }
 
-    // Students collection
+    // Students collection. Holds credentials and contact data, so it is no
+    // longer public: staff accounts, or the student portal session of the
+    // student themself (custom token from the studentPortal function, claim
+    // `sidn` = the student's unified studentIdNum).
+    function isPortalStudentFor(data) {
+      return request.auth != null
+        && request.auth.token.get('portal', '') == 'student'
+        && data.get('studentIdNum', null) == request.auth.token.get('sidn', '');
+    }
+
     match /students/{studentId} {
-      allow read: if true;
-      allow write: if true;
+      allow read: if isActiveAccount() || isPortalStudentFor(resource.data);
+      allow create, delete: if isActiveAccount();
+      allow update: if isActiveAccount()
+        || (isPortalStudentFor(resource.data)
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+              'phone', 'whatsappLink', 'email', 'profileEditedFields', 'profileEditHistory',
+              'hasLoggedIn', 'lastLoginAt', 'loginCount', 'firstLoginAt'
+            ]));
     }
 
     // Enrollments collection
