@@ -4,7 +4,7 @@ import * as firestore from 'firebase/firestore';
 import { db } from '../firebase';
 import { Student, Group, Session, LectureEvaluation, Penalty, GroupRanking, SessionMeta, AppNotification, GlobalEvalForm, GraduationProject, GraduationProjectSubmission, GraduationProjectEvaluation, GraduationProjectComment, StudentCertificateRecord, StudentWeaknessPoint } from '../types';
 import { markStudentAttendanceSelf, markNotificationRead, saveGraduationProjectSubmission } from '../services/firestore';
-import { portalLogin, portalRoster, portalLogout, portalDb, restorePortalRecords } from '../lib/studentPortalApi';
+import { portalLogin, portalRoster, portalLogout } from '../lib/studentPortalApi';
 import { 
   Award, CheckCircle, CheckCircle2, Calendar, TrendingUp, AlertTriangle, 
   FileText, BookOpen, MessageSquare, Send, Users, LogOut, 
@@ -372,7 +372,7 @@ const StudentPortal: React.FC = () => {
         profileEditHistory: newHistory
       };
 
-      const studentDocRef = doc(portalDb, 'students', currentStudent.id);
+      const studentDocRef = doc(db, 'students', currentStudent.id);
       await updateDoc(studentDocRef, payload);
 
       // Log activity
@@ -426,18 +426,31 @@ const StudentPortal: React.FC = () => {
         studentRecords = serverRecords;
         setAllStudentRecords(studentRecords);
       } else {
-      // Restored session (page reload): read this student's own records as
-      // the signed-in portal student. Sessions saved before server-side login
-      // have no portal token, so they go back to the login screen once.
-      const restored = await restorePortalRecords<Student>();
-      if (!restored) {
-        portalLogout();
-        localStorage.removeItem('studentSession');
-        setCurrentStudent(null);
-        setLoading(false);
-        return;
-      }
-      const matchedRecords = restored;
+      const normP = normalizePhoneNumber(primaryStudent.phone);
+      const normE = (primaryStudent.email || primaryStudent.attendanceEmail || '').trim().toLowerCase();
+      const sIdNum = (primaryStudent.studentIdNum || '').trim();
+
+      const allStudsSnap = await getDocs(collection(db, 'students'));
+      const matchedRecords: Student[] = [];
+      const matchedIds = new Set<string>();
+
+      allStudsSnap.docs.forEach((d: any) => {
+        const s = { id: d.id, ...d.data() } as Student;
+        if (matchedIds.has(s.id)) return;
+
+        const curIdNum = (s.studentIdNum || '').trim();
+        const curE = (s.email || s.attendanceEmail || '').trim().toLowerCase();
+        const curP = normalizePhoneNumber(s.phone);
+
+        const matchId = sIdNum && curIdNum === sIdNum;
+        const matchEmail = normE && curE === normE;
+        const matchPhone = normP && curP && (curP === normP || curP.endsWith(normP) || normP.endsWith(curP));
+
+        if (matchId || matchEmail || matchPhone) {
+          matchedRecords.push(s);
+          matchedIds.add(s.id);
+        }
+      });
 
       studentRecords = matchedRecords.length > 0 ? matchedRecords : [primaryStudent];
       setAllStudentRecords(studentRecords);
@@ -462,7 +475,7 @@ const StudentPortal: React.FC = () => {
         rec.lastLoginAt = currentLoginTime;
         rec.loginCount = (rec.loginCount || 0) + 1;
 
-        updateDoc(doc(portalDb, 'students', rec.id), updates).catch(e => console.error("Error updating student doc with login stats:", e));
+        updateDoc(doc(db, 'students', rec.id), updates).catch(e => console.error("Error updating student doc with login stats:", e));
       });
       }
 
@@ -802,7 +815,7 @@ const StudentPortal: React.FC = () => {
     try {
       const activeGId = overrideGroupId || student.groupId;
 
-      const studentDocRef = doc(portalDb, 'students', student.id);
+      const studentDocRef = doc(db, 'students', student.id);
       const studentSnap = await getDoc(studentDocRef);
       let activeStudent = student;
       if (studentSnap.exists()) {
