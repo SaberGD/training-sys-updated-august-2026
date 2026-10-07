@@ -191,13 +191,65 @@ const Groups: React.FC<GroupsProps> = ({ user, isTrainerOnly }) => {
               to={`/groups/${group.id}`}
               className="block bg-white p-8 rounded-4xl border border-slate-200 shadow-sm hover:shadow-xl hover:border-primary-100 transition-all h-full overflow-hidden relative"
             >
-              <div className="flex justify-between items-start mb-6">
+              <div className="flex flex-wrap justify-between items-start gap-3 mb-6">
                 <span className="bg-primary-50 text-primary-700 px-4 py-1.5 rounded-full text-[10px] font-black uppercase border border-primary-100 tracking-widest">
                   Batch {group.name}
                 </span>
-                <span className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-300 group-hover:text-primary-600 group-hover:bg-primary-50 transition-all duration-300">
-                  <span className="text-xl">→</span>
-                </span>
+                {/* Staff get the action toolbar here instead of the arrow; it wraps under the badge on narrow cards */}
+                {isStaff && (
+                  <div className="flex items-center gap-1 opacity-60 group-hover:opacity-100 transition-all duration-300">
+                    <button 
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const evalUrl = `${window.location.origin}/student-portal?isFeedbackMode=true&qGroupId=${group.id}`;
+                        navigator.clipboard.writeText(evalUrl);
+                        alert(`✅ تم نسخ رابط فورم تقييم الجروب (${group.name}) بنجاح!\n\nالرابط:\n${evalUrl}\n\nيمكنك الآن إرساله للطلاب في الجروب في أي وقت.`);
+                      }}
+                      className="w-8 h-8 flex items-center justify-center text-sm bg-white shadow-lg text-slate-400 hover:text-amber-500 rounded-xl border border-slate-100 transition-all hover:scale-110 shrink-0"
+                      title="نسخ رابط فورم التقييم للمجموعة"
+                      aria-label="نسخ رابط فورم التقييم للمجموعة"
+                    >
+                      ⭐
+                    </button>
+                    <button 
+                      onClick={(e) => handleOpenEditModal(e, group)}
+                      className="w-8 h-8 flex items-center justify-center text-sm bg-white shadow-lg text-slate-400 hover:text-primary-600 rounded-xl border border-slate-100 transition-all hover:scale-110 shrink-0"
+                      title="Edit Group"
+                    >
+                      ✏️
+                    </button>
+                    {group.archived ? (
+                      <button 
+                        onClick={(e) => handleUnarchiveGroup(e, group)}
+                        className="w-8 h-8 flex items-center justify-center text-sm bg-white shadow-lg text-slate-400 hover:text-green-600 rounded-xl border border-slate-100 transition-all hover:scale-110 shrink-0"
+                        title="Restore Group"
+                      >
+                        ♻️
+                      </button>
+                    ) : (
+                      <button 
+                        onClick={(e) => handleArchiveGroup(e, group)}
+                        className="w-8 h-8 flex items-center justify-center text-sm bg-white shadow-lg text-slate-400 hover:text-amber-600 rounded-xl border border-slate-100 transition-all hover:scale-110 shrink-0"
+                        title="Archive Group"
+                      >
+                        📦
+                      </button>
+                    )}
+                    <button 
+                      onClick={(e) => handleOpenDeleteModal(e, group)}
+                      className="w-8 h-8 flex items-center justify-center text-sm bg-white shadow-lg text-slate-400 hover:text-red-600 rounded-xl border border-slate-100 transition-all hover:scale-110 shrink-0"
+                      title="Delete Group"
+                    >
+                      🗑️
+                    </button>
+                  </div>
+                )}
+                {!isStaff && (
+                  <span className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-300 group-hover:text-primary-600 group-hover:bg-primary-50 transition-all duration-300">
+                    <span className="text-xl">→</span>
+                  </span>
+                )}
               </div>
               
               <h3 className="text-2xl font-black text-slate-900 mb-6 leading-tight tracking-tighter group-hover:text-primary-600 transition-colors">
@@ -279,54 +331,6 @@ const Groups: React.FC<GroupsProps> = ({ user, isTrainerOnly }) => {
               <div className="absolute bottom-0 left-0 h-1.5 w-full bg-primary-600 transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-500"></div>
             </Link>
             
-            {isStaff && (
-              <div className="absolute top-6 right-16 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all duration-300">
-                <button 
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    const evalUrl = `${window.location.origin}/student-portal?isFeedbackMode=true&qGroupId=${group.id}`;
-                    navigator.clipboard.writeText(evalUrl);
-                    alert(`✅ تم نسخ رابط فورم تقييم الجروب (${group.name}) بنجاح!\n\nالرابط:\n${evalUrl}\n\nيمكنك الآن إرساله للطلاب في الجروب في أي وقت.`);
-                  }}
-                  className="p-2.5 bg-purple-50 hover:bg-purple-100 text-purple-600 shadow-lg rounded-xl border border-purple-200 transition-all hover:scale-110 font-bold text-xs flex items-center gap-1"
-                  title="نسخ رابط فورم التقييم للمجموعة"
-                >
-                  ⭐ رابط التقييم
-                </button>
-                <button 
-                  onClick={(e) => handleOpenEditModal(e, group)}
-                  className="p-2.5 bg-white shadow-lg text-slate-400 hover:text-primary-600 rounded-xl border border-slate-100 transition-all hover:scale-110"
-                  title="Edit Group"
-                >
-                  ✏️
-                </button>
-                {group.archived ? (
-                  <button 
-                    onClick={(e) => handleUnarchiveGroup(e, group)}
-                    className="p-2.5 bg-white shadow-lg text-slate-400 hover:text-green-600 rounded-xl border border-slate-100 transition-all hover:scale-110"
-                    title="Restore Group"
-                  >
-                    ♻️
-                  </button>
-                ) : (
-                  <button 
-                    onClick={(e) => handleArchiveGroup(e, group)}
-                    className="p-2.5 bg-white shadow-lg text-slate-400 hover:text-amber-600 rounded-xl border border-slate-100 transition-all hover:scale-110"
-                    title="Archive Group"
-                  >
-                    📦
-                  </button>
-                )}
-                <button 
-                  onClick={(e) => handleOpenDeleteModal(e, group)}
-                  className="p-2.5 bg-white shadow-lg text-slate-400 hover:text-red-600 rounded-xl border border-slate-100 transition-all hover:scale-110"
-                  title="Delete Group"
-                >
-                  🗑️
-                </button>
-              </div>
-            )}
           </div>
         ))}
         {filteredGroups.length === 0 && (
