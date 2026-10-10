@@ -3735,12 +3735,26 @@ export const saveGraduationProjectEvaluation = async (evaluation: Partial<Gradua
   };
   await setDoc(doc(db, 'graduationEvaluations', evalId), evalData, { merge: true });
 
-  // Sync to finalProjects collection for ranking calculations
+  // Sync to finalProjects collection for ranking calculations. A group can run
+  // several graduation projects, so the ranking score is the student's average
+  // across all their evaluated projects in this group.
+  let rankingScore = evaluation.totalScore || 0;
+  try {
+    const evalSnap = await getDocs(query(
+      collection(db, 'graduationEvaluations'),
+      where('groupId', '==', evaluation.groupId),
+      where('studentId', '==', evaluation.studentId)
+    ));
+    const scores = evalSnap.docs.map((d: any) => Number(d.data().totalScore) || 0);
+    if (scores.length) rankingScore = Math.round((scores.reduce((a: number, b: number) => a + b, 0) / scores.length) * 100) / 100;
+  } catch (err) {
+    console.error('Failed to average graduation project scores, using this evaluation only:', err);
+  }
   const finalProjectData: Partial<FinalProject> = {
     id: `${evaluation.groupId}_${evaluation.studentId}`,
     groupId: evaluation.groupId,
     studentId: evaluation.studentId,
-    score: evaluation.totalScore || 0,
+    score: rankingScore,
     note: evaluation.rejectionReason || 'تقييم مشروع التخرج',
     updatedAt: serverTimestamp()
   };

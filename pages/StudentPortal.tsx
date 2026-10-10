@@ -261,6 +261,7 @@ const StudentPortal: React.FC = () => {
   // Certificate State
   const [studentCertificateRecord, setStudentCertificateRecord] = useState<StudentCertificateRecord | null>(null);
   const [allGroupGradProjects, setAllGroupGradProjects] = useState<GraduationProject[]>([]);
+  const [selectedGradProjectId, setSelectedGradProjectId] = useState<string | null>(null);
   const [allStudentGradSubmissions, setAllStudentGradSubmissions] = useState<GraduationProjectSubmission[]>([]);
 
   // Initialize fields when modal opens or currentStudent changes
@@ -614,8 +615,10 @@ const StudentPortal: React.FC = () => {
 
     const qProj = query(collection(db, 'graduationProjects'), where('groupId', '==', currentStudent.groupId));
     const unsubProj = onSnapshot(qProj, (snapshot: any) => {
-      const pList = snapshot.docs.map((d: any) => ({ id: d.id, ...d.data() } as GraduationProject));
-      setGraduationProject(pList[0] || null);
+      const time = (p: any) => (p.createdAt?.toMillis?.() ?? (p.createdAt?.seconds ? p.createdAt.seconds * 1000 : 0)) || Date.parse(p.startDate || '') || 0;
+      const pList = (snapshot.docs.map((d: any) => ({ id: d.id, ...d.data() } as GraduationProject)) as GraduationProject[])
+        .filter(p => (p as any).status !== 'draft')
+        .sort((a, b) => time(a) - time(b));
       setAllGroupGradProjects(pList);
     }, (err: any) => {
       console.error("Error subscribing to graduation project:", err);
@@ -623,6 +626,19 @@ const StudentPortal: React.FC = () => {
 
     return () => unsubProj();
   }, [currentStudent?.groupId]);
+
+  // A group can have several graduation projects: show the chosen one, or by
+  // default the one whose submission window is open now (else the latest).
+  useEffect(() => {
+    const now = Date.now();
+    const start = (p: any) => Date.parse(p.startDate || p.submissionStartDate || '') || 0;
+    const end = (p: any) => Date.parse(p.endDate || p.submissionEndDate || '') || Infinity;
+    const chosen = allGroupGradProjects.find(p => p.id === selectedGradProjectId)
+      || [...allGroupGradProjects].reverse().find(p => start(p) <= now && now <= end(p))
+      || allGroupGradProjects[allGroupGradProjects.length - 1]
+      || null;
+    setGraduationProject(chosen);
+  }, [allGroupGradProjects, selectedGradProjectId]);
 
   // Real-time subscription to group document to keep certificatesVisibleToStudents updated
   useEffect(() => {
@@ -2944,6 +2960,26 @@ const StudentPortal: React.FC = () => {
             </div>
           );
         })()}
+
+        {/* Project switcher when the group has several graduation projects */}
+        {allGroupGradProjects.length > 1 && graduationProject && (
+          <div className="flex flex-wrap items-center gap-2 font-arabic" dir="rtl">
+            <span className="text-xs font-black text-slate-400">🎓 مشاريع التخرج:</span>
+            {allGroupGradProjects.map((p, idx) => {
+              const submitted = allStudentGradSubmissions.some((sub: any) => sub.projectId === p.id);
+              return (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => setSelectedGradProjectId(p.id)}
+                  className={`px-4 py-2 rounded-xl text-xs font-black border transition-all ${p.id === graduationProject.id ? 'bg-red-600 text-white border-red-600' : 'bg-slate-900 text-slate-300 border-slate-700 hover:border-red-500/50'}`}
+                >
+                  {idx + 1}. {p.title} {submitted ? '✅' : ''}
+                </button>
+              );
+            })}
+          </div>
+        )}
 
         {/* GRADUATION PROJECT CARD FOR STUDENT */}
         {graduationProject && graduationProject.status !== 'draft' && (() => {

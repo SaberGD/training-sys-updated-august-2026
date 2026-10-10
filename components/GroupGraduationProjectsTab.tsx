@@ -19,10 +19,11 @@ export const GroupGraduationProjectsTab: React.FC<GroupGraduationProjectsTabProp
   rankings,
   user
 }) => {
-  const [projects, setProjects] = useState<GraduationProject[]>([]);
-  const [submissions, setSubmissions] = useState<GraduationProjectSubmission[]>([]);
-  const [evaluations, setEvaluations] = useState<GraduationProjectEvaluation[]>([]);
-  const [comments, setComments] = useState<GraduationProjectComment[]>([]);
+  const [rawProjects, setProjects] = useState<GraduationProject[]>([]);
+  const [allSubmissions, setSubmissions] = useState<GraduationProjectSubmission[]>([]);
+  const [allEvaluations, setEvaluations] = useState<GraduationProjectEvaluation[]>([]);
+  const [allComments, setComments] = useState<GraduationProjectComment[]>([]);
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [allGroups, setAllGroups] = useState<Group[]>([]);
 
   // Modals & Active Selections
@@ -112,7 +113,17 @@ export const GroupGraduationProjectsTab: React.FC<GroupGraduationProjectsTabProp
     return where(field, op, value);
   }
 
-  const activeProject = projects[0] || null;
+  // A group can run several graduation projects (e.g. Photoshop, then Illustrator).
+  const projectTime = (p: GraduationProject) =>
+    (p.createdAt?.toMillis?.() ?? (p.createdAt?.seconds ? p.createdAt.seconds * 1000 : 0)) || Date.parse(p.startDate || '') || 0;
+  const projects = useMemo(() => [...rawProjects].sort((a, b) => projectTime(a) - projectTime(b)), [rawProjects]);
+  const activeProject = projects.find(p => p.id === selectedProjectId) || projects[projects.length - 1] || null;
+  // Records saved before multi-project support have no projectId; they belong to the only project.
+  const belongsToActive = (projectId?: string) =>
+    !!activeProject && (projectId === activeProject.id || (!projectId && projects.length === 1));
+  const submissions = useMemo(() => allSubmissions.filter(s => belongsToActive(s.projectId)), [allSubmissions, activeProject?.id, projects.length]);
+  const evaluations = useMemo(() => allEvaluations.filter(e => belongsToActive(e.projectId)), [allEvaluations, activeProject?.id, projects.length]);
+  const comments = useMemo(() => allComments.filter(c => belongsToActive((c as any).projectId)), [allComments, activeProject?.id, projects.length]);
 
   // Open Project Creation / Edit Modal
   const handleOpenProjectModal = (projToEdit?: GraduationProject) => {
@@ -179,7 +190,7 @@ export const GroupGraduationProjectsTab: React.FC<GroupGraduationProjectsTabProp
 
     setIsSavingProject(true);
     try {
-      await saveGraduationProject({
+      const savedId = await saveGraduationProject({
         id: editingProject?.id,
         groupId: group.id,
         groupName: group.name,
@@ -196,6 +207,7 @@ export const GroupGraduationProjectsTab: React.FC<GroupGraduationProjectsTabProp
         rules: projectForm.rules.trim()
       }, user);
 
+      setSelectedProjectId(savedId);
       setIsProjectModalOpen(false);
     } catch (err: any) {
       console.error("Error saving graduation project:", err);
@@ -439,6 +451,28 @@ export const GroupGraduationProjectsTab: React.FC<GroupGraduationProjectsTabProp
           </button>
         </div>
       ) : (
+        <>
+        {/* Projects of this group */}
+        <div className="flex flex-wrap items-center gap-2">
+          {projects.length > 1 && projects.map((p, idx) => (
+            <button
+              key={p.id}
+              type="button"
+              onClick={() => setSelectedProjectId(p.id)}
+              className={`px-4 py-2 rounded-xl text-xs font-black border transition-all cursor-pointer ${p.id === activeProject.id ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-slate-900 text-slate-300 border-slate-700 hover:border-indigo-500/50'}`}
+            >
+              {idx + 1}. {p.title}
+            </button>
+          ))}
+          <button
+            type="button"
+            onClick={() => handleOpenProjectModal()}
+            className="px-4 py-2 rounded-xl text-xs font-black border border-dashed border-indigo-500/50 text-indigo-300 hover:bg-indigo-500/10 transition-all inline-flex items-center gap-1.5 cursor-pointer mr-auto"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>إضافة مشروع تخرج جديد للجروب</span>
+          </button>
+        </div>
         <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 md:p-8 space-y-6 shadow-2xl relative overflow-hidden">
           <div className="absolute top-0 left-0 w-80 h-80 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none"></div>
 
@@ -574,6 +608,7 @@ export const GroupGraduationProjectsTab: React.FC<GroupGraduationProjectsTabProp
             </div>
           </div>
         </div>
+        </>
       )}
 
       {/* Submissions & Evaluations Table Section */}
