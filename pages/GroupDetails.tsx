@@ -1755,7 +1755,16 @@ const GroupDetails: React.FC<{ user: User }> = ({ user }) => {
       finalPayload.actualTrainerId = user.uid;
       finalPayload.actualTrainerName = user.name;
     }
-    await saveSessionExecution(sessionId, finalPayload, user);
+    try {
+      await saveSessionExecution(sessionId, finalPayload, user);
+    } catch (err: any) {
+      // Without this the screen silently snaps back when the write is refused.
+      const denied = err?.code === 'permission-denied' || /permission/i.test(err?.message || '');
+      alert(denied
+        ? '⚠️ تعذر حفظ حالة المحاضرة: حسابك ليس له صلاحية تعديل محاضرات هذا الجروب. تأكد إنك متسجل كمدرب على الجروب، أو تواصل مع الإدارة.'
+        : `⚠️ تعذر حفظ حالة المحاضرة، حاول مرة أخرى.\n${err?.message || ''}`);
+      throw err;
+    }
   };
 
   // Auto-end sessions that have been running for more than 3 hours (180 minutes)

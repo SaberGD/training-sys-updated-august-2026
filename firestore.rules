@@ -45,15 +45,16 @@ service cloud.firestore {
       return hasRole('trainer');
     }
 
+    // A trainer assigned to the group in any slot (primary, secondary,
+    // assistant, or the trainerIds list).
     function isGroupTrainer(groupId) {
       return isTrainer()
         && exists(/databases/$(database)/documents/groups/$(groupId))
         && (
-          get(/databases/$(database)/documents/groups/$(groupId)).data.primaryTrainerId == request.auth.uid
-          || (
-            get(/databases/$(database)/documents/groups/$(groupId)).data.keys().hasAny(['trainerIds'])
-            && request.auth.uid in get(/databases/$(database)/documents/groups/$(groupId)).data.trainerIds
-          )
+          get(/databases/$(database)/documents/groups/$(groupId)).data.get('primaryTrainerId', '') == request.auth.uid
+          || get(/databases/$(database)/documents/groups/$(groupId)).data.get('secondaryTrainerId', '') == request.auth.uid
+          || get(/databases/$(database)/documents/groups/$(groupId)).data.get('assistantTrainerId', '') == request.auth.uid
+          || request.auth.uid in get(/databases/$(database)/documents/groups/$(groupId)).data.get('trainerIds', [])
         );
     }
 
@@ -65,6 +66,27 @@ service cloud.firestore {
           'tasksMessageUrl',
           'requiredTasksCount'
         ]);
+    }
+
+    // The group's trainer runs the lecture from the smart assistant: start /
+    // end, timer, breaks, practice, attendance code, meeting link and
+    // postponing. Group, number and date stay management-only, as do manual
+    // hour corrections (isManualTimingEdit); the trainer can only record
+    // themself as the actual trainer.
+    function canTrainerRunSession() {
+      return isSignedIn()
+        && isGroupTrainer(resource.data.groupId)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'lectureRecordingUrl', 'tasksMessageUrl', 'requiredTasksCount', 'lectureTitle',
+          'meetingLink', 'googleMeetUrl', 'isOffline', 'isSpecialWorkshop', 'workshopDetails',
+          'startTimeActual', 'endTimeActual', 'actualStartDate', 'smartAssistantState', 'status',
+          'smartEventsLog', 'activePracticeDesc', 'activeSectionStartTime', 'practices',
+          'practicePercentage', 'breaks', 'breakDuration', 'durationActual', 'actualHours',
+          'approvedHours', 'actualTrainerId', 'actualTrainerName', 'attendanceCode',
+          'attendanceDuration', 'attendanceExpiresAt', 'startPostponeMinutes',
+          'startPostponeNewTime', 'generalPostponeActive', 'generalPostponeDate', 'updatedAt'
+        ])
+        && request.resource.data.get('actualTrainerId', request.auth.uid) in [request.auth.uid, resource.data.get('actualTrainerId', '')];
     }
 
     // Any trainer may add an extra (upcoming) lecture to a group
@@ -173,7 +195,7 @@ service cloud.firestore {
       allow read: if true;
       allow create: if isStaff() || canTrainerAddExtraSession();
       allow delete: if isStaff();
-      allow update: if isStaff() || canTrainerUpdateSessionLinks();
+      allow update: if isStaff() || canTrainerUpdateSessionLinks() || canTrainerRunSession();
     }
 
     // Weekly Schedules, Weeks & Items
