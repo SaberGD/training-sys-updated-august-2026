@@ -1,0 +1,645 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>SABER GROUP — مش هتمشي لوحدك</title>
+<style>
+@font-face { font-family: Cairo; src: url(assets/cairo-400.ttf); font-weight: 400; }
+@font-face { font-family: Cairo; src: url(assets/cairo-700.ttf); font-weight: 700; }
+@font-face { font-family: Cairo; src: url(assets/cairo-900.ttf); font-weight: 900; }
+:root {
+  --bg: #0a0a0a; --accent: #c4321f; --accent2: #e85c3b; --text: #f5f1ee; --muted: #9a9390;
+  --card: #141414; --line: rgba(255,255,255,.09); --green: #2fbf71; --yellow: #f2b632; --gold: #d9a441;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 1920px; height: 1080px; overflow: hidden; background: var(--bg); }
+body { font-family: Cairo, sans-serif; color: var(--text); position: relative; }
+.abs { position: absolute; }
+.scene { position: absolute; inset: 0; opacity: 0; }
+.center { display: flex; align-items: center; justify-content: center; }
+.card { background: linear-gradient(160deg, #1a1a1a, #101010); border: 1px solid var(--line);
+  border-radius: 28px; box-shadow: 0 30px 80px rgba(0,0,0,.55); }
+.tag { position: absolute; top: 46px; left: 50%; transform: translateX(-50%); padding: 10px 34px;
+  border-radius: 999px; border: 1px solid rgba(196,50,31,.6); background: rgba(196,50,31,.12);
+  font-size: 30px; font-weight: 700; color: #ffd9cf; white-space: nowrap; }
+.h-xl { font-size: 120px; font-weight: 900; line-height: 1.15; }
+.h-l { font-size: 84px; font-weight: 900; line-height: 1.2; }
+.h-m { font-size: 46px; font-weight: 700; }
+.t { font-size: 34px; font-weight: 700; }
+.s { font-size: 26px; color: var(--muted); font-weight: 400; }
+.red { color: var(--accent2); } .green { color: var(--green); } .yellow { color: var(--yellow); }
+.pill { display: inline-flex; align-items: center; gap: 10px; padding: 6px 20px; border-radius: 999px;
+  font-size: 24px; font-weight: 700; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 12px; padding: 14px 34px;
+  border-radius: 16px; background: var(--accent); color: #fff; font-weight: 700; font-size: 28px;
+  box-shadow: 0 10px 30px rgba(196,50,31,.45); }
+.avatar { border-radius: 50%; background: radial-gradient(circle at 50% 35%, #2a2a2a, #151515);
+  border: 4px solid var(--accent); display: flex; align-items: center; justify-content: center; }
+.glow { border-radius: 50%; background: radial-gradient(circle, rgba(232,92,59,.75) 0%, rgba(196,50,31,.35) 40%, rgba(196,50,31,0) 70%); }
+svg.ic { display: block; }
+
+/* background */
+#bgGlowA, #bgGlowB { position: absolute; width: 1400px; height: 1400px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(196,50,31,.20) 0%, rgba(196,50,31,0) 60%); }
+#bgGrid { position: absolute; inset: 0; opacity: .5;
+  background-image: linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px);
+  background-size: 80px 80px; }
+#vignette { position: absolute; inset: 0; background: radial-gradient(ellipse at center, rgba(0,0,0,0) 55%, rgba(0,0,0,.75) 100%); }
+#wm { position: absolute; top: 34px; left: 40px; width: 84px; height: 84px; border-radius: 20px; opacity: 0; }
+
+/* subtitles */
+#sub { position: absolute; bottom: 52px; left: 50%; transform: translateX(-50%); max-width: 1600px;
+  padding: 12px 38px; border-radius: 18px; background: rgba(0,0,0,.62); font-size: 44px; font-weight: 700;
+  text-align: center; line-height: 1.45; white-space: nowrap; opacity: 0; border: 1px solid rgba(255,255,255,.06); }
+
+/* phone mock */
+.phone { position: absolute; width: 380px; height: 760px; border-radius: 56px; background: #050505;
+  border: 3px solid #2b2b2b; box-shadow: 0 40px 100px rgba(0,0,0,.7), 0 0 0 10px #151515; overflow: hidden; }
+.phone .notch { position: absolute; top: 14px; left: 50%; transform: translateX(-50%); width: 120px; height: 30px;
+  background: #000; border-radius: 20px; z-index: 5; }
+.phone .scr { position: absolute; inset: 0; background: linear-gradient(180deg, #121212, #0b0b0b); overflow: hidden; }
+.row { display: flex; align-items: center; gap: 18px; }
+.bar { height: 14px; border-radius: 8px; background: rgba(255,255,255,.1); }
+</style>
+</head>
+<body>
+<div id="bgGlowA"></div><div id="bgGlowB"></div><div id="bgGrid"></div>
+
+<!-- ================= S1: HOOK ================= -->
+<div class="scene" id="s1">
+  <div class="abs glow" id="s1glow" style="left:660px;top:170px;width:600px;height:600px"></div>
+  <div class="abs" id="s1dot" style="left:930px;top:440px;width:60px;height:60px;border-radius:50%;background:var(--accent);box-shadow:0 0 60px var(--accent)"></div>
+  <div class="abs avatar" id="s1av" style="left:840px;top:350px;width:240px;height:240px"><i data-ic="user" data-s="130" data-c="#f5f1ee"></i></div>
+  <div id="s1q"></div>
+  <div class="abs h-xl" id="s1title" style="left:0;width:1920px;top:690px;text-align:center">لوحدك<span class="red">؟</span></div>
+</div>
+
+<!-- ================= S2: PROBLEM ================= -->
+<div class="scene" id="s2">
+  <div class="abs" id="s2line" style="left:300px;top:418px;width:1320px;height:6px;border-radius:3px;background:linear-gradient(90deg,#333,#666,#333);transform-origin:right center"></div>
+  <div id="s2nodes"></div>
+  <div class="abs avatar" id="s2av" style="width:130px;height:130px;left:0;top:0;border-width:3px"><i data-ic="user" data-s="72" data-c="#f5f1ee"></i></div>
+</div>
+
+<!-- ================= S3: TURN ================= -->
+<div class="scene" id="s3">
+  <div class="abs" id="s3flash" style="inset:0;background:radial-gradient(circle at 50% 40%, rgba(232,92,59,.85), rgba(196,50,31,.25) 45%, rgba(0,0,0,0) 75%)"></div>
+  <div class="abs glow" id="s3glow" style="left:660px;top:90px;width:600px;height:600px"></div>
+  <img class="abs" id="s3logo" src="assets/logo.png" style="left:810px;top:240px;width:300px;height:300px;border-radius:64px">
+  <div class="abs h-l" id="s3text" style="left:0;width:1920px;top:640px;text-align:center">مش هتمشي <span class="red">لوحدك.</span></div>
+  <div class="abs" id="s3under" style="left:760px;top:785px;width:400px;height:6px;border-radius:3px;background:var(--accent);transform-origin:right center"></div>
+</div>
+
+<!-- ================= S4: LIVE SESSION ================= -->
+<div class="scene" id="s4">
+  <div class="tag">أثناء المحاضرة</div>
+  <div class="abs" id="s4laptop" style="left:410px;top:150px;width:1100px;height:640px">
+    <div class="abs card" style="left:50px;top:0;width:1000px;height:590px;border-radius:26px;border:10px solid #1e1e1e;background:#0d0d0d;overflow:hidden">
+      <div class="abs row" style="right:36px;top:26px"><i data-ic="spark" data-s="38" data-c="#e85c3b"></i><span class="t">المساعد الذكي للمحاضرة</span></div>
+      <div class="abs s" style="left:36px;top:32px">المحاضرة رقم 6 — الجروب G12</div>
+      <div class="abs pill" id="s4status" style="right:36px;top:92px;background:rgba(47,191,113,.15);color:var(--green)">● جارية الآن</div>
+      <div class="abs" id="s4timer" style="right:36px;top:140px;font-size:96px;font-weight:900;letter-spacing:2px;direction:ltr">00:00:00</div>
+      <div class="abs row" style="right:36px;top:290px;gap:16px">
+        <div class="btn" id="s4b1" style="background:#222;box-shadow:none;font-size:26px"><i data-ic="play" data-s="26" data-c="#fff"></i>بدء</div>
+        <div class="btn" id="s4b2" style="background:#222;box-shadow:none;font-size:26px"><i data-ic="coffee" data-s="26" data-c="#fff"></i>استراحة</div>
+        <div class="btn" id="s4b3" style="background:#222;box-shadow:none;font-size:26px"><i data-ic="code" data-s="26" data-c="#fff"></i>تطبيق عملي</div>
+      </div>
+      <div class="abs" id="s4log" style="right:36px;top:390px;width:560px"></div>
+      <div class="abs" style="left:60px;top:150px;width:300px;height:300px">
+        <svg width="300" height="300" viewBox="0 0 300 300"><circle cx="150" cy="150" r="125" fill="none" stroke="#222" stroke-width="24"/>
+          <circle id="s4ring" cx="150" cy="150" r="125" fill="none" stroke="#e85c3b" stroke-width="24" stroke-linecap="round" pathLength="100" stroke-dasharray="100" stroke-dashoffset="100" transform="rotate(-90 150 150)"/></svg>
+        <div class="abs center" style="inset:0;flex-direction:column"><div id="s4pct" style="font-size:72px;font-weight:900">0%</div></div>
+      </div>
+      <div class="abs s" style="left:40px;top:470px;width:340px;text-align:center">نسبة وقت التطبيق العملي</div>
+    </div>
+    <div class="abs" style="left:0;top:590px;width:1100px;height:34px;border-radius:0 0 30px 30px;background:linear-gradient(#2a2a2a,#161616)"></div>
+  </div>
+  <div class="abs h-m" id="s4cap" style="left:0;width:1920px;top:830px;text-align:center">كل محاضرة <span class="red">متسجلة بالدقيقة</span></div>
+</div>
+
+<!-- ================= S5: ATTENDANCE ================= -->
+<div class="scene" id="s5">
+  <div class="tag">الحضور والغياب</div>
+  <div class="abs" id="s5div" style="left:958px;top:170px;width:4px;height:640px;background:linear-gradient(transparent,#333,transparent)"></div>
+  <div class="phone" id="s5phone" style="left:1250px;top:140px;height:700px">
+    <div class="notch"></div>
+    <div class="scr">
+      <div class="abs" style="top:70px;width:100%;text-align:center" ><span class="s" style="font-size:22px">بوابة SABER GROUP</span></div>
+      <div id="s5ripples"></div>
+      <div class="abs center" id="s5check" style="left:110px;top:200px;width:160px;height:160px;border-radius:50%;background:var(--green);box-shadow:0 0 50px rgba(47,191,113,.6)"><i data-ic="check" data-s="96" data-c="#fff" data-w="3.2"></i></div>
+      <div class="abs" id="s5ptext" style="top:400px;width:100%;text-align:center;padding:0 24px">
+        <div style="font-size:30px;font-weight:900;line-height:1.4">تم تسجيل حضورك تلقائياً</div>
+        <div class="s" style="font-size:22px;margin-top:10px">المحاضرة رقم 6 — استمتع بالمحاضرة!</div>
+      </div>
+    </div>
+  </div>
+  <div class="abs h-m" id="s5l1" style="left:1150px;width:580px;top:860px;text-align:center"><span class="green">حاضر ✓</span></div>
+  <div class="abs card" id="s5mail" style="left:200px;top:200px;width:680px;height:520px;padding:40px">
+    <div class="row"><div class="center" style="width:70px;height:70px;border-radius:18px;background:rgba(196,50,31,.18)"><i data-ic="mail" data-s="40" data-c="#e85c3b"></i></div>
+      <div><div class="t" style="font-size:28px">SABER GROUP Academy</div><div class="s" style="font-size:22px">إلى: أحمد محمود</div></div></div>
+    <div style="margin-top:34px;font-size:34px;font-weight:900;line-height:1.4">⚠️ تنبيه غياب: المحاضرة رقم (6)</div>
+    <div class="bar" style="margin-top:28px;width:92%"></div><div class="bar" style="margin-top:14px;width:78%"></div><div class="bar" style="margin-top:14px;width:85%"></div>
+    <div class="btn" id="s5btn" style="margin-top:44px"><i data-ic="video" data-s="30" data-c="#fff"></i>شاهد التسجيل والتاسك</div>
+  </div>
+  <div class="abs h-m" id="s5l2" style="left:190px;width:700px;top:860px;text-align:center">غايب؟ <span class="red">هنلحقك</span></div>
+</div>
+
+<!-- ================= S6: EVALUATION ================= -->
+<div class="scene" id="s6">
+  <div class="tag">التقييم بعد كل محاضرة</div>
+  <div class="abs card" id="s6card" style="left:1000px;top:150px;width:720px;height:680px;padding:36px 40px">
+    <div class="row"><div class="avatar" style="width:84px;height:84px;border-width:3px"><i data-ic="user" data-s="46" data-c="#f5f1ee"></i></div>
+      <div><div class="t">أحمد محمود</div><div class="s" style="font-size:22px">تقييم المحاضرة رقم 6</div></div></div>
+    <div id="s6rows" style="margin-top:24px"></div>
+  </div>
+  <div class="abs card" id="s6score" style="left:200px;top:150px;width:700px;height:270px;padding:30px 40px">
+    <div class="s">إجمالي نقاطك</div>
+    <div class="row" style="align-items:baseline;gap:16px"><div id="s6num" style="font-size:130px;font-weight:900;line-height:1.1">112</div><div class="t red">نقطة</div></div>
+  </div>
+  <div id="s6plus"></div>
+  <div class="abs card" id="s6weak" style="left:200px;top:460px;width:700px;height:370px;padding:30px 40px;border-color:rgba(242,182,50,.5)">
+    <div id="s6wtag" class="pill" style="background:rgba(242,182,50,.15);color:var(--yellow)">⚠ نقطة ضعف محتاجة تطوير</div>
+    <div style="font-size:40px;font-weight:900;margin-top:22px;line-height:1.35">التايبوجرافي واختيار الألوان</div>
+    <div class="s" style="margin-top:10px">ملاحظة محاضرة رقم #4 — المدرب</div>
+    <div class="abs center" id="s6stamp" style="left:34px;bottom:30px;padding:10px 26px;border:4px solid var(--green);border-radius:14px;color:var(--green);font-size:32px;font-weight:900;transform:rotate(-8deg)">✓ اتعالجت</div>
+  </div>
+</div>
+
+<!-- ================= S7: FOLLOW-UP ================= -->
+<div class="scene" id="s7">
+  <div class="tag">المتابعة الذكية</div>
+  <div class="abs card" id="s7chart" style="left:160px;top:150px;width:880px;height:680px;padding:30px">
+    <div class="row" style="justify-content:space-between"><div class="t">أداء أحمد خلال الكورس</div>
+      <div class="row" style="gap:24px"><span class="s"><span style="color:#fff">━</span> الحضور</span><span class="s"><span class="red">━</span> التاسكات</span></div></div>
+    <svg class="abs" style="left:30px;top:100px" width="820" height="540" viewBox="0 0 820 540">
+      <g stroke="#232323" stroke-width="2">
+        <line x1="60" y1="40" x2="800" y2="40"/><line x1="60" y1="160" x2="800" y2="160"/><line x1="60" y1="280" x2="800" y2="280"/><line x1="60" y1="400" x2="800" y2="400"/><line x1="60" y1="500" x2="800" y2="500"/>
+      </g>
+      <rect id="s7zone" x="60" y="190" width="740" height="310" fill="rgba(242,182,50,.07)"/>
+      <line x1="60" y1="190" x2="800" y2="190" stroke="#f2b632" stroke-width="3" stroke-dasharray="12 10"/>
+      <text x="40" y="198" fill="#f2b632" font-size="24" font-weight="700" text-anchor="end" font-family="Cairo">70%</text>
+      <path id="s7a1" fill="none" stroke="#f5f1ee" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/>
+      <path id="s7t1" fill="none" stroke="#e85c3b" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/>
+      <path id="s7a2" fill="none" stroke="#2fbf71" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/>
+      <path id="s7t2" fill="none" stroke="#2fbf71" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1" opacity=".75"/>
+      <circle id="s7dot" r="12" fill="#f2b632"/>
+    </svg>
+  </div>
+  <div class="abs card" id="s7room" style="left:1110px;top:430px;width:660px;height:400px;padding:28px 34px">
+    <div class="row" style="justify-content:space-between"><div class="t">غرفة المتابعة</div><div id="s7chips" class="row" style="gap:12px"></div></div>
+    <div id="s7log" style="margin-top:170px"></div>
+  </div>
+  <div class="abs card" id="s7stu" style="left:1150px;top:180px;width:580px;height:150px;padding:22px 28px;border-width:3px">
+    <div class="row"><div class="avatar" style="width:96px;height:96px;border-width:3px"><i data-ic="user" data-s="54" data-c="#f5f1ee"></i></div>
+      <div><div class="t">أحمد محمود</div><div id="s7pill" class="pill" style="margin-top:6px;background:rgba(255,255,255,.08);color:#ccc">الحضور 90% · التاسكات 85%</div></div></div>
+  </div>
+  <div class="abs h-m" id="s7cap" style="left:1110px;width:660px;top:860px;text-align:center"></div>
+</div>
+
+<!-- ================= S8: PORTAL ================= -->
+<div class="scene" id="s8">
+  <div class="tag">بوابة الطالب</div>
+  <div class="phone" id="s8phone" style="left:770px;top:130px">
+    <div class="notch"></div>
+    <div class="scr" id="s8home" style="background:radial-gradient(circle at 50% 20%, #3a1410, #0b0b0b 70%)">
+      <div id="s8icons"></div>
+      <img id="s8app" class="abs" src="assets/logo.png" style="left:146px;top:470px;width:88px;height:88px;border-radius:22px">
+      <div class="abs" style="left:110px;top:566px;width:160px;text-align:center;font-size:18px;font-weight:700">SABER GROUP</div>
+    </div>
+    <div class="scr" id="s8portal" style="opacity:0">
+      <div id="s8scroll" class="abs" style="left:0;top:0;width:100%;padding:70px 22px 0">
+        <div class="s" style="font-size:20px">مسارك التعليمي الحالي</div>
+        <div style="font-size:30px;font-weight:900">مرحبا بك مجددا يا بطل</div>
+        <div class="card" style="margin-top:18px;padding:18px;border-radius:20px"><div class="pill" style="background:rgba(196,50,31,.2);color:#ff8a70;font-size:18px">● بث مباشر جاري الآن</div>
+          <div style="font-size:22px;font-weight:700;margin-top:10px">المحاضرة رقم 7</div><div class="btn" style="margin-top:12px;font-size:20px;padding:10px 20px;width:100%">الانضمام للمحاضرة</div></div>
+        <div class="row" style="margin-top:16px;gap:12px">
+          <div class="card" style="flex:1;padding:16px;border-radius:18px;text-align:center"><div style="font-size:34px;font-weight:900">118</div><div class="s" style="font-size:17px">نقطة</div></div>
+          <div class="card" style="flex:1;padding:16px;border-radius:18px;text-align:center"><div style="font-size:34px;font-weight:900" class="green">92%</div><div class="s" style="font-size:17px">حضور</div></div></div>
+        <div class="card" style="margin-top:16px;padding:18px;border-radius:20px"><div style="font-size:20px;font-weight:700">تسجيلات المحاضرات</div>
+          <div class="bar" style="margin-top:14px"></div><div class="bar" style="margin-top:10px;width:80%"></div><div class="bar" style="margin-top:10px;width:90%"></div></div>
+        <div class="card" style="margin-top:16px;padding:18px;border-radius:20px"><div style="font-size:20px;font-weight:700">التاسكات المطلوبة</div>
+          <div class="bar" style="margin-top:14px"></div><div class="bar" style="margin-top:10px;width:70%"></div></div>
+        <div class="card" style="margin-top:16px;padding:18px;border-radius:20px"><div style="font-size:20px;font-weight:700">نقاط الضعف ومواضع التطوير</div>
+          <div class="bar" style="margin-top:14px;width:85%"></div></div>
+        <div class="card" style="margin-top:16px;padding:18px;border-radius:20px"><div style="font-size:20px;font-weight:700">شهادة تخرج الكورس</div>
+          <div class="bar" style="margin-top:14px;width:60%"></div></div>
+      </div>
+    </div>
+  </div>
+  <div id="s8cards"></div>
+  <div class="abs" id="s8tag" style="left:180px;top:200px;width:800px;text-align:right">
+    <div class="h-xl" id="s8w1">بوابتك.</div><div class="h-xl" id="s8w2">أداؤك.</div><div class="h-xl red" id="s8w3">في جيبك.</div>
+  </div>
+</div>
+
+<!-- ================= S9: CERTIFICATE ================= -->
+<div class="scene" id="s9">
+  <div class="tag">الشهادة</div>
+  <div id="s9rings"></div>
+  <div class="abs card" id="s9cert" style="left:510px;top:140px;width:900px;height:580px;padding:36px;border:3px solid var(--gold);background:linear-gradient(160deg,#1b1611,#0f0d0b)">
+    <div class="abs" style="inset:16px;border:1px solid rgba(217,164,65,.45);border-radius:20px"></div>
+    <div class="center" style="flex-direction:column;height:100%;text-align:center">
+      <img src="assets/logo.png" style="width:110px;height:110px;border-radius:26px">
+      <div style="font-size:30px;color:var(--gold);font-weight:700;margin-top:14px">شهادة إتمام الكورس</div>
+      <div style="font-size:64px;font-weight:900;margin-top:4px">أحمد محمود</div>
+      <div style="width:420px;height:2px;background:rgba(217,164,65,.5);margin:12px 0 22px"></div>
+      <div class="btn" id="s9btn"><i data-ic="download" data-s="30" data-c="#fff"></i>تحميل الشهادة</div>
+    </div>
+  </div>
+  <div class="abs h-l" id="s9congr" style="left:0;width:1920px;top:750px;text-align:center">ألف مبروك يا <span class="red">مبدع</span> 🎉</div>
+  <div id="s9conf"></div>
+</div>
+
+<!-- ================= S10: END ================= -->
+<div class="scene" id="s10">
+  <svg class="abs" id="s10net" style="left:0;top:0" width="1920" height="1080"></svg>
+  <div id="s10nodes"></div>
+  <div class="abs avatar" id="s10av" style="left:870px;top:350px;width:180px;height:180px"><i data-ic="user" data-s="100" data-c="#f5f1ee"></i></div>
+  <div class="abs glow" id="s10glow" style="left:710px;top:20px;width:500px;height:500px"></div>
+  <img class="abs" id="s10logo" src="assets/logo.png" style="left:845px;top:130px;width:230px;height:230px;border-radius:50px">
+  <div class="abs h-l" id="s10line" style="left:0;width:1920px;top:410px;text-align:center">من أول محاضرة… <span class="red">لحد الشهادة.</span></div>
+  <div class="abs center" id="s10cta" style="left:0;width:1920px;top:580px"><div class="btn" style="font-size:42px;padding:20px 60px;border-radius:22px">احجز مكانك دلوقتي</div></div>
+  <div class="abs" id="s10url" style="left:0;width:1920px;top:720px;text-align:center;font-size:64px;font-weight:900;letter-spacing:1px;direction:ltr">sabergroupacademy.com</div>
+</div>
+
+<img id="wm" src="assets/logo.png">
+<div id="vignette"></div>
+<div id="sub"></div>
+<div id="black" class="abs" style="inset:0;background:#000;opacity:0"></div>
+
+<script src="timeline.js"></script>
+<script>
+// ---------- icons ----------
+const ICONS = {
+  user: '<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/>',
+  check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+  x: '<path d="M6 6l12 12M18 6L6 18"/>',
+  play: '<path d="M7 5l12 7-12 7z" fill="currentColor"/>',
+  coffee: '<path d="M4 9h12v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5z"/><path d="M16 11h2a2.5 2.5 0 0 1 0 5h-2"/><path d="M8 3v3M12 3v3"/>',
+  code: '<path d="M8 7l-5 5 5 5M16 7l5 5-5 5"/>',
+  mail: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/>',
+  video: '<rect x="3" y="6" width="13" height="12" rx="2"/><path d="M16 10l5-3v10l-5-3z"/>',
+  doc: '<path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 12h6M9 16h6"/>',
+  chat: '<path d="M4 5h16v11H9l-5 4z"/>',
+  star: '<path d="M12 3l2.8 5.8 6.2.9-4.5 4.4 1 6.2-5.5-2.9-5.5 2.9 1-6.2L3 9.7l6.2-.9z" fill="currentColor"/>',
+  phone: '<path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/>',
+  send: '<path d="M21 3L10 14M21 3l-7 18-4-7-7-4z"/>',
+  wa: '<path d="M4 20l1.3-4A8 8 0 1 1 8 19z"/><path d="M9 9.5c0 3 2.5 5.5 5.5 5.5l1-1.5-2-1-1 1a4 4 0 0 1-2-2l1-1-1-2z" fill="currentColor"/>',
+  spark: '<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z" fill="currentColor"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z" fill="currentColor"/>',
+  download: '<path d="M12 4v11M7 10l5 5 5-5M5 20h14"/>',
+  bell: '<path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 20a2 2 0 0 0 4 0"/>',
+  shield: '<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/>',
+  team: '<circle cx="8" cy="9" r="3"/><circle cx="16" cy="9" r="3"/><path d="M2 20c0-3.3 2.7-5 6-5s6 1.7 6 5M12 20c0-3.3 2.7-5 6-5 1.4 0 2.8.3 4 1"/>',
+  board: '<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/>',
+  mobile: '<rect x="7" y="2" width="10" height="20" rx="2.5"/><path d="M11 18h2"/>',
+};
+function icon(name, s = 24, c = '#fff', w = 2.2) {
+  return `<svg class="ic" width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="${c}" color="${c}" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round">${ICONS[name]}</svg>`;
+}
+function hydrate(root = document) {
+  root.querySelectorAll('i[data-ic]').forEach(el => {
+    el.outerHTML = icon(el.dataset.ic, +(el.dataset.s || 24), el.dataset.c || '#fff', +(el.dataset.w || 2.2));
+  });
+}
+
+// ---------- math helpers ----------
+const cl = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
+const eo = x => 1 - Math.pow(1 - cl(x), 3);
+const eio = x => { x = cl(x); return x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2; };
+const back = x => { x = cl(x); const c1 = 1.70158, c3 = c1 + 1; return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2); };
+const P = (lt, s, d) => cl((lt - s) / d);
+const lerp = (a, b, k) => a + (b - a) * k;
+const $ = id => document.getElementById(id);
+function A(el, o, tx = 0, ty = 0, sc = 1, rot = 0, extra = '') {
+  if (typeof el === 'string') el = $(el);
+  el.style.opacity = o;
+  el.style.transform = `translate(${tx}px,${ty}px) scale(${sc}) rotate(${rot}deg) ${extra}`;
+}
+// pop-in from below; returns progress
+function pop(el, lt, s, d = .55, dy = 50) {
+  const k = P(lt, s, d);
+  A(el, eo(k * 1.6), 0, (1 - eo(k)) * dy, .92 + .08 * back(k));
+  return k;
+}
+function rand(seed) { const x = Math.sin(seed * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); }
+const ember = t => { const k = (Math.sin(t / 2.4 * Math.PI * 2 - Math.PI / 2) + 1) / 2; return { s: .88 + .34 * k, o: .45 + .45 * k }; };
+
+// ---------- build dynamic parts ----------
+// S1 question marks
+$('s1q').innerHTML = Array.from({ length: 7 }, (_, i) => `<div class="abs" id="s1q${i}" style="left:0;top:0;font-size:${60 + (i % 3) * 24}px;font-weight:900;color:#777">؟</div>`).join('');
+// S2 nodes (right → left)
+const S2N = [{ x: 1380, ic: 'video', l: 'محاضرة فاتت' }, { x: 960, ic: 'doc', l: 'تاسك متأجل' }, { x: 540, ic: 'chat', l: 'محدش واخد باله' }];
+$('s2nodes').innerHTML = S2N.map((n, i) => `
+  <div class="abs" id="s2n${i}" style="left:${n.x - 90}px;top:331px;width:180px;height:180px">
+    <div class="abs center card" id="s2c${i}" style="inset:0;border-radius:50%;border:4px solid #444">${icon(n.ic, 80, '#ddd')}</div>
+    <div class="abs center" id="s2x${i}" style="right:-14px;top:-14px;width:70px;height:70px;border-radius:50%;background:var(--accent)">${icon('x', 40, '#fff', 3.4)}</div>
+    <div class="abs t" id="s2l${i}" style="left:-110px;width:400px;top:210px;text-align:center;white-space:nowrap">${n.l} <span class="red">✗</span></div>
+  </div>`).join('');
+// S4 log
+const S4LOG = [['07:00 م', 'بدء المحاضرة', 'play'], ['07:50 م', 'استراحة 10 دقايق', 'coffee'], ['08:00 م', 'بدء تطبيق عملي', 'code']];
+$('s4log').innerHTML = S4LOG.map((r, i) => `<div class="row" id="s4l${i}" style="padding:10px 0;border-bottom:1px solid #1f1f1f;font-size:26px">${icon(r[2], 26, '#e85c3b')}<b>${r[1]}</b><span class="s" style="margin-right:auto;font-size:22px;direction:ltr">${r[0]}</span></div>`).join('');
+// S5 ripples
+$('s5ripples').innerHTML = [0, 1, 2].map(i => `<div class="abs" id="s5r${i}" style="left:110px;top:200px;width:160px;height:160px;border-radius:50%;border:4px solid var(--green)"></div>`).join('');
+// S6 rows
+const S6R = [['حضر المحاضرة', '✓', '+1'], ['سلّم التاسكات (2 من 2)', '✓', '+2'], ['سلّم في المعاد', '✓', '+1'], ['جودة الشغل', '★★★★★', '+1'], ['بونص تفاعل', '+', '+1']];
+$('s6rows').innerHTML = S6R.map((r, i) => `<div class="row" id="s6r${i}" style="justify-content:space-between;padding:16px 18px;margin-top:12px;border-radius:16px;background:#181818;border:1px solid #232323">
+  <span style="font-size:32px;font-weight:700">${r[0]}</span><span style="font-size:${r[1].length > 2 ? 28 : 38}px;font-weight:900;color:${r[1].length > 2 ? 'var(--gold)' : 'var(--green)'}">${r[1]}</span></div>`).join('');
+$('s6plus').innerHTML = S6R.map((r, i) => `<div class="abs" id="s6p${i}" style="left:0;top:0;font-size:44px;font-weight:900;color:var(--green)">${r[2]}</div>`).join('');
+// S7 chart paths
+const X = i => 60 + i * 66, Y = v => 500 - (v - 30) / 70 * 460;
+const ATT = [100, 100, 90, 80, 70, 60, 55], TSK = [95, 90, 82, 72, 62, 55, 50];
+const ATT2 = [55, 72, 88, 95], TSK2 = [50, 68, 84, 92];
+const path = (arr, off) => arr.map((v, i) => `${i ? 'L' : 'M'}${X(i + off)},${Y(v)}`).join(' ');
+$('s7a1').setAttribute('d', path(ATT, 0)); $('s7t1').setAttribute('d', path(TSK, 0));
+$('s7a2').setAttribute('d', path(ATT2, 6)); $('s7t2').setAttribute('d', path(TSK2, 6));
+const CH = [['wa', 'واتساب', '#2fbf71'], ['send', 'تليجرام', '#3aa5e0'], ['phone', 'مكالمة', '#e85c3b']];
+$('s7chips').innerHTML = CH.map((c, i) => `<div class="center" id="s7c${i}" style="width:62px;height:62px;border-radius:50%;background:${c[2]}22;border:2px solid ${c[2]}">${icon(c[0], 32, c[2])}</div>`).join('');
+const S7LOG = [['wa', 'واتساب', 'اتكلمنا مع أحمد وفهمنا ظروفه'], ['send', 'تليجرام', 'اتفقنا على خطة لتسليم التاسكات المتأخرة'], ['phone', 'مكالمة', 'متابعة بعد أسبوع: رجع ملتزم']];
+$('s7log').innerHTML = S7LOG.map((r, i) => `<div class="row" id="s7l${i}" style="padding:8px 0;font-size:25px">${icon(r[0], 28, CH[i][2])}<b style="white-space:nowrap">${r[1]}:</b><span style="color:#cfc9c6;white-space:nowrap">${r[2]}</span></div>`).join('');
+// S8 home icons + cards
+$('s8icons').innerHTML = Array.from({ length: 12 }, (_, i) => `<div class="abs" style="left:${46 + (i % 4) * 76}px;top:${100 + Math.floor(i / 4) * 100}px;width:56px;height:56px;border-radius:16px;background:hsl(${i * 30},20%,${18 + (i % 3) * 5}%)"></div>`).join('');
+const S8C = [
+  { x: 1230, y: 140, h: `<div class="row" style="justify-content:space-between"><span class="t">المحاضرة الجاية</span><span class="pill" style="background:rgba(196,50,31,.2);color:#ff8a70">● بث مباشر</span></div><div class="s" style="margin-top:6px">المحاضرة رقم 7 — 7:00 م</div><div class="btn" style="margin-top:14px;font-size:24px;padding:10px 26px">${icon('board', 26, '#fff')}انضم دلوقتي</div>` },
+  { x: 1230, y: 390, h: `<div class="s">مجموع النقاط المحرزة</div><div class="row" style="align-items:baseline;gap:12px"><span style="font-size:88px;font-weight:900;line-height:1.15">118</span><span class="t red">نقطة</span></div>` },
+  { x: 1230, y: 640, h: `<div class="row" style="justify-content:space-between"><span class="s">نسبة حضور المحاضرات</span><span class="t green">92%</span></div><div class="bar" style="margin-top:22px;height:22px;background:#222"><div id="s8bar" style="height:100%;width:92%;border-radius:8px;background:var(--green)"></div></div><div class="s" style="margin-top:14px;font-size:22px">حضرت 11 من أصل 12 سيشن</div>` },
+  { x: 190, y: 140, h: `<span class="t">تسجيلات المحاضرات</span>${[6, 5].map(n => `<div class="row" style="margin-top:12px;justify-content:space-between;font-size:24px"><span class="row" style="gap:10px">${icon('video', 28, '#e85c3b')}سيشن #${n}</span><span class="green">✓ حضرت</span></div>`).join('')}` },
+  { x: 190, y: 390, h: `<span class="t">تاسك سيشن #6</span><div class="row" style="margin-top:12px;justify-content:space-between;font-size:26px"><span class="green">✓ تم تسليمه</span><span style="color:var(--gold)">★★★★★</span></div><div class="s" style="margin-top:8px;font-size:22px">تقييم المدرب للتاسك</div>` },
+  { x: 190, y: 640, h: `<span class="t">📝 ملاحظة المحاضر الخاصة بيك</span><div style="margin-top:12px;font-size:26px;color:#e6e0dc;line-height:1.5">"الألوان اتحسنت جداً، ركّز المرة الجاية على المسافات."</div>` },
+];
+$('s8cards').innerHTML = S8C.map((c, i) => `<div class="abs card" id="s8c${i}" style="left:${c.x}px;top:${c.y}px;width:500px;height:220px;padding:24px 28px">${c.h}</div>`).join('');
+// S9 rings
+const S9R = [{ x: 1400, l: 'الحضور', req: 80, v: 92 }, { x: 960, l: 'التاسكات', req: 80, v: 88 }, { x: 520, l: 'مشاريع التخرج', req: 50, v: 100 }];
+$('s9rings').innerHTML = S9R.map((r, i) => `<div class="abs" id="s9g${i}" style="left:${r.x - 160}px;top:200px;width:320px;height:460px">
+  <svg width="320" height="320" viewBox="0 0 320 320"><circle cx="160" cy="160" r="130" fill="none" stroke="#222" stroke-width="26"/>
+   <circle id="s9c${i}" cx="160" cy="160" r="130" fill="none" stroke="#e85c3b" stroke-width="26" stroke-linecap="round" pathLength="100" stroke-dasharray="100" stroke-dashoffset="100" transform="rotate(-90 160 160)"/>
+   <line x1="160" y1="16" x2="160" y2="52" stroke="#f2b632" stroke-width="6" transform="rotate(${r.req * 3.6} 160 160)"/></svg>
+  <div class="abs center" style="left:0;top:0;width:320px;height:320px;flex-direction:column"><div id="s9v${i}" style="font-size:76px;font-weight:900">0%</div></div>
+  <div class="abs center" id="s9k${i}" style="right:6px;top:6px;width:76px;height:76px;border-radius:50%;background:var(--green)">${icon('check', 46, '#fff', 3.4)}</div>
+  <div class="abs" style="left:-40px;width:400px;top:340px;text-align:center"><div class="t">${r.l}</div><div class="s">المطلوب ${r.req}% على الأقل</div></div></div>`).join('');
+$('s9conf').innerHTML = Array.from({ length: 90 }, (_, i) => `<div class="abs" id="s9f${i}" style="left:0;top:0;width:${10 + rand(i) * 12}px;height:${16 + rand(i + 3) * 14}px;border-radius:3px;background:${['#c4321f', '#e85c3b', '#d9a441', '#f5f1ee', '#2fbf71'][i % 5]}"></div>`).join('');
+// S10 network
+const S10N = [{ a: -90, l: 'المدرب', ic: 'board' }, { a: 0, l: 'المشرف', ic: 'shield' }, { a: 90, l: 'بوابة الطالب', ic: 'mobile' }, { a: 180, l: 'فريق المتابعة', ic: 'team' }];
+const C10 = { x: 960, y: 440 }, R10 = 330;
+S10N.forEach(n => { n.x = C10.x + Math.cos(n.a * Math.PI / 180) * R10 * 1.25; n.y = C10.y + Math.sin(n.a * Math.PI / 180) * R10 * .82; });
+$('s10net').innerHTML = S10N.map((n, i) => `<line id="s10l${i}" x1="${C10.x}" y1="${C10.y}" x2="${n.x}" y2="${n.y}" stroke="#c4321f" stroke-width="4" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/><circle id="s10d${i}" r="9" fill="#ffb199"/>`).join('');
+$('s10nodes').innerHTML = S10N.map((n, i) => `<div class="abs" id="s10n${i}" style="left:${n.x - 80}px;top:${n.y - 80}px;width:160px;height:160px">
+  <div class="abs center card" style="inset:0;border-radius:50%;border:3px solid rgba(196,50,31,.7)">${icon(n.ic, 70, '#f5f1ee')}</div>
+  <div class="abs t" style="left:-70px;width:300px;top:${n.a === -90 ? -60 : 168}px;text-align:center;white-space:nowrap">${n.l}</div></div>`).join('');
+hydrate();
+
+// ---------- scene renderers (lt = local time, d = scene duration) ----------
+const R = {};
+R[1] = (lt, d, t) => {
+  const pulse = (Math.sin(lt * 5) + 1) / 2;
+  const grow = P(lt, .9, .8);
+  A('s1dot', 1 - grow, 0, 0, (.6 + .5 * pulse) * (1 + grow * 3));
+  A('s1av', eo(grow * 1.5), 0, 0, .2 + .8 * back(grow));
+  const e = ember(t); A('s1glow', .35 * e.o * eo(grow), 0, 0, e.s);
+  for (let i = 0; i < 7; i++) {
+    const a = i / 7 * Math.PI * 2 + lt * .35 * (i % 2 ? 1 : -1);
+    const r = 250 + 40 * Math.sin(lt * .8 + i);
+    const k = P(lt, 1.4 + i * .1, .8);
+    A(`s1q${i}`, .3 * eo(k), 960 + Math.cos(a) * r * 1.35 - 25, 470 + Math.sin(a) * r * .75 - 50, .7 + .3 * eo(k), Math.sin(lt + i) * 15);
+  }
+  const k = P(lt, 2.1, .7);
+  $('s1title').style.clipPath = `inset(0 0 0 ${100 - eio(k) * 100}%)`;
+  A('s1title', 1, 0, (1 - eo(k)) * 20);
+};
+R[2] = (lt, d) => {
+  const lk = eio(P(lt, 0, .9));
+  $('s2line').style.transform = `scaleX(${lk})`;
+  const starts = [.5, 2.4, 4.3];
+  S2N.forEach((n, i) => {
+    const s = starts[i];
+    pop(`s2n${i}`, lt, s, .5);
+    const xk = P(lt, s + .9, .45);
+    A(`s2x${i}`, eo(xk * 1.5), 0, 0, back(xk) * 1);
+    $(`s2c${i}`).style.borderColor = xk > 0 ? '#c4321f' : '#444';
+    $(`s2c${i}`).style.filter = `grayscale(${xk}) brightness(${1 - .45 * xk})`;
+    A(`s2l${i}`, eo(P(lt, s + 1.0, .5)), 0, (1 - eo(P(lt, s + 1.0, .5))) * 20);
+  });
+  // student drifts away from the path
+  const mk = eio(P(lt, .6, d - 1.2));
+  const x = lerp(1660, 330, mk), y = lerp(355, 640, Math.pow(mk, 1.6));
+  const el = $('s2av'); el.style.left = (x - 65) + 'px'; el.style.top = (y - 65) + 'px';
+  A(el, lerp(1, .28, mk) * eo(P(lt, .2, .5)), 0, 0, lerp(1, .8, mk));
+  el.style.filter = `grayscale(${mk})`; el.style.borderColor = mk > .5 ? '#555' : '#c4321f';
+};
+R[3] = (lt, d, t) => {
+  const f = P(lt, 0, .25), fo = P(lt, .3, 1.4);
+  A('s3flash', eo(f) * (1 - eo(fo)) * .9 + .12, 0, 0, 1 + fo * .2);
+  const lk = P(lt, .15, .9);
+  A('s3logo', eo(lk * 1.5), 0, 0, .5 + .5 * back(lk));
+  const e = ember(t); A('s3glow', e.o * eo(lk), 0, 0, e.s);
+  const tk = P(lt, 1.6, .8);
+  $('s3text').style.clipPath = `inset(-20px 0 -20px ${100 - eio(tk) * 100}%)`;
+  A('s3text', 1, 0, (1 - eo(tk)) * 30);
+  $('s3under').style.transform = `scaleX(${eio(P(lt, 2.3, .7))})`;
+};
+R[4] = (lt, d) => {
+  const k = P(lt, 0, .8); A('s4laptop', eo(k), 0, (1 - eo(k)) * 80, .95 + .05 * eo(k));
+  const sec = Math.max(0, lt - .6) * 380 + (lt > .6 ? 1 : 0);
+  const hh = Math.floor(sec / 3600), mm = Math.floor(sec / 60) % 60, ss = Math.floor(sec) % 60;
+  $('s4timer').textContent = [hh, mm, ss].map(v => String(v).padStart(2, '0')).join(':');
+  const phase = lt < 2.9 ? 0 : lt < 4.5 ? 1 : 2;
+  ['s4b1', 's4b2', 's4b3'].forEach((id, i) => {
+    const on = lt > .6 && phase === i;
+    $(id).style.background = on ? 'var(--accent)' : '#222';
+    $(id).style.boxShadow = on ? '0 0 34px rgba(232,92,59,.6)' : 'none';
+    A(id, 1, 0, 0, on ? 1.06 : 1);
+  });
+  const st = $('s4status');
+  const S = [['● جارية الآن', 'rgba(47,191,113,.15)', 'var(--green)'], ['● في فترة استراحة', 'rgba(242,182,50,.15)', 'var(--yellow)'], ['● تطبيق عملي نشط', 'rgba(232,92,59,.18)', '#ff8a70']][phase];
+  st.textContent = S[0]; st.style.background = S[1]; st.style.color = S[2];
+  [.8, 3.1, 4.7].forEach((s, i) => pop(`s4l${i}`, lt, s, .45, 24));
+  const rk = eio(P(lt, 4.7, 3.2)), pct = Math.round(rk * 65);
+  $('s4ring').setAttribute('stroke-dashoffset', 100 - pct);
+  $('s4pct').textContent = pct + '%';
+  pop('s4cap', lt, 6.2, .6, 30);
+};
+R[5] = (lt, d) => {
+  const pk = P(lt, 0, .7); A('s5phone', eo(pk), (1 - eo(pk)) * 120, 0);
+  const ck = P(lt, .8, .5); A('s5check', eo(ck * 2), 0, 0, back(ck));
+  for (let i = 0; i < 3; i++) {
+    const r = ((lt - 1.0 - i * .45) % 1.8 + 1.8) % 1.8 / 1.8;
+    const on = lt > 1.0 + i * .45 && lt < 4.2;
+    A(`s5r${i}`, on ? (1 - r) * .8 : 0, 0, 0, 1 + r * 1.3);
+  }
+  pop('s5ptext', lt, 1.2, .5, 30);
+  pop('s5l1', lt, 1.6, .5, 20);
+  A('s5div', eo(P(lt, 2.8, .6)));
+  const mk = P(lt, 3.7, .7);
+  A('s5mail', eo(mk * 1.4), 0, (1 - back(mk)) * -160, 1, (1 - eo(mk)) * -6);
+  const bk = P(lt, 6.0, .4);
+  A('s5btn', 1, 0, 0, 1 + .08 * Math.sin(bk * Math.PI) + (lt > 6.4 ? .03 * Math.sin((lt - 6.4) * 4) : 0));
+  pop('s5l2', lt, 4.6, .5, 20);
+};
+R[6] = (lt, d) => {
+  const k = P(lt, 0, .7); A('s6card', eo(k), (1 - eo(k)) * 100, 0);
+  const k2 = P(lt, .3, .7); A('s6score', eo(k2), (1 - eo(k2)) * -100, 0);
+  const rs = [1.0, 1.9, 2.8, 3.7, 4.6];
+  let pts = 112;
+  rs.forEach((s, i) => {
+    pop(`s6r${i}`, lt, s, .45, 30);
+    const fk = P(lt, s + .25, .9);
+    const add = +S6R[i][2].slice(1);
+    if (fk >= 1) pts += add;
+    // flying "+n" from the row to the score card
+    const sx = 1300, sy = 330 + i * 92, ex = 560, ey = 280;
+    A(`s6p${i}`, fk > 0 && fk < 1 ? Math.sin(fk * Math.PI) : 0, lerp(sx, ex, eio(fk)), lerp(sy, ey, eio(fk)) - Math.sin(fk * Math.PI) * 120, 1);
+  });
+  $('s6num').textContent = pts;
+  const bump = rs.reduce((m, s) => Math.max(m, 1 - Math.abs(lt - (s + 1.15)) * 4), 0);
+  A('s6num', 1, 0, 0, 1 + .08 * cl(bump));
+  const wk = P(lt, 7.6, .7); A('s6weak', eo(wk), (1 - eo(wk)) * -100, 0);
+  const sk = P(lt, 11.4, .45);
+  A('s6stamp', eo(sk * 2), 0, 0, lerp(2.2, 1, back(sk)), -8);
+  $('s6weak').style.borderColor = sk > .3 ? 'rgba(47,191,113,.6)' : 'rgba(242,182,50,.5)';
+  const tg = $('s6wtag');
+  if (sk > .3) { tg.textContent = '✓ تم المعالجة والتغلب عليها'; tg.style.color = 'var(--green)'; tg.style.background = 'rgba(47,191,113,.15)'; }
+  else { tg.textContent = '⚠ نقطة ضعف محتاجة تطوير'; tg.style.color = 'var(--yellow)'; tg.style.background = 'rgba(242,182,50,.15)'; }
+};
+R[7] = (lt, d) => {
+  const k = P(lt, 0, .7); A('s7chart', eo(k), (1 - eo(k)) * 100, 0);
+  pop('s7stu', lt, .4, .6, 40);
+  const dk = eio(P(lt, .8, 3.4));
+  $('s7a1').setAttribute('stroke-dashoffset', 1 - dk); $('s7t1').setAttribute('stroke-dashoffset', 1 - dk);
+  // moving dot on the falling attendance line
+  const fi = dk * (ATT.length - 1), i0 = Math.floor(fi), i1 = Math.min(ATT.length - 1, i0 + 1);
+  const v = lerp(ATT[i0], ATT[i1], fi - i0);
+  const rk = eio(P(lt, 9.6, 2.6));
+  const dot = $('s7dot');
+  if (rk > 0) {
+    const fj = rk * (ATT2.length - 1), j0 = Math.floor(fj), j1 = Math.min(ATT2.length - 1, j0 + 1);
+    const v2 = lerp(ATT2[j0], ATT2[j1], fj - j0);
+    dot.setAttribute('cx', X(6 + fj)); dot.setAttribute('cy', Y(v2)); dot.setAttribute('fill', '#2fbf71');
+  } else {
+    dot.setAttribute('cx', X(fi)); dot.setAttribute('cy', Y(v)); dot.setAttribute('fill', v < 70 ? '#f2b632' : '#f5f1ee');
+  }
+  dot.style.opacity = eo(P(lt, .8, .3));
+  $('s7a2').setAttribute('stroke-dashoffset', 1 - rk); $('s7t2').setAttribute('stroke-dashoffset', 1 - rk);
+  const flagged = lt > 3.3, ok = lt > 11.4;
+  const stu = $('s7stu'), pill = $('s7pill');
+  const att = Math.round(ok ? lerp(55, 95, eio(P(lt, 9.6, 2.6))) : lerp(90, 55, dk)), tsk = Math.round(ok ? lerp(50, 92, eio(P(lt, 9.6, 2.6))) : lerp(85, 50, dk));
+  if (ok) { stu.style.borderColor = 'var(--green)'; pill.style.background = 'rgba(47,191,113,.15)'; pill.style.color = 'var(--green)'; pill.textContent = `✓ رجع على الطريق · الحضور ${att}%`; }
+  else if (flagged) { stu.style.borderColor = 'var(--yellow)'; pill.style.background = 'rgba(242,182,50,.15)'; pill.style.color = 'var(--yellow)'; pill.textContent = `⚠ مرشح للمتابعة · الحضور ${att}% · التاسكات ${tsk}%`; }
+  else { stu.style.borderColor = 'var(--line)'; pill.style.background = 'rgba(255,255,255,.08)'; pill.style.color = '#ccc'; pill.textContent = `الحضور ${att}% · التاسكات ${tsk}%`; }
+  const glowk = flagged && !ok ? (Math.sin(lt * 6) + 1) / 2 : 0;
+  stu.style.boxShadow = `0 30px 80px rgba(0,0,0,.55), 0 0 ${40 * glowk}px rgba(242,182,50,${.5 * glowk})`;
+  // card slides down into the follow-up room
+  const mk = eio(P(lt, 4.6, .9));
+  pop('s7room', lt, 4.0, .6, 40);
+  A('s7stu', eo(P(lt, .4, .6)), lerp(0, 0, mk), lerp(0, 290, mk), lerp(1, .95, mk));
+  [6.3, 7.3, 8.3].forEach((s, i) => { pop(`s7c${i}`, lt, s, .45, 0); pop(`s7l${i}`, lt, s + .2, .5, 20); });
+  // log sits under the student card after it moves in
+  $('s7log').style.marginTop = '170px';
+  const ck = P(lt, 3.4, .5);
+  $('s7cap').innerHTML = ok ? '<span class="green">رجع على الطريق ✓</span>' : 'تحت 70%؟ <span class="red">إحنا جايين.</span>';
+  A('s7cap', ok ? eo(P(lt, 11.4, .5)) : eo(ck) * (1 - eo(P(lt, 10.9, .4))), 0, 0);
+};
+R[8] = (lt, d) => {
+  const k = P(lt, 0, .6);
+  const tagK = P(lt, d - 3.6, .8);  // phone slides right, cards leave, tagline enters
+  A('s8phone', eo(k), lerp(0, 330, eio(tagK)), (1 - eo(k)) * 80, lerp(1, .96, eio(tagK)));
+  const tap = P(lt, .9, .35);
+  A('s8app', 1, 0, 0, 1 - .15 * Math.sin(tap * Math.PI));
+  const open = eio(P(lt, 1.3, .6));
+  A('s8portal', open, 0, 0, lerp(.6, 1, open));
+  A('s8home', 1 - open, 0, 0, lerp(1, 1.2, open));
+  const sc = eio(P(lt, 3.0, 9.0));
+  $('s8scroll').style.transform = `translateY(${-sc * 420}px)`;
+  const cs = [3.2, 4.4, 5.5, 7.0, 8.6, 10.2];
+  cs.forEach((s, i) => {
+    const kk = P(lt, s, .6);
+    const out = eio(tagK);
+    A(`s8c${i}`, eo(kk * 1.5) * (1 - out), (1 - eo(kk)) * (i < 3 ? 120 : -120) + (i < 3 ? out * 300 : -out * 200), 0, (.9 + .1 * back(kk)) * (1 - .1 * out));
+  });
+  ['s8w1', 's8w2', 's8w3'].forEach((id, i) => pop(id, lt, d - 3.2 + i * .45, .5, 40));
+};
+R[9] = (lt, d) => {
+  const certK = P(lt, 11.0, .9);
+  S9R.forEach((r, i) => {
+    const k = P(lt, .3 + i * .2, .6);
+    const fk = eio(P(lt, 1.8 + i * 1.6, 2.2));
+    const v = Math.round(fk * r.v);
+    $(`s9c${i}`).setAttribute('stroke-dashoffset', 100 - v);
+    $(`s9c${i}`).setAttribute('stroke', v >= r.req ? '#2fbf71' : '#e85c3b');
+    $(`s9v${i}`).textContent = v + '%';
+    const passAt = 1.8 + i * 1.6 + 2.2 * .55;
+    A(`s9k${i}`, eo(P(lt, passAt, .3) * 2), 0, 0, back(P(lt, passAt, .4)));
+    const ce = eio(certK);
+    A(`s9g${i}`, eo(k * 1.5) * (1 - ce), lerp(0, (960 - r.x) * .8, ce), (1 - eo(k)) * 60 + ce * 40, lerp(1, .4, ce));
+  });
+  A('s9cert', eo(certK * 1.3), 0, (1 - eo(certK)) * 60, .6 + .4 * back(certK));
+  pop('s9congr', lt, 12.0, .6, 30);
+  A('s9btn', 1, 0, 0, lt > 12.6 ? 1 + .04 * Math.sin((lt - 12.6) * 4) : 1);
+  for (let i = 0; i < 90; i++) {
+    const s = 11.6 + rand(i + 9) * .6, ft = lt - s;
+    if (ft < 0) { A(`s9f${i}`, 0); continue; }
+    const x0 = 960 + (rand(i + 1) - .5) * 300, vx = (rand(i + 2) - .5) * 1600, vy = -500 - rand(i + 4) * 700;
+    const x = x0 + vx * ft * .6, y = 420 + vy * ft + 700 * ft * ft;
+    A(`s9f${i}`, cl(1.6 - ft * .35), x, y, 1, ft * 400 * (rand(i + 5) - .5) * 2);
+  }
+};
+R[10] = (lt, d, t) => {
+  const outK = eio(P(lt, 6.6, 1.0));
+  A('s10av', eo(P(lt, 0, .5)) * (1 - outK), 0, 0, (.8 + .2 * back(P(lt, 0, .6))) * (1 - .3 * outK));
+  S10N.forEach((n, i) => {
+    const lk = eio(P(lt, .5 + i * .35, .8));
+    $(`s10l${i}`).setAttribute('stroke-dashoffset', 1 - lk);
+    $(`s10l${i}`).style.opacity = 1 - outK;
+    const nk = P(lt, 1.0 + i * .35, .5);
+    A(`s10n${i}`, eo(nk * 1.5) * (1 - outK), (C10.x - n.x) * outK * .6, (C10.y - n.y) * outK * .6, (.8 + .2 * back(nk)) * (1 - .3 * outK));
+    const pk = ((lt * .7 + i * .25) % 1);
+    const dd = $(`s10d${i}`);
+    dd.setAttribute('cx', lerp(n.x, C10.x, pk)); dd.setAttribute('cy', lerp(n.y, C10.y, pk));
+    dd.style.opacity = lt > 2 ? (1 - outK) * Math.sin(pk * Math.PI) : 0;
+  });
+  const lk = P(lt, 7.2, .9);
+  A('s10logo', eo(lk * 1.4), 0, 0, .6 + .4 * back(lk));
+  const e = ember(t); A('s10glow', e.o * eo(lk), 0, 0, e.s);
+  const tk = P(lt, 7.9, .8);
+  $('s10line').style.clipPath = `inset(-20px 0 -20px ${100 - eio(tk) * 100}%)`;
+  A('s10line', 1, 0, (1 - eo(tk)) * 30);
+  const ck = P(lt, 9.0, .6);
+  A('s10cta', eo(ck * 1.4), 0, (1 - eo(ck)) * 40, (.9 + .1 * back(ck)) * (lt > 10 ? 1 + .025 * Math.sin((lt - 10) * 4) : 1));
+  pop('s10url', lt, 9.7, .6, 30);
+};
+
+// ---------- master render ----------
+const TL = window.TIMELINE;
+const allSubs = TL.scenes.flatMap(s => s.subs);
+window.render = function (t) {
+  // background drift
+  A('bgGlowA', 1, 200 + Math.sin(t * .15) * 200 - 700, 100 + Math.cos(t * .11) * 120 - 700);
+  A('bgGlowB', .8, 1500 + Math.cos(t * .13) * 220 - 700, 900 + Math.sin(t * .17) * 140 - 700);
+  $('bgGrid').style.backgroundPosition = `${-t * 8}px ${-t * 4}px`;
+  for (const s of TL.scenes) {
+    const lt = t - s.start, el = $('s' + s.id);
+    const last = s.id === TL.scenes.length;
+    if (lt < 0 || lt > s.dur + .35) { el.style.opacity = 0; el.style.display = 'none'; continue; }
+    el.style.display = 'block';
+    const fin = s.id === 1 ? 1 : eo(lt / .45);
+    const fout = last ? 1 : cl((s.dur + .35 - lt) / .55);
+    el.style.opacity = Math.min(fin, fout);
+    R[s.id](lt, s.dur, t);
+  }
+  // watermark on feature scenes
+  const s4 = TL.scenes[3].start, s10 = TL.scenes[9].start;
+  $('wm').style.opacity = cl((t - s4) / .5) * cl((s10 - t) / .4) * .9;
+  // subtitles
+  const sub = allSubs.find(x => t >= x.start && t < x.end + .12);
+  const se = $('sub');
+  if (sub) {
+    se.textContent = sub.text;
+    se.style.opacity = Math.min(cl((t - sub.start) / .15), cl((sub.end + .12 - t) / .12));
+  } else se.style.opacity = 0;
+  // fade to black at the very end
+  $('black').style.opacity = cl((t - (TL.total - .7)) / .7);
+};
+window.READY = document.fonts.ready.then(() => Promise.all([...document.images].map(i => i.complete ? 1 : new Promise(r => { i.onload = i.onerror = r; }))));
+render(0);
+</script>
+</body>
+</html>
