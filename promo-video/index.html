@@ -100,18 +100,18 @@ svg.ic { display: block; }
       <div class="abs s" style="left:36px;top:32px">المحاضرة رقم 6 — الجروب G12</div>
       <div class="abs pill" id="s4status" style="right:36px;top:92px;background:rgba(47,191,113,.15);color:var(--green)">● جارية الآن</div>
       <div class="abs" id="s4timer" style="right:36px;top:140px;font-size:96px;font-weight:900;letter-spacing:2px;direction:ltr">00:00:00</div>
-      <div class="abs row" style="right:36px;top:290px;gap:16px">
-        <div class="btn" id="s4b1" style="background:#222;box-shadow:none;font-size:26px"><i data-ic="play" data-s="26" data-c="#fff"></i>بدء</div>
-        <div class="btn" id="s4b2" style="background:#222;box-shadow:none;font-size:26px"><i data-ic="coffee" data-s="26" data-c="#fff"></i>استراحة</div>
-        <div class="btn" id="s4b3" style="background:#222;box-shadow:none;font-size:26px"><i data-ic="code" data-s="26" data-c="#fff"></i>تطبيق عملي</div>
+      <div class="abs row" style="right:36px;top:268px;gap:12px">
+        <div class="btn" id="s4b1" style="background:#222;box-shadow:none;font-size:24px;padding:12px 22px"><i data-ic="play" data-s="26" data-c="#fff"></i>بدء</div>
+        <div class="btn" id="s4b2" style="background:#222;box-shadow:none;font-size:24px;padding:12px 22px"><i data-ic="coffee" data-s="26" data-c="#fff"></i>استراحة</div>
+        <div class="btn" id="s4b3" style="background:#222;box-shadow:none;font-size:24px;padding:12px 22px"><i data-ic="code" data-s="26" data-c="#fff"></i>تطبيق عملي</div>
       </div>
-      <div class="abs" id="s4log" style="right:36px;top:390px;width:560px"></div>
-      <div class="abs" style="left:60px;top:150px;width:300px;height:300px">
+      <div class="abs" id="s4log" style="right:36px;top:360px;width:540px"></div>
+      <div class="abs" style="left:50px;top:150px;width:300px;height:300px;transform:scale(.8);transform-origin:left top">
         <svg width="300" height="300" viewBox="0 0 300 300"><circle cx="150" cy="150" r="125" fill="none" stroke="#222" stroke-width="24"/>
           <circle id="s4ring" cx="150" cy="150" r="125" fill="none" stroke="#e85c3b" stroke-width="24" stroke-linecap="round" pathLength="100" stroke-dasharray="100" stroke-dashoffset="100" transform="rotate(-90 150 150)"/></svg>
         <div class="abs center" style="inset:0;flex-direction:column"><div id="s4pct" style="font-size:72px;font-weight:900">0%</div></div>
       </div>
-      <div class="abs s" style="left:40px;top:470px;width:340px;text-align:center">نسبة وقت التطبيق العملي</div>
+      <div class="abs s" style="left:20px;top:410px;width:300px;text-align:center">نسبة وقت التطبيق العملي</div>
     </div>
     <div class="abs" style="left:0;top:590px;width:1100px;height:34px;border-radius:0 0 30px 30px;background:linear-gradient(#2a2a2a,#161616)"></div>
   </div>
@@ -186,15 +186,15 @@ svg.ic { display: block; }
       <circle id="s7dot" r="12" fill="#f2b632"/>
     </svg>
   </div>
-  <div class="abs card" id="s7room" style="left:1110px;top:430px;width:660px;height:400px;padding:28px 34px">
+  <div class="abs card" id="s7room" style="left:1110px;top:360px;width:660px;height:480px;padding:24px 34px">
     <div class="row" style="justify-content:space-between"><div class="t">غرفة المتابعة</div><div id="s7chips" class="row" style="gap:12px"></div></div>
-    <div id="s7log" style="margin-top:170px"></div>
+    <div id="s7log" style="margin-top:178px"></div>
   </div>
-  <div class="abs card" id="s7stu" style="left:1150px;top:180px;width:580px;height:150px;padding:22px 28px;border-width:3px">
+  <div class="abs card" id="s7stu" style="left:1150px;top:160px;width:580px;height:150px;padding:22px 28px;border-width:3px">
     <div class="row"><div class="avatar" style="width:96px;height:96px;border-width:3px"><i data-ic="user" data-s="54" data-c="#f5f1ee"></i></div>
       <div><div class="t">أحمد محمود</div><div id="s7pill" class="pill" style="margin-top:6px;background:rgba(255,255,255,.08);color:#ccc">الحضور 90% · التاسكات 85%</div></div></div>
   </div>
-  <div class="abs h-m" id="s7cap" style="left:1110px;width:660px;top:860px;text-align:center"></div>
+  <div class="abs h-m" id="s7cap" style="left:160px;width:880px;top:850px;text-align:center"></div>
 </div>
 
 <!-- ================= S8: PORTAL ================= -->
@@ -338,7 +338,7 @@ $('s2nodes').innerHTML = S2N.map((n, i) => `
   </div>`).join('');
 // S4 log
 const S4LOG = [['07:00 م', 'بدء المحاضرة', 'play'], ['07:50 م', 'استراحة 10 دقايق', 'coffee'], ['08:00 م', 'بدء تطبيق عملي', 'code']];
-$('s4log').innerHTML = S4LOG.map((r, i) => `<div class="row" id="s4l${i}" style="padding:10px 0;border-bottom:1px solid #1f1f1f;font-size:26px">${icon(r[2], 26, '#e85c3b')}<b>${r[1]}</b><span class="s" style="margin-right:auto;font-size:22px;direction:ltr">${r[0]}</span></div>`).join('');
+$('s4log').innerHTML = S4LOG.map((r, i) => `<div class="row" id="s4l${i}" style="padding:7px 0;border-bottom:1px solid #1f1f1f;font-size:25px">${icon(r[2], 26, '#e85c3b')}<b>${r[1]}</b><span class="s" style="margin-right:auto;font-size:22px;direction:ltr">${r[0]}</span></div>`).join('');
 // S5 ripples
 $('s5ripples').innerHTML = [0, 1, 2].map(i => `<div class="abs" id="s5r${i}" style="left:110px;top:200px;width:160px;height:160px;border-radius:50%;border:4px solid var(--green)"></div>`).join('');
 // S6 rows
@@ -523,7 +523,7 @@ R[7] = (lt, d) => {
   const stu = $('s7stu'), pill = $('s7pill');
   const att = Math.round(ok ? lerp(55, 95, eio(P(lt, 9.6, 2.6))) : lerp(90, 55, dk)), tsk = Math.round(ok ? lerp(50, 92, eio(P(lt, 9.6, 2.6))) : lerp(85, 50, dk));
   if (ok) { stu.style.borderColor = 'var(--green)'; pill.style.background = 'rgba(47,191,113,.15)'; pill.style.color = 'var(--green)'; pill.textContent = `✓ رجع على الطريق · الحضور ${att}%`; }
-  else if (flagged) { stu.style.borderColor = 'var(--yellow)'; pill.style.background = 'rgba(242,182,50,.15)'; pill.style.color = 'var(--yellow)'; pill.textContent = `⚠ مرشح للمتابعة · الحضور ${att}% · التاسكات ${tsk}%`; }
+  else if (flagged) { stu.style.borderColor = 'var(--yellow)'; pill.style.background = 'rgba(242,182,50,.15)'; pill.style.color = 'var(--yellow)'; pill.textContent = `⚠ مرشح للمتابعة · الحضور ${att}%`; }
   else { stu.style.borderColor = 'var(--line)'; pill.style.background = 'rgba(255,255,255,.08)'; pill.style.color = '#ccc'; pill.textContent = `الحضور ${att}% · التاسكات ${tsk}%`; }
   const glowk = flagged && !ok ? (Math.sin(lt * 6) + 1) / 2 : 0;
   stu.style.boxShadow = `0 30px 80px rgba(0,0,0,.55), 0 0 ${40 * glowk}px rgba(242,182,50,${.5 * glowk})`;
@@ -533,8 +533,7 @@ R[7] = (lt, d) => {
   A('s7stu', eo(P(lt, .4, .6)), lerp(0, 0, mk), lerp(0, 290, mk), lerp(1, .95, mk));
   [6.3, 7.3, 8.3].forEach((s, i) => { pop(`s7c${i}`, lt, s, .45, 0); pop(`s7l${i}`, lt, s + .2, .5, 20); });
   // log sits under the student card after it moves in
-  $('s7log').style.marginTop = '170px';
-  const ck = P(lt, 3.4, .5);
+    const ck = P(lt, 3.4, .5);
   $('s7cap').innerHTML = ok ? '<span class="green">رجع على الطريق ✓</span>' : 'تحت 70%؟ <span class="red">إحنا جايين.</span>';
   A('s7cap', ok ? eo(P(lt, 11.4, .5)) : eo(ck) * (1 - eo(P(lt, 10.9, .4))), 0, 0);
 };
