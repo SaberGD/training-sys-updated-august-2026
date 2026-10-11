@@ -14,7 +14,7 @@ Status: see checklist below.
 - [x] VO generated
 - [x] timeline + motion page written
 - [x] review stills & fix layout
-- [ ] full render + audio mix
+- [x] full render + audio mix (out/saber-promo.mp4, not committed)
 - [ ] 9:16 version
 
 Mux command: `ffmpeg -i out/video_silent.mp4 -i out/audio.wav -c:v copy -c:a aac -b:a 192k -shortest out/saber-promo.mp4`

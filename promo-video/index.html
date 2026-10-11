@@ -345,7 +345,7 @@ $('s5ripples').innerHTML = [0, 1, 2].map(i => `<div class="abs" id="s5r${i}" sty
 const S6R = [['حضر المحاضرة', '✓', '+1'], ['سلّم التاسكات (2 من 2)', '✓', '+2'], ['سلّم في المعاد', '✓', '+1'], ['جودة الشغل', '★★★★★', '+1'], ['بونص تفاعل', '+', '+1']];
 $('s6rows').innerHTML = S6R.map((r, i) => `<div class="row" id="s6r${i}" style="justify-content:space-between;padding:16px 18px;margin-top:12px;border-radius:16px;background:#181818;border:1px solid #232323">
   <span style="font-size:32px;font-weight:700">${r[0]}</span><span style="font-size:${r[1].length > 2 ? 28 : 38}px;font-weight:900;color:${r[1].length > 2 ? 'var(--gold)' : 'var(--green)'}">${r[1]}</span></div>`).join('');
-$('s6plus').innerHTML = S6R.map((r, i) => `<div class="abs" id="s6p${i}" style="left:0;top:0;font-size:44px;font-weight:900;color:var(--green)">${r[2]}</div>`).join('');
+$('s6plus').innerHTML = S6R.map((r, i) => `<div class="abs" id="s6p${i}" style="left:0;top:0;direction:ltr;font-size:44px;font-weight:900;color:var(--green)">${r[2]}</div>`).join('');
 // S7 chart paths
 const X = i => 60 + i * 66, Y = v => 500 - (v - 30) / 70 * 460;
 const ATT = [100, 100, 90, 80, 70, 60, 55], TSK = [95, 90, 82, 72, 62, 55, 50];
