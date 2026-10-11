@@ -705,6 +705,21 @@ const StudentPortal: React.FC = () => {
       return;
     }
 
+    // Each graduation project has its own submission: clear the form from the
+    // previously viewed project so nothing carries over to the new one.
+    const fillSubmissionForm = (sub: GraduationProjectSubmission | null) => {
+      setSubmissionDriveLink(sub?.driveLink || '');
+      setCheckOpen(!!sub?.checkConfirmedOpen);
+      setCheckEditable(!!sub?.checkUploadedEditableFiles);
+      setCheckRules(!!sub?.checkReadRules);
+      setSubmissionExtraLinks(sub?.extraLinks || []);
+      setUnsubmittedReasonText(sub?.unsubmittedReason || '');
+    };
+    setGraduationSubmission(null);
+    setGraduationEvaluation(null);
+    setGraduationComments([]);
+    fillSubmissionForm(null);
+
     const qSub = query(
       collection(db, 'graduationSubmissions'),
       where('projectId', '==', graduationProject.id),
@@ -714,14 +729,7 @@ const StudentPortal: React.FC = () => {
       const sList = snapshot.docs.map((d: any) => ({ id: d.id, ...d.data() } as GraduationProjectSubmission));
       const mySub = sList[0] || null;
       setGraduationSubmission(mySub);
-      if (mySub) {
-        setSubmissionDriveLink(mySub.driveLink || '');
-        setCheckOpen(!!mySub.checkConfirmedOpen);
-        setCheckEditable(!!mySub.checkUploadedEditableFiles);
-        setCheckRules(!!mySub.checkReadRules);
-        setSubmissionExtraLinks(mySub.extraLinks || []);
-        setUnsubmittedReasonText(mySub.unsubmittedReason || '');
-      }
+      fillSubmissionForm(mySub);
     });
 
     const qEval = query(
