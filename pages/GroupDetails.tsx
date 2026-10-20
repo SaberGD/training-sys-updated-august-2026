@@ -2879,6 +2879,8 @@ const GroupDetails: React.FC<{ user: User }> = ({ user }) => {
                                   <input
                                     type="text"
                                     placeholder="مثال: 15:30"
+                                    disabled={user.role === 'trainer'}
+                                    title={user.role === 'trainer' ? 'تصحيح الوقت يدويًا متاح للإدارة فقط' : undefined}
                                     value={activeSess.endTimeActual || ''}
                                     onChange={async (e) => {
                                       const newEnd = e.target.value;
@@ -2909,7 +2911,7 @@ const GroupDetails: React.FC<{ user: User }> = ({ user }) => {
                                         isManualTimingEdit: true
                                       });
                                     }}
-                                    className="bg-slate-900 border border-slate-800 text-slate-300 font-bold text-[10px] px-2 py-1.5 rounded-lg w-full outline-none text-center focus:border-indigo-500"
+                                    className={`bg-slate-900 border border-slate-800 text-slate-300 font-bold text-[10px] px-2 py-1.5 rounded-lg w-full outline-none text-center focus:border-indigo-500 ${user.role === 'trainer' ? 'opacity-55 cursor-not-allowed' : ''}`}
                                   />
                                 </div>
                                 <div>
@@ -2917,6 +2919,8 @@ const GroupDetails: React.FC<{ user: User }> = ({ user }) => {
                                   <input
                                     type="text"
                                     placeholder="مثال: 12:30"
+                                    disabled={user.role === 'trainer'}
+                                    title={user.role === 'trainer' ? 'تصحيح الوقت يدويًا متاح للإدارة فقط' : undefined}
                                     value={activeSess.startTimeActual || ''}
                                     onChange={async (e) => {
                                       const newStart = e.target.value;
@@ -2947,7 +2951,7 @@ const GroupDetails: React.FC<{ user: User }> = ({ user }) => {
                                         isManualTimingEdit: true
                                       });
                                     }}
-                                    className="bg-slate-900 border border-slate-800 text-slate-300 font-bold text-[10px] px-2 py-1.5 rounded-lg w-full outline-none text-center focus:border-indigo-500"
+                                    className={`bg-slate-900 border border-slate-800 text-slate-300 font-bold text-[10px] px-2 py-1.5 rounded-lg w-full outline-none text-center focus:border-indigo-500 ${user.role === 'trainer' ? 'opacity-55 cursor-not-allowed' : ''}`}
                                   />
                                 </div>
                               </div>
