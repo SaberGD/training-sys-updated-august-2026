@@ -111,6 +111,17 @@ textarea:focus {
   box-shadow: 0 0 0 3px rgba(255, 138, 31, 0.12) !important;
 }
 
+/* Mixed Arabic/English text: each line takes its direction from its first
+   letter, so an English word inside an Arabic sentence doesn't flip the order. */
+input:not([type="number"], [type="date"], [type="time"], [type="datetime-local"], [type="email"], [type="url"], [type="tel"], [type="password"]),
+textarea,
+[contenteditable="true"],
+[contenteditable="true"] :is(p, div, li, h1, h2, h3, h4, blockquote),
+.whitespace-pre-wrap,
+.whitespace-pre-line {
+  unicode-bidi: plaintext;
+}
+
 /* The grid is deliberately low-contrast so dense operational screens remain readable. */
 .sg-os-shell {
   position: relative;
