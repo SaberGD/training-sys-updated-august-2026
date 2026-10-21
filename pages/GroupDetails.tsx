@@ -984,6 +984,10 @@ const GroupDetails: React.FC<{ user: User }> = ({ user }) => {
       setLoadingAi(false);
     }
   };
+  const isAssignedGroupTrainer = useMemo(() => !!group && [
+    group.primaryTrainerId, group.secondaryTrainerId, group.assistantTrainerId, ...(group.trainerIds || [])
+  ].includes(user.uid), [group, user.uid]);
+
   const canEvaluate = useMemo(() => {
     if (isAdmin || user.role === 'trainer') return true;
     return group?.trainerIds?.includes(user.uid);
@@ -1749,6 +1753,11 @@ const GroupDetails: React.FC<{ user: User }> = ({ user }) => {
     }
   };
   const execSave = async (sessionId: string, payload: any) => {
+    // Same check as the Firestore rules: a trainer can only save lectures of a group they're assigned to.
+    if (user.role === 'trainer' && !isAssignedGroupTrainer) {
+      alert('⚠️ حسابك مش متسجل كمدرب على الجروب ده، فمش هتقدر تبدأ أو تعدّل محاضراته.\nتواصل مع الإدارة يضيفوك على الجروب (مدرب أساسي / ثاني / مساعد).');
+      throw new Error('not-assigned-trainer');
+    }
     const { saveSessionExecution } = await import('../services/firestore');
     let finalPayload = { ...payload };
     if (['trainer', 'team_leader'].includes(user.role)) {
@@ -2402,6 +2411,12 @@ const GroupDetails: React.FC<{ user: User }> = ({ user }) => {
 
                           {/* Lecture Start/End Buttons with Auto Time */}
                           <div className="space-y-3">
+                            {user.role === 'trainer' && !isAssignedGroupTrainer && (
+                              <div role="alert" className="bg-amber-500/10 border border-amber-500/30 text-amber-300 text-[11px] font-bold p-3 rounded-2xl text-right font-arabic leading-relaxed">
+                                ⚠️ حسابك مش متسجل كمدرب على الجروب ده، فمش هتقدر تبدأ المحاضرة أو تعدّل بياناتها. تواصل مع الإدارة يضيفوك على الجروب.
+                              </div>
+                            )}
+
                             {/* Meeting Link / Offline toggle input for trainer */}
                             <div className="space-y-3 text-right font-arabic">
                               <div className="flex items-center justify-between bg-slate-950/60 p-3 rounded-2xl border border-slate-850/80">
