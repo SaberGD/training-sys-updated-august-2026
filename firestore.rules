@@ -75,7 +75,7 @@ service cloud.firestore {
     // themself as the actual trainer.
     function canTrainerRunSession() {
       return isSignedIn()
-        && isGroupTrainer(resource.data.groupId)
+        && (isGroupTrainer(resource.data.groupId) || isSubstituteForLectureDay())
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
           'lectureRecordingUrl', 'tasksMessageUrl', 'requiredTasksCount', 'lectureTitle',
           'meetingLink', 'googleMeetUrl', 'isOffline', 'isSpecialWorkshop', 'workshopDetails',
@@ -87,6 +87,19 @@ service cloud.firestore {
           'startPostponeNewTime', 'generalPostponeActive', 'generalPostponeDate', 'updatedAt'
         ])
         && request.resource.data.get('actualTrainerId', request.auth.uid) in [request.auth.uid, resource.data.get('actualTrainerId', '')];
+    }
+
+    // A trainer covering for the group's trainer (substitute) may run a
+    // lecture only around its scheduled date (one day either side, to absorb
+    // the Cairo/UTC offset and lectures that run past midnight), and is always
+    // recorded as the actual trainer so the hours go to whoever taught.
+    function isSubstituteForLectureDay() {
+      let parts = resource.data.get('date', '').split('-');
+      return isTrainer()
+        && parts.size() == 3
+        && request.time > timestamp.date(int(parts[0]), int(parts[1]), int(parts[2])) - duration.value(1, 'd')
+        && request.time < timestamp.date(int(parts[0]), int(parts[1]), int(parts[2])) + duration.value(2, 'd')
+        && request.resource.data.get('actualTrainerId', '') == request.auth.uid;
     }
 
     // Any trainer may add an extra (upcoming) lecture to a group
