@@ -2421,18 +2421,6 @@ const GroupDetails: React.FC<{ user: User }> = ({ user }) => {
 
                           {/* Lecture Start/End Buttons with Auto Time */}
                           <div className="space-y-3">
-                            {user.role === 'trainer' && !isAssignedGroupTrainer && (
-                              isSubstituteWindow(activeSess.date) ? (
-                                <div role="status" className="bg-sky-500/10 border border-sky-500/30 text-sky-300 text-[11px] font-bold p-3 rounded-2xl text-right font-arabic leading-relaxed">
-                                  🔄 انت مش متسجل على الجروب ده، فهتشغّل المحاضرة دي كـ<b>مدرب بديل</b>، واسمك هيتسجل كالمدرب الفعلي وساعاتها هتتحسبلك.
-                                </div>
-                              ) : (
-                                <div role="alert" className="bg-amber-500/10 border border-amber-500/30 text-amber-300 text-[11px] font-bold p-3 rounded-2xl text-right font-arabic leading-relaxed">
-                                  ⚠️ حسابك مش متسجل كمدرب على الجروب ده. المدرب البديل يقدر يشغّل المحاضرة في يومها بس ({activeSess.date || 'بدون تاريخ'}). تواصل مع الإدارة لو محتاج غير كده.
-                                </div>
-                              )
-                            )}
-
                             {/* Meeting Link / Offline toggle input for trainer */}
                             <div className="space-y-3 text-right font-arabic">
                               <div className="flex items-center justify-between bg-slate-950/60 p-3 rounded-2xl border border-slate-850/80">
@@ -2542,11 +2530,6 @@ const GroupDetails: React.FC<{ user: User }> = ({ user }) => {
                                         if (!confirmStart) {
                                           return;
                                         }
-                                      }
-
-                                      if (user.role === 'trainer' && !isAssignedGroupTrainer && isSubstituteWindow(activeSess.date)
-                                        && !window.confirm('🔄 انت مش متسجل على الجروب ده.\nهل هتشغّل المحاضرة دي كمدرب بديل؟ اسمك هيتسجل كالمدرب الفعلي.')) {
-                                        return;
                                       }
 
                                       const currentTimeStr = getCairoTimeStr();
