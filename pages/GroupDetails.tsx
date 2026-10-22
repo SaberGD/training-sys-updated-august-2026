@@ -984,19 +984,6 @@ const GroupDetails: React.FC<{ user: User }> = ({ user }) => {
       setLoadingAi(false);
     }
   };
-  // Mirrors isSubstituteForLectureDay() in firestore.rules: the lecture date ±1 day.
-  const isSubstituteWindow = (date?: string) => {
-    const parts = (date || '').split('-').map(Number);
-    if (parts.length !== 3 || parts.some(isNaN)) return false;
-    const dayStart = Date.UTC(parts[0], parts[1] - 1, parts[2]);
-    const now = Date.now();
-    return now > dayStart - 86400000 && now < dayStart + 2 * 86400000;
-  };
-
-  const isAssignedGroupTrainer = useMemo(() => !!group && [
-    group.primaryTrainerId, group.secondaryTrainerId, group.assistantTrainerId, ...(group.trainerIds || [])
-  ].includes(user.uid), [group, user.uid]);
-
   const canEvaluate = useMemo(() => {
     if (isAdmin || user.role === 'trainer') return true;
     return group?.trainerIds?.includes(user.uid);
@@ -1762,12 +1749,6 @@ const GroupDetails: React.FC<{ user: User }> = ({ user }) => {
     }
   };
   const execSave = async (sessionId: string, payload: any) => {
-    // Same check as the Firestore rules: a trainer who isn't assigned to the group can
-    // only run a lecture as a substitute around its scheduled date.
-    if (user.role === 'trainer' && !isAssignedGroupTrainer && !isSubstituteWindow(sessions.find(s => s.id === sessionId)?.date)) {
-      alert('⚠️ حسابك مش متسجل كمدرب على الجروب ده، والمدرب البديل يقدر يشغّل المحاضرة في يومها بس.\nتواصل مع الإدارة لو محتاج تعدّل محاضرة في يوم تاني.');
-      throw new Error('not-assigned-trainer');
-    }
     const { saveSessionExecution } = await import('../services/firestore');
     let finalPayload = { ...payload };
     if (['trainer', 'team_leader'].includes(user.role)) {
